@@ -1,0 +1,41 @@
+Job: rawlsian_maximin_wealth_seed2
+Command: uv run python -u adult_income_training.py --seed 2 --single --reward rawlsian_maximin --constraint wealth --episodes 200 --weights-dir ./static_sequential_results
+Started: 2026-01-22T18:36:35.484919
+================================================================================
+
+================================================================================
+SINGLE REWARD FUNCTION EXPERIMENT
+  Reward: RAWLSIAN_MAXIMIN
+  Constraint: WEALTH
+  Seed: 2
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Training Agent...
+  Using device: cuda
+Training with rawlsian_maximin (wealth constraint)...
+  Episode 0: Reward=107503.596, Avg=107503.596, λ_w=2.0201, ρ=0.946, R_M=0.0078, R_F=0.0083
+  Episode 20: Reward=135947.345, Avg=122915.074, λ_w=2.4674, ρ=1.488, R_M=0.0007, R_F=0.0005
+  Episode 40: Reward=158293.099, Avg=151498.969, λ_w=3.0136, ρ=1.385, R_M=0.0003, R_F=0.0002
+  Episode 60: Reward=202862.983, Avg=182789.259, λ_w=3.6809, ρ=1.322, R_M=0.0002, R_F=0.0001
+  Episode 80: Reward=237203.092, Avg=225147.235, λ_w=4.4958, ρ=1.048, R_M=0.0001, R_F=0.0001
+  Episode 100: Reward=299560.656, Avg=279772.586, λ_w=5.4912, ρ=1.326, R_M=0.0001, R_F=0.0001
+  Episode 120: Reward=397745.264, Avg=344197.863, λ_w=6.7070, ρ=1.399, R_M=0.0001, R_F=0.0001

@@ -25,3 +25,9 @@
 2026-01-22 16:39:01 | DONE  | Job 10/36: rawlsian_maximin_approval_rate_seed1 (42m 50s)
 2026-01-22 16:39:01 | INFO  | Progress: 10 completed, 0 failed, 26 remaining
 2026-01-22 16:39:01 | START | Job 11/36: rawlsian_maximin_approval_rate_seed2
+2026-01-22 17:15:05 | DONE  | Job 11/36: rawlsian_maximin_approval_rate_seed2 (36m 4s)
+2026-01-22 17:15:05 | START | Job 12/36: rawlsian_maximin_approval_rate_seed3
+2026-01-22 17:59:40 | DONE  | Job 12/36: rawlsian_maximin_approval_rate_seed3 (44m 34s)
+2026-01-22 17:59:40 | START | Job 13/36: rawlsian_maximin_wealth_seed1
+2026-01-22 18:36:35 | DONE  | Job 13/36: rawlsian_maximin_wealth_seed1 (36m 55s)
+2026-01-22 18:36:35 | START | Job 14/36: rawlsian_maximin_wealth_seed2

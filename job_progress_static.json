@@ -9,8 +9,11 @@
     "social_welfare_both_seed1",
     "social_welfare_both_seed2",
     "social_welfare_both_seed3",
-    "rawlsian_maximin_approval_rate_seed1"
+    "rawlsian_maximin_approval_rate_seed1",
+    "rawlsian_maximin_approval_rate_seed2",
+    "rawlsian_maximin_approval_rate_seed3",
+    "rawlsian_maximin_wealth_seed1"
   ],
   "failed": [],
-  "in_progress": "rawlsian_maximin_approval_rate_seed2"
+  "in_progress": "rawlsian_maximin_wealth_seed2"
 }
