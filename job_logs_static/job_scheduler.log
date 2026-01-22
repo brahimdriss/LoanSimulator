@@ -18,3 +18,10 @@
 2026-01-22 14:41:47 | START | Job 7/36: social_welfare_both_seed1
 2026-01-22 15:04:19 | DONE  | Job 7/36: social_welfare_both_seed1 (22m 32s)
 2026-01-22 15:04:19 | START | Job 8/36: social_welfare_both_seed2
+2026-01-22 15:44:40 | DONE  | Job 8/36: social_welfare_both_seed2 (40m 20s)
+2026-01-22 15:44:40 | START | Job 9/36: social_welfare_both_seed3
+2026-01-22 15:56:11 | DONE  | Job 9/36: social_welfare_both_seed3 (11m 30s)
+2026-01-22 15:56:11 | START | Job 10/36: rawlsian_maximin_approval_rate_seed1
+2026-01-22 16:39:01 | DONE  | Job 10/36: rawlsian_maximin_approval_rate_seed1 (42m 50s)
+2026-01-22 16:39:01 | INFO  | Progress: 10 completed, 0 failed, 26 remaining
+2026-01-22 16:39:01 | START | Job 11/36: rawlsian_maximin_approval_rate_seed2
