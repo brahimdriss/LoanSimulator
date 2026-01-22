@@ -1,0 +1,140 @@
+Job: rawlsian_maximin_approval_rate_seed3
+Command: uv run python -u par_pepg.py --seeds 1 --seed 3 --reward rawlsian_maximin --constraint approval_rate --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-22T15:07:49.178314
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: RAWLSIAN_MAXIMIN
+  Constraint: APPROVAL_RATE
+  Seed: 3
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'approval_rate' (lr=0.01)
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with rawlsian_maximin (approval_rate constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=1839.48, Avg=1839.48, ρ=1.46, λw=2.000, ‖∇std‖=16.143, ‖∇H‖=3669.352, ‖∇W‖=18723.025
+  [PePG] Ep 10: R=734.14, Avg=734.14, ρ=1.69, λw=2.000, ‖∇std‖=6.054, ‖∇H‖=380.987, ‖∇W‖=1706.551
+  [PePG] Ep 20: R=584.67, Avg=773.16, ρ=1.63, λw=2.000, ‖∇std‖=31.322, ‖∇H‖=23.090, ‖∇W‖=189.115
+  [PePG] Ep 30: R=466.73, Avg=544.77, ρ=1.08, λw=2.000, ‖∇std‖=15.736, ‖∇H‖=78.333, ‖∇W‖=448.080
+  [PePG] Ep 40: R=381.13, Avg=456.36, ρ=0.82, λw=2.000, ‖∇std‖=1.999, ‖∇H‖=374.089, ‖∇W‖=1408.470
+  [PePG] Ep 50: R=331.80, Avg=386.31, ρ=1.30, λw=2.000, ‖∇std‖=12.895, ‖∇H‖=57.131, ‖∇W‖=182.128
+  [PePG] Ep 60: R=393.38, Avg=369.30, ρ=1.07, λw=2.000, ‖∇std‖=16.447, ‖∇H‖=41.664, ‖∇W‖=179.140
+  [PePG] Ep 70: R=516.88, Avg=436.46, ρ=0.97, λw=2.000, ‖∇std‖=10.627, ‖∇H‖=31.587, ‖∇W‖=161.153
+  [PePG] Ep 80: R=694.33, Avg=570.65, ρ=1.00, λw=2.000, ‖∇std‖=26.402, ‖∇H‖=18.205, ‖∇W‖=77.154
+  [PePG] Ep 90: R=850.89, Avg=677.23, ρ=0.76, λw=2.000, ‖∇std‖=29.287, ‖∇H‖=135.167, ‖∇W‖=591.175
+  [PePG] Ep 100: R=802.60, Avg=704.13, ρ=1.35, λw=2.000, ‖∇std‖=23.670, ‖∇H‖=133.846, ‖∇W‖=207.404
+  [PePG] Ep 110: R=892.82, Avg=728.76, ρ=1.80, λw=2.000, ‖∇std‖=16.327, ‖∇H‖=42.654, ‖∇W‖=110.670
+  [PePG] Ep 120: R=1076.48, Avg=920.73, ρ=1.88, λw=2.000, ‖∇std‖=12.842, ‖∇H‖=17.256, ‖∇W‖=397.924
+  [PePG] Ep 130: R=1217.72, Avg=1187.25, ρ=1.31, λw=2.000, ‖∇std‖=31.035, ‖∇H‖=128.512, ‖∇W‖=423.455
+  [PePG] Ep 140: R=1825.07, Avg=1423.43, ρ=1.14, λw=2.000, ‖∇std‖=35.643, ‖∇H‖=1208.213, ‖∇W‖=6739.464
+  [PePG] Ep 150: R=5506.45, Avg=2580.33, ρ=1.38, λw=2.000, ‖∇std‖=27.701, ‖∇H‖=3785.145, ‖∇W‖=17449.309
+  [PePG] Ep 160: R=9907.64, Avg=5683.73, ρ=1.40, λw=2.000, ‖∇std‖=18.508, ‖∇H‖=2296.546, ‖∇W‖=14775.650
+  [PePG] Ep 170: R=13653.34, Avg=9984.35, ρ=1.53, λw=2.000, ‖∇std‖=23.041, ‖∇H‖=3285.399, ‖∇W‖=11703.509
+  [PePG] Ep 180: R=19123.35, Avg=14973.65, ρ=1.34, λw=2.000, ‖∇std‖=50.915, ‖∇H‖=9494.938, ‖∇W‖=74125.070
+  [PePG] Ep 190: R=33222.57, Avg=22175.33, ρ=1.47, λw=2.000, ‖∇std‖=15.681, ‖∇H‖=2637.985, ‖∇W‖=23223.936
+  [PePG] Ep 199: R=43688.42, Avg=31576.38, ρ=1.32, λw=2.000, ‖∇std‖=14.456, ‖∇H‖=13063.165, ‖∇W‖=4911.323
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $46.913k
+  Approval disparity: -0.0076
+  Total profit: $3094.330k
+  Mean ρ: 1.3569
+  PePG V2 model saved to ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed3.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed3.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed3.pt...
+  ✓ Model loaded successfully
+    Reward function: rawlsian_maximin
+    Constraint type: approval_rate
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $74.79k, μ_F: $59.05k
+    Wealth Gap: $15.73k
+    Episode Approval Rate M: 0.7557
+    Episode Approval Rate F: 0.7552
+    Episode Profit: $3998.43k
+    Cumulative Profit: $15206.29k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $91.92k, μ_F: $71.57k
+    Wealth Gap: $20.35k
+    Episode Approval Rate M: 0.7777
+    Episode Approval Rate F: 0.7222
+    Episode Profit: $4993.33k
+    Cumulative Profit: $32969.90k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $111.97k, μ_F: $85.88k
+    Wealth Gap: $26.08k
+    Episode Approval Rate M: 0.7583
+    Episode Approval Rate F: 0.7769
+    Episode Profit: $5780.22k
+    Cumulative Profit: $54513.42k
+
+  Starting Episode 31 (ALL state preserved - continuous play)

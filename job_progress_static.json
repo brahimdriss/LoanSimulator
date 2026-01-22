@@ -1,0 +1,13 @@
+{
+  "completed": [
+    "social_welfare_approval_rate_seed1",
+    "social_welfare_approval_rate_seed2",
+    "social_welfare_approval_rate_seed3",
+    "social_welfare_wealth_seed1",
+    "social_welfare_wealth_seed2",
+    "social_welfare_wealth_seed3",
+    "social_welfare_both_seed1"
+  ],
+  "failed": [],
+  "in_progress": "social_welfare_both_seed2"
+}

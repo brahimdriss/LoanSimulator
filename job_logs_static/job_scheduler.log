@@ -1,0 +1,20 @@
+2026-01-22 11:26:22 | INFO  | ==================================================
+2026-01-22 11:26:22 | INFO  | Sequential Static Job Scheduler Started
+2026-01-22 11:26:22 | INFO  | Total jobs: 36, Pending: 36, Completed: 0, Failed: 0
+2026-01-22 11:26:22 | INFO  | Episodes per job: 200
+2026-01-22 11:26:22 | INFO  | ==================================================
+2026-01-22 11:26:22 | START | Job 1/36: social_welfare_approval_rate_seed1
+2026-01-22 12:10:31 | DONE  | Job 1/36: social_welfare_approval_rate_seed1 (44m 9s)
+2026-01-22 12:10:31 | START | Job 2/36: social_welfare_approval_rate_seed2
+2026-01-22 12:58:39 | DONE  | Job 2/36: social_welfare_approval_rate_seed2 (48m 8s)
+2026-01-22 12:58:39 | START | Job 3/36: social_welfare_approval_rate_seed3
+2026-01-22 13:43:35 | DONE  | Job 3/36: social_welfare_approval_rate_seed3 (44m 56s)
+2026-01-22 13:43:35 | START | Job 4/36: social_welfare_wealth_seed1
+2026-01-22 14:02:03 | DONE  | Job 4/36: social_welfare_wealth_seed1 (18m 27s)
+2026-01-22 14:02:03 | START | Job 5/36: social_welfare_wealth_seed2
+2026-01-22 14:24:46 | DONE  | Job 5/36: social_welfare_wealth_seed2 (22m 43s)
+2026-01-22 14:24:46 | START | Job 6/36: social_welfare_wealth_seed3
+2026-01-22 14:41:47 | DONE  | Job 6/36: social_welfare_wealth_seed3 (17m 0s)
+2026-01-22 14:41:47 | START | Job 7/36: social_welfare_both_seed1
+2026-01-22 15:04:19 | DONE  | Job 7/36: social_welfare_both_seed1 (22m 32s)
+2026-01-22 15:04:19 | START | Job 8/36: social_welfare_both_seed2

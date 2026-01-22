@@ -1,0 +1,17 @@
+{
+  "completed": [
+    "social_welfare_approval_rate_seed1",
+    "social_welfare_approval_rate_seed2",
+    "social_welfare_approval_rate_seed3",
+    "social_welfare_wealth_seed1",
+    "social_welfare_wealth_seed2",
+    "social_welfare_wealth_seed3",
+    "social_welfare_both_seed1",
+    "social_welfare_both_seed2",
+    "social_welfare_both_seed3",
+    "rawlsian_maximin_approval_rate_seed1",
+    "rawlsian_maximin_approval_rate_seed2"
+  ],
+  "failed": [],
+  "in_progress": "rawlsian_maximin_approval_rate_seed3"
+}

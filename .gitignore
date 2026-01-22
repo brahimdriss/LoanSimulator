@@ -1,5 +1,6 @@
-*.pt
 .venv/
-*.csv
-*.log
 *.pyc
+
+# *.csv
+# *.pt
+# *.log

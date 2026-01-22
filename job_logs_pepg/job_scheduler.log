@@ -1,0 +1,29 @@
+2026-01-22 11:26:05 | INFO  | ==================================================
+2026-01-22 11:26:05 | INFO  | Sequential PePG Job Scheduler Started
+2026-01-22 11:26:05 | INFO  | Total jobs: 36, Pending: 36, Completed: 0, Failed: 0
+2026-01-22 11:26:05 | INFO  | Episodes per job: 200
+2026-01-22 11:26:05 | INFO  | ==================================================
+2026-01-22 11:26:05 | START | Job 1/36: social_welfare_approval_rate_seed1
+2026-01-22 11:47:15 | DONE  | Job 1/36: social_welfare_approval_rate_seed1 (21m 9s)
+2026-01-22 11:47:15 | START | Job 2/36: social_welfare_approval_rate_seed2
+2026-01-22 12:04:05 | DONE  | Job 2/36: social_welfare_approval_rate_seed2 (16m 50s)
+2026-01-22 12:04:05 | START | Job 3/36: social_welfare_approval_rate_seed3
+2026-01-22 12:25:15 | DONE  | Job 3/36: social_welfare_approval_rate_seed3 (21m 9s)
+2026-01-22 12:25:15 | START | Job 4/36: social_welfare_wealth_seed1
+2026-01-22 12:41:48 | DONE  | Job 4/36: social_welfare_wealth_seed1 (16m 33s)
+2026-01-22 12:41:48 | START | Job 5/36: social_welfare_wealth_seed2
+2026-01-22 12:58:26 | DONE  | Job 5/36: social_welfare_wealth_seed2 (16m 38s)
+2026-01-22 12:58:26 | START | Job 6/36: social_welfare_wealth_seed3
+2026-01-22 13:19:56 | DONE  | Job 6/36: social_welfare_wealth_seed3 (21m 29s)
+2026-01-22 13:19:56 | START | Job 7/36: social_welfare_both_seed1
+2026-01-22 13:36:57 | DONE  | Job 7/36: social_welfare_both_seed1 (17m 0s)
+2026-01-22 13:36:57 | START | Job 8/36: social_welfare_both_seed2
+2026-01-22 13:57:05 | DONE  | Job 8/36: social_welfare_both_seed2 (20m 8s)
+2026-01-22 13:57:05 | START | Job 9/36: social_welfare_both_seed3
+2026-01-22 14:18:07 | DONE  | Job 9/36: social_welfare_both_seed3 (21m 1s)
+2026-01-22 14:18:07 | START | Job 10/36: rawlsian_maximin_approval_rate_seed1
+2026-01-22 14:41:19 | DONE  | Job 10/36: rawlsian_maximin_approval_rate_seed1 (23m 11s)
+2026-01-22 14:41:19 | INFO  | Progress: 10 completed, 0 failed, 26 remaining
+2026-01-22 14:41:19 | START | Job 11/36: rawlsian_maximin_approval_rate_seed2
+2026-01-22 15:07:49 | DONE  | Job 11/36: rawlsian_maximin_approval_rate_seed2 (26m 29s)
+2026-01-22 15:07:49 | START | Job 12/36: rawlsian_maximin_approval_rate_seed3
