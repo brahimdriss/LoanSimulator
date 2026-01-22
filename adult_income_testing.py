@@ -817,6 +817,7 @@ class TestingIncomeEnvironment(gym.Env):
             self._record_episode_metrics()
 
     def _f_networth_to_rate(self, mu: float) -> float:
+        mu = mu * 5.0
         return max(0.5, 2.0 + 0.01 * mu)
 
     def _phi_R(self, t: float) -> float:
@@ -935,6 +936,12 @@ class TestingIncomeEnvironment(gym.Env):
 
         random_vals_M = np.random.random(self.N_male)
         applying_indices_M = np.where(random_vals_M < app_probs_M)[0]
+        if len(applying_indices_M) > 10:
+            final_num = 10 + np.int32(
+                np.ceil(np.random.random(1)[0] * 0.0 * (len(applying_indices_M) - 10))
+            )
+            # print(final_num)
+            applying_indices_M = applying_indices_M[:final_num]
 
         for idx in applying_indices_M:
             apply_select_M[idx] = 1
@@ -981,6 +988,11 @@ class TestingIncomeEnvironment(gym.Env):
 
         random_vals_F = np.random.random(self.N_female)
         applying_indices_F = np.where(random_vals_F < app_probs_F)[0]
+        if len(applying_indices_F) > 10:
+            final_num = 10 + np.int32(
+                np.ceil(np.random.random(1)[0] * 0.0 * (len(applying_indices_F) - 10))
+            )
+            applying_indices_F = applying_indices_F[:final_num]
 
         for idx in applying_indices_F:
             apply_select_F[idx] = 1
@@ -1008,6 +1020,8 @@ class TestingIncomeEnvironment(gym.Env):
         n_arrivals_F = len(applying_indices_F)
         self.total_applications_M += n_arrivals_M
         self.total_applications_F += n_arrivals_F
+        self.episode_applications_M += n_arrivals_M
+        self.episode_applications_F += n_arrivals_F
 
         return {
             "applications": applications,
@@ -1068,7 +1082,9 @@ class TestingIncomeEnvironment(gym.Env):
                     self.episode_actual_approvals_F += 1
 
                 defaults = np.random.random() < applicant["default_prob"]
-                kappa_i = 0.0 if defaults else applicant["wealth_gain"]
+                kappa_i = (
+                    applicant["loan_amount"] if defaults else applicant["wealth_gain"]
+                )
 
                 if applicant["S"] == 1:
                     self.current_X_male[applicant["individual_id"]] += kappa_i
@@ -1080,6 +1096,7 @@ class TestingIncomeEnvironment(gym.Env):
                         self.total_defaults_M += 1
                         self.episode_defaults_M += 1
                         self.timestep_data["defaults_M"] += 1
+                        self.timestep_profit -= kappa_i
                     else:
                         profit = applicant["loan_amount"] * self.interest_rate
                         self.timestep_profit += profit
@@ -1094,6 +1111,7 @@ class TestingIncomeEnvironment(gym.Env):
                         self.total_defaults_F += 1
                         self.episode_defaults_F += 1
                         self.timestep_data["defaults_F"] += 1
+                        self.timestep_profit -= kappa_i
                     else:
                         profit = applicant["loan_amount"] * self.interest_rate
                         self.timestep_profit += profit
@@ -2207,7 +2225,7 @@ if __name__ == "__main__":
 
     # Testing parameters
     parser.add_argument(
-        "--episodes", type=int, default=20, help="Number of episodes (continuous)"
+        "--episodes", type=int, default=100, help="Number of episodes (continuous)"
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(

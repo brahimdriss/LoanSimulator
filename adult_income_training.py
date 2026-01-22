@@ -753,7 +753,10 @@ class IncomeEnvironment(gym.Env):
                     self.event_times_B.append(self.current_time)
 
                 defaults = np.random.random() < applicant["default_prob"]
-                kappa_i = 0.0 if defaults else applicant["wealth_gain"]
+                # kappa_i = 0.0 if defaults else applicant["wealth_gain"]
+                kappa_i = (
+                    applicant["loan_amount"] if defaults else applicant["wealth_gain"]
+                )
 
                 if applicant["S"] == 1:
                     self.current_X_male[applicant["individual_id"]] += kappa_i
@@ -764,6 +767,7 @@ class IncomeEnvironment(gym.Env):
                     if defaults:
                         self.total_defaults_R += 1
                         self.timestep_data["defaults_R"] += 1
+                        self.timestep_profit -= kappa_i
                     else:
                         self.timestep_profit += (
                             applicant["loan_amount"] * self.interest_rate
@@ -777,6 +781,7 @@ class IncomeEnvironment(gym.Env):
                     if defaults:
                         self.total_defaults_B += 1
                         self.timestep_data["defaults_B"] += 1
+                        self.timestep_profit -= kappa_i
                     else:
                         self.timestep_profit += (
                             applicant["loan_amount"] * self.interest_rate
@@ -2791,7 +2796,7 @@ if __name__ == "__main__":
 
     # Basic arguments
     parser.add_argument("--data", type=str, default=None, help="Path to adult.csv")
-    parser.add_argument("--episodes", type=int, default=20, help="Number of episodes")
+    parser.add_argument("--episodes", type=int, default=200, help="Number of episodes")
     parser.add_argument("--seed", type=int, default=1, help="Random seed")
     parser.add_argument(
         "--constraint",
