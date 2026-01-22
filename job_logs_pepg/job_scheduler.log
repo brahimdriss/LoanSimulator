@@ -41,3 +41,8 @@
 2026-01-22 17:30:26 | START | Job 18/36: rawlsian_maximin_both_seed3
 2026-01-22 17:47:29 | DONE  | Job 18/36: rawlsian_maximin_both_seed3 (17m 3s)
 2026-01-22 17:47:29 | START | Job 19/36: fairness_lagrangian_approval_rate_seed1
+2026-01-22 19:33:44 | DONE  | Job 19/36: fairness_lagrangian_approval_rate_seed1 (1h 46m 15s)
+2026-01-22 19:33:44 | START | Job 20/36: fairness_lagrangian_approval_rate_seed2
+2026-01-22 21:16:33 | DONE  | Job 20/36: fairness_lagrangian_approval_rate_seed2 (1h 42m 48s)
+2026-01-22 21:16:33 | INFO  | Progress: 20 completed, 0 failed, 16 remaining
+2026-01-22 21:16:33 | START | Job 21/36: fairness_lagrangian_approval_rate_seed3

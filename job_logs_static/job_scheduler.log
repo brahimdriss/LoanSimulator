@@ -31,3 +31,15 @@
 2026-01-22 17:59:40 | START | Job 13/36: rawlsian_maximin_wealth_seed1
 2026-01-22 18:36:35 | DONE  | Job 13/36: rawlsian_maximin_wealth_seed1 (36m 55s)
 2026-01-22 18:36:35 | START | Job 14/36: rawlsian_maximin_wealth_seed2
+2026-01-22 19:17:03 | DONE  | Job 14/36: rawlsian_maximin_wealth_seed2 (40m 27s)
+2026-01-22 19:17:03 | START | Job 15/36: rawlsian_maximin_wealth_seed3
+2026-01-22 19:35:01 | DONE  | Job 15/36: rawlsian_maximin_wealth_seed3 (17m 58s)
+2026-01-22 19:35:01 | START | Job 16/36: rawlsian_maximin_both_seed1
+2026-01-22 20:14:48 | DONE  | Job 16/36: rawlsian_maximin_both_seed1 (39m 46s)
+2026-01-22 20:14:48 | START | Job 17/36: rawlsian_maximin_both_seed2
+2026-01-22 20:35:35 | DONE  | Job 17/36: rawlsian_maximin_both_seed2 (20m 46s)
+2026-01-22 20:35:35 | START | Job 18/36: rawlsian_maximin_both_seed3
+2026-01-22 21:08:04 | DONE  | Job 18/36: rawlsian_maximin_both_seed3 (32m 29s)
+2026-01-22 21:08:04 | START | Job 19/36: fairness_lagrangian_approval_rate_seed1
+2026-01-22 21:49:36 | DONE  | Job 19/36: fairness_lagrangian_approval_rate_seed1 (41m 32s)
+2026-01-22 21:49:36 | START | Job 20/36: fairness_lagrangian_approval_rate_seed2

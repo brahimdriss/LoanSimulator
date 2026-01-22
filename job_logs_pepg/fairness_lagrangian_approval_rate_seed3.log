@@ -1,0 +1,116 @@
+Job: fairness_lagrangian_approval_rate_seed3
+Command: uv run python -u par_pepg.py --seeds 1 --seed 3 --reward fairness_lagrangian --constraint approval_rate --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-22T21:16:33.575463
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: FAIRNESS_LAGRANGIAN
+  Constraint: APPROVAL_RATE
+  Seed: 3
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'approval_rate' (lr=0.01)
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with fairness_lagrangian (approval_rate constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=737.90, Avg=737.90, ρ=1.46, λw=2.000, ‖∇std‖=30.529, ‖∇H‖=330.961, ‖∇W‖=2125.531
+  [PePG] Ep 10: R=172.01, Avg=172.01, ρ=1.00, λw=2.000, ‖∇std‖=31.889, ‖∇H‖=1114.647, ‖∇W‖=4114.899
+  [PePG] Ep 20: R=246.47, Avg=323.97, ρ=1.50, λw=2.000, ‖∇std‖=41.056, ‖∇H‖=576.851, ‖∇W‖=3885.838
+  [PePG] Ep 30: R=407.45, Avg=269.07, ρ=1.21, λw=2.000, ‖∇std‖=19.774, ‖∇H‖=572.071, ‖∇W‖=3246.088
+  [PePG] Ep 40: R=495.30, Avg=398.91, ρ=1.00, λw=2.000, ‖∇std‖=83.171, ‖∇H‖=2187.811, ‖∇W‖=6168.096
+  [PePG] Ep 50: R=1307.17, Avg=781.95, ρ=1.23, λw=2.000, ‖∇std‖=32.248, ‖∇H‖=1590.449, ‖∇W‖=10216.810
+  [PePG] Ep 60: R=2006.30, Avg=1346.74, ρ=1.34, λw=2.000, ‖∇std‖=149.454, ‖∇H‖=979.959, ‖∇W‖=10119.260
+  [PePG] Ep 70: R=2841.58, Avg=2060.64, ρ=1.45, λw=2.000, ‖∇std‖=56.398, ‖∇H‖=405.736, ‖∇W‖=2679.796
+  [PePG] Ep 80: R=3585.23, Avg=2860.77, ρ=1.28, λw=2.000, ‖∇std‖=4.796, ‖∇H‖=143.192, ‖∇W‖=1630.326
+  [PePG] Ep 90: R=4209.54, Avg=3618.23, ρ=1.34, λw=2.000, ‖∇std‖=13.135, ‖∇H‖=170.518, ‖∇W‖=1206.946
+  [PePG] Ep 100: R=5051.87, Avg=4301.07, ρ=1.09, λw=2.000, ‖∇std‖=25.343, ‖∇H‖=225.086, ‖∇W‖=1318.497
+  [PePG] Ep 110: R=5537.42, Avg=4952.29, ρ=1.06, λw=2.000, ‖∇std‖=22.602, ‖∇H‖=754.669, ‖∇W‖=233.584
+  [PePG] Ep 120: R=5555.18, Avg=5439.05, ρ=1.01, λw=2.000, ‖∇std‖=17.168, ‖∇H‖=814.663, ‖∇W‖=847.913
+  [PePG] Ep 130: R=5780.37, Avg=5675.62, ρ=1.02, λw=2.000, ‖∇std‖=62.540, ‖∇H‖=2327.224, ‖∇W‖=11607.847
+  [PePG] Ep 140: R=5950.01, Avg=5806.66, ρ=1.01, λw=2.000, ‖∇std‖=2.249, ‖∇H‖=395.394, ‖∇W‖=1948.449
+  [PePG] Ep 150: R=6015.11, Avg=5903.52, ρ=0.94, λw=2.000, ‖∇std‖=11.849, ‖∇H‖=663.735, ‖∇W‖=1801.978
+  [PePG] Ep 160: R=5874.35, Avg=5922.56, ρ=0.98, λw=2.000, ‖∇std‖=11.333, ‖∇H‖=334.928, ‖∇W‖=1056.544
+  [PePG] Ep 170: R=5870.59, Avg=5888.69, ρ=0.96, λw=2.000, ‖∇std‖=8.463, ‖∇H‖=283.218, ‖∇W‖=2944.411
+  [PePG] Ep 180: R=5951.11, Avg=5936.20, ρ=0.98, λw=2.000, ‖∇std‖=34.876, ‖∇H‖=809.067, ‖∇W‖=4564.638
+  [PePG] Ep 190: R=6008.47, Avg=5957.89, ρ=0.99, λw=2.000, ‖∇std‖=1.983, ‖∇H‖=56.034, ‖∇W‖=286.308
+  [PePG] Ep 199: R=6130.31, Avg=5957.99, ρ=1.00, λw=2.000, ‖∇std‖=11.278, ‖∇H‖=286.661, ‖∇W‖=576.790
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $60.813k
+  Approval disparity: 0.0005
+  Total profit: $7111.029k
+  Mean ρ: 1.1670
+  PePG V2 model saved to ./pepg_sequential_results/pepg_fairness_lagrangian_approval_rate_seed3.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_fairness_lagrangian_approval_rate_seed3.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_fairness_lagrangian_approval_rate_seed3.pt...
+  ✓ Model loaded successfully
+    Reward function: fairness_lagrangian
+    Constraint type: approval_rate
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $79.35k, μ_F: $62.91k
+    Wealth Gap: $16.45k
+    Episode Approval Rate M: 0.9875
+    Episode Approval Rate F: 0.9852
+    Episode Profit: $5791.51k
+    Cumulative Profit: $20002.81k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
