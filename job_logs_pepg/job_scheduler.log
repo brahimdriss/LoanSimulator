@@ -46,3 +46,5 @@
 2026-01-22 21:16:33 | DONE  | Job 20/36: fairness_lagrangian_approval_rate_seed2 (1h 42m 48s)
 2026-01-22 21:16:33 | INFO  | Progress: 20 completed, 0 failed, 16 remaining
 2026-01-22 21:16:33 | START | Job 21/36: fairness_lagrangian_approval_rate_seed3
+2026-01-22 22:54:41 | DONE  | Job 21/36: fairness_lagrangian_approval_rate_seed3 (1h 38m 8s)
+2026-01-22 22:54:41 | START | Job 22/36: fairness_lagrangian_wealth_seed1

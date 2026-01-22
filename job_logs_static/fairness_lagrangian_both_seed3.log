@@ -1,0 +1,40 @@
+Job: fairness_lagrangian_both_seed3
+Command: uv run python -u adult_income_training.py --seed 3 --single --reward fairness_lagrangian --constraint both --episodes 200 --weights-dir ./static_sequential_results
+Started: 2026-01-23T00:43:16.481839
+================================================================================
+
+================================================================================
+SINGLE REWARD FUNCTION EXPERIMENT
+  Reward: FAIRNESS_LAGRANGIAN
+  Constraint: BOTH
+  Seed: 3
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Training Agent...
+  Using device: cuda
+Training with fairness_lagrangian (both constraint)...
+  Episode 0: Reward=-28655.513, Avg=-28655.513, λ_w=2.0201, λ_a=2.0201, ρ=1.172
+  Episode 20: Reward=-33514.046, Avg=-30481.294, λ_w=2.4674, λ_a=2.3994, ρ=1.251
+  Episode 40: Reward=-43474.737, Avg=-38741.416, λ_w=3.0136, λ_a=2.7386, ρ=1.414
+  Episode 60: Reward=-51971.380, Avg=-46803.680, λ_w=3.6809, λ_a=3.0684, ρ=1.304
+  Episode 80: Reward=-61616.433, Avg=-57893.523, λ_w=4.4958, λ_a=3.4780, ρ=1.262
+  Episode 100: Reward=-75981.862, Avg=-69582.056, λ_w=5.4912, λ_a=3.9990, ρ=1.389

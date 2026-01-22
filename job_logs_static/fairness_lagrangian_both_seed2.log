@@ -1,0 +1,287 @@
+Job: fairness_lagrangian_both_seed2
+Command: uv run python -u adult_income_training.py --seed 2 --single --reward fairness_lagrangian --constraint both --episodes 200 --weights-dir ./static_sequential_results
+Started: 2026-01-23T00:22:25.632378
+================================================================================
+
+================================================================================
+SINGLE REWARD FUNCTION EXPERIMENT
+  Reward: FAIRNESS_LAGRANGIAN
+  Constraint: BOTH
+  Seed: 2
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Training Agent...
+  Using device: cuda
+Training with fairness_lagrangian (both constraint)...
+  Episode 0: Reward=-26509.713, Avg=-26509.713, λ_w=2.0201, λ_a=2.0201, ρ=0.946
+  Episode 20: Reward=-32887.840, Avg=-30200.237, λ_w=2.4674, λ_a=2.3800, ρ=1.134
+  Episode 40: Reward=-38647.923, Avg=-37156.979, λ_w=3.0136, λ_a=2.8065, ρ=1.162
+  Episode 60: Reward=-51028.069, Avg=-46520.192, λ_w=3.6809, λ_a=3.3167, ρ=1.212
+  Episode 80: Reward=-59996.040, Avg=-57443.950, λ_w=4.4958, λ_a=3.8918, ρ=1.420
+  Episode 100: Reward=-73161.352, Avg=-69686.114, λ_w=5.4912, λ_a=4.5401, ρ=1.132
+  Episode 120: Reward=-96026.943, Avg=-83492.445, λ_w=6.7070, λ_a=5.4266, ρ=1.490
+  Episode 140: Reward=-112888.311, Avg=-103259.797, λ_w=8.1919, λ_a=6.3802, ρ=1.105
+  Episode 160: Reward=-140565.882, Avg=-124248.729, λ_w=10.0056, λ_a=7.3113, ρ=1.518
+  Episode 180: Reward=-162170.088, Avg=-152646.060, λ_w=12.2209, λ_a=8.4372, ρ=1.267
+
+[STEP 5] Running Test Episode...
+
+============================================================
+TRAINING COMPLETE: fairness_lagrangian (both)
+============================================================
+  Initial wealth gap: $12.525k
+  Final wealth gap: $12.659k
+  Approval disparity: 0.0400
+  Total profit: $1095.939k
+  Final λ_wealth: 14.7781
+  Final λ_approval: 9.4940
+
+  --- Episode-Level Metrics (Training) ---
+  ρ (inequality ratio): mean=1.2579, std=0.1543
+  R_M (male welfare):   final=0.000039
+  R_F (female welfare): final=0.000031
+  R_M / R_F:            1.2532
+
+[STEP 6] Saving Model Weights...
+  Model saved to ./static_sequential_results/fairness_lagrangian_both_seed2.pt
+  Saved to: ./static_sequential_results/fairness_lagrangian_both_seed2.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./static_sequential_results/fairness_lagrangian_both_seed2.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./static_sequential_results/fairness_lagrangian_both_seed2.pt...
+  ✓ Model loaded successfully
+    Reward function: fairness_lagrangian
+    Constraint type: both
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $69.53k, μ_F: $55.11k
+    Wealth Gap: $14.43k
+    Episode Approval Rate M: 0.4939
+    Episode Approval Rate F: 0.4904
+    Episode Profit: $2346.72k
+    Cumulative Profit: $8970.20k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $79.03k, μ_F: $62.70k
+    Wealth Gap: $16.32k
+    Episode Approval Rate M: 0.5145
+    Episode Approval Rate F: 0.4695
+    Episode Profit: $2569.36k
+    Cumulative Profit: $18127.93k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $89.90k, μ_F: $70.87k
+    Wealth Gap: $19.03k
+    Episode Approval Rate M: 0.5103
+    Episode Approval Rate F: 0.4808
+    Episode Profit: $2912.27k
+    Cumulative Profit: $28438.29k
+
+  Starting Episode 31 (ALL state preserved - continuous play)
+
+  Episode 40/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 3980.0
+    μ_M: $101.86k, μ_F: $79.74k
+    Wealth Gap: $22.12k
+    Episode Approval Rate M: 0.5124
+    Episode Approval Rate F: 0.4779
+    Episode Profit: $3276.33k
+    Cumulative Profit: $39712.23k
+
+  Starting Episode 41 (ALL state preserved - continuous play)
+
+  Episode 50/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 4975.0
+    μ_M: $114.91k, μ_F: $89.77k
+    Wealth Gap: $25.14k
+    Episode Approval Rate M: 0.5073
+    Episode Approval Rate F: 0.4904
+    Episode Profit: $3756.52k
+    Cumulative Profit: $52654.93k
+
+  Starting Episode 51 (ALL state preserved - continuous play)
+
+  Episode 60/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 5970.0
+    μ_M: $129.66k, μ_F: $100.74k
+    Wealth Gap: $28.92k
+    Episode Approval Rate M: 0.4847
+    Episode Approval Rate F: 0.4847
+    Episode Profit: $3893.79k
+    Cumulative Profit: $66363.35k
+
+  Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $146.55k, μ_F: $112.90k
+    Wealth Gap: $33.65k
+    Episode Approval Rate M: 0.5175
+    Episode Approval Rate F: 0.5021
+    Episode Profit: $4777.82k
+    Cumulative Profit: $81208.56k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
+
+  Episode 80/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 7960.0
+    μ_M: $164.53k, μ_F: $126.39k
+    Wealth Gap: $38.14k
+    Episode Approval Rate M: 0.5056
+    Episode Approval Rate F: 0.5066
+    Episode Profit: $5169.08k
+    Cumulative Profit: $101257.11k
+
+  Starting Episode 81 (ALL state preserved - continuous play)
+
+  Episode 90/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 8955.0
+    μ_M: $183.95k, μ_F: $141.22k
+    Wealth Gap: $42.73k
+    Episode Approval Rate M: 0.4816
+    Episode Approval Rate F: 0.4928
+    Episode Profit: $5509.79k
+    Cumulative Profit: $122820.55k
+
+  Starting Episode 91 (ALL state preserved - continuous play)
+
+  Episode 100/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 9950.0
+    μ_M: $205.06k, μ_F: $157.98k
+    Wealth Gap: $47.09k
+    Episode Approval Rate M: 0.4925
+    Episode Approval Rate F: 0.4977
+    Episode Profit: $6051.30k
+    Cumulative Profit: $144926.98k
+
+[6] Computing Final Metrics...
+
+================================================================================
+FINAL TESTING RESULTS
+================================================================================
+
+  Model: fairness_lagrangian (both)
+  Episodes: 100
+  Total Time: 9950.0
+  Hawkes Events (M/F): 53493/40676
+
+  --- Wealth Metrics ---
+  Initial μ_M,0: $60.82k
+  Initial μ_F,0: $48.29k
+  Final μ_M: $205.06k
+  Final μ_F: $157.98k
+  Final Wealth Gap: $47.09k
+
+  --- Long-term Social Welfare R_g(t) = (μ_g,t - μ_g,0) / t ---
+  R_M (Male):   0.014497 ($1000s per time unit)
+  R_F (Female): 0.011024 ($1000s per time unit)
+  R_total:      0.012761 ($1000s per time unit)
+  R_M / R_F:    1.3151
+
+  --- Inequality Ratio ρ = Δμ_M / Δμ_F (per episode) ---
+  Mean ρ:   1.3196
+  Std ρ:    0.1188
+  Min ρ:    1.0781
+  Max ρ:    1.7443
+  Last 5 episodes: ['1.274', '1.288', '1.149', '1.201', '1.182']
+
+  --- Approval Metrics ---
+  Total Applications M: 108013
+  Total Applications F: 81912
+  Total Loans Approved M: 53493
+  Total Loans Approved F: 40676
+  Final Approval Rate M: 0.4952
+  Final Approval Rate F: 0.4966
+
+  --- Success Probabilities ---
+  Total Defaults M: 4607
+  Total Defaults F: 3469
+  Final Success Prob M: 0.9139
+  Final Success Prob F: 0.9147
+
+  --- Ground Truth Comparison (Males) ---
+  True Positives:  10521
+  False Positives: 42972
+  True Negatives:  43523
+  False Negatives: 10997
+  Accuracy:  0.5003
+  Precision: 0.1967
+  Recall:    0.4889
+
+  --- Ground Truth Comparison (Females) ---
+  True Positives:  4430
+  False Positives: 36246
+  True Negatives:  36712
+  False Negatives: 4524
+  Accuracy:  0.5023
+  Precision: 0.1089
+  Recall:    0.4948
+
+  --- Profit ---
+  Cumulative Profit: $144926.98k
+
+[7] Saving Results...
+  Saved episode metrics to ./static_sequential_results/test_episode_metrics_fairness_lagrangian_both_seed2_20260123_004315.csv
+
+================================================================================
+Finished: 2026-01-23T00:43:16.479774
+Exit code: 0
+Test Exit code: 0
