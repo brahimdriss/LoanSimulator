@@ -667,6 +667,7 @@ class IncomeEnvironment(gym.Env):
                         "male", idx, defaulted=False
                     ),
                     "theta_approval_prob": approval_probs_R[idx],
+                    # "p_theta_R":app_probs_R[idx]
                 }
             )
 
@@ -716,6 +717,7 @@ class IncomeEnvironment(gym.Env):
                         "female", idx, defaulted=False
                     ),
                     "theta_approval_prob": approval_probs_B[idx],
+                    # "p_theta_B":app_probs_B[idx]
                 }
             )
 
@@ -732,6 +734,8 @@ class IncomeEnvironment(gym.Env):
             "lambda_B": lambda_B,
             "n_arrivals_R": n_arrivals_R,
             "n_arrivals_B": n_arrivals_B,
+            "p_theta_R": app_probs_R.mean(),
+            "p_theta_B": app_probs_B.mean()
         }
 
     def step(self, action):
@@ -875,6 +879,8 @@ class IncomeEnvironment(gym.Env):
                     "approvals_B": 0,
                     "defaults_R": 0,
                     "defaults_B": 0,
+                    "p_theta_R": timestep_info['p_theta_R'],
+                    "p_theta_B": timestep_info['p_theta_B']
                 }
 
                 if self.pending_applications:
@@ -893,6 +899,8 @@ class IncomeEnvironment(gym.Env):
             "wealth_gap": self.mu_R - self.mu_B,
             "applicant": self.current_applicant,
             "agent_approval_prob": approval_prob,
+            "p_theta_R": self.timestep_data['p_theta_R'],
+            "p_theta_B": self.timestep_data['p_theta_B']
         }
 
         return obs, reward, terminated, truncated, info
