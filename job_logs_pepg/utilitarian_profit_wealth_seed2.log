@@ -1,0 +1,295 @@
+Job: utilitarian_profit_wealth_seed2
+Command: uv run python -u par_pepg.py --seeds 1 --seed 2 --reward utilitarian_profit --constraint wealth --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-23T11:09:15.491950
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: UTILITARIAN_PROFIT
+  Constraint: WEALTH
+  Seed: 2
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with utilitarian_profit (wealth constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=928.33, Avg=928.33, ρ=1.19, λw=2.000, ‖∇std‖=60.697, ‖∇H‖=1720.713, ‖∇W‖=13007.393
+  [PePG] Ep 10: R=208.58, Avg=208.58, ρ=1.39, λw=2.000, ‖∇std‖=3.632, ‖∇H‖=103.862, ‖∇W‖=527.388
+  [PePG] Ep 20: R=112.85, Avg=288.71, ρ=0.92, λw=2.000, ‖∇std‖=3.982, ‖∇H‖=1.813, ‖∇W‖=7.373
+  [PePG] Ep 30: R=74.21, Avg=125.25, ρ=1.06, λw=2.000, ‖∇std‖=3.672, ‖∇H‖=0.877, ‖∇W‖=5.581
+  [PePG] Ep 40: R=58.78, Avg=80.43, ρ=0.85, λw=2.000, ‖∇std‖=5.725, ‖∇H‖=3.925, ‖∇W‖=18.847
+  [PePG] Ep 50: R=58.64, Avg=63.65, ρ=0.88, λw=2.000, ‖∇std‖=3.578, ‖∇H‖=0.222, ‖∇W‖=0.469
+  [PePG] Ep 60: R=47.88, Avg=56.81, ρ=1.14, λw=2.000, ‖∇std‖=3.774, ‖∇H‖=4.848, ‖∇W‖=31.955
+  [PePG] Ep 70: R=46.08, Avg=52.16, ρ=1.53, λw=2.000, ‖∇std‖=27.268, ‖∇H‖=0.370, ‖∇W‖=3.433
+  [PePG] Ep 80: R=53.68, Avg=51.02, ρ=1.46, λw=2.000, ‖∇std‖=12.838, ‖∇H‖=6.206, ‖∇W‖=36.635
+  [PePG] Ep 90: R=47.89, Avg=51.16, ρ=1.73, λw=2.000, ‖∇std‖=3.504, ‖∇H‖=0.833, ‖∇W‖=6.329
+  [PePG] Ep 100: R=50.12, Avg=52.54, ρ=2.82, λw=2.000, ‖∇std‖=2.045, ‖∇H‖=0.143, ‖∇W‖=0.358
+  [PePG] Ep 110: R=57.53, Avg=53.19, ρ=1.77, λw=2.000, ‖∇std‖=8.423, ‖∇H‖=0.486, ‖∇W‖=13.841
+  [PePG] Ep 120: R=58.62, Avg=54.68, ρ=1.24, λw=2.000, ‖∇std‖=6.534, ‖∇H‖=2.434, ‖∇W‖=14.986
+  [PePG] Ep 130: R=53.73, Avg=56.48, ρ=1.59, λw=2.000, ‖∇std‖=4.293, ‖∇H‖=2.123, ‖∇W‖=20.566
+  [PePG] Ep 140: R=49.42, Avg=54.96, ρ=2.16, λw=2.000, ‖∇std‖=9.369, ‖∇H‖=0.180, ‖∇W‖=0.587
+  [PePG] Ep 150: R=46.99, Avg=51.41, ρ=0.81, λw=2.000, ‖∇std‖=29.493, ‖∇H‖=1.307, ‖∇W‖=13.387
+  [PePG] Ep 160: R=53.53, Avg=49.47, ρ=0.59, λw=2.000, ‖∇std‖=26.568, ‖∇H‖=0.235, ‖∇W‖=3.278
+  [PePG] Ep 170: R=46.77, Avg=48.20, ρ=1.41, λw=2.000, ‖∇std‖=12.102, ‖∇H‖=1.810, ‖∇W‖=10.124
+  [PePG] Ep 180: R=40.52, Avg=45.13, ρ=1.45, λw=2.000, ‖∇std‖=2.093, ‖∇H‖=1.716, ‖∇W‖=4.581
+  [PePG] Ep 190: R=41.58, Avg=43.28, ρ=0.52, λw=2.000, ‖∇std‖=25.647, ‖∇H‖=0.426, ‖∇W‖=3.971
+  [PePG] Ep 199: R=37.45, Avg=41.52, ρ=1.51, λw=2.000, ‖∇std‖=7.211, ‖∇H‖=0.774, ‖∇W‖=4.654
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $15.343k
+  Approval disparity: 0.0088
+  Total profit: $79.886k
+  Mean ρ: 1.3974
+  PePG V2 model saved to ./pepg_sequential_results/pepg_utilitarian_profit_wealth_seed2.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_utilitarian_profit_wealth_seed2.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_utilitarian_profit_wealth_seed2.pt...
+  ✓ Model loaded successfully
+    Reward function: utilitarian_profit
+    Constraint type: wealth
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $61.12k, μ_F: $48.53k
+    Wealth Gap: $12.59k
+    Episode Approval Rate M: 0.0199
+    Episode Approval Rate F: 0.0104
+    Episode Profit: $54.75k
+    Cumulative Profit: $193.86k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $61.47k, μ_F: $48.73k
+    Wealth Gap: $12.73k
+    Episode Approval Rate M: 0.0299
+    Episode Approval Rate F: 0.0214
+    Episode Profit: $96.67k
+    Cumulative Profit: $374.89k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $61.75k, μ_F: $49.00k
+    Wealth Gap: $12.76k
+    Episode Approval Rate M: 0.0186
+    Episode Approval Rate F: 0.0206
+    Episode Profit: $72.50k
+    Cumulative Profit: $511.53k
+
+  Starting Episode 31 (ALL state preserved - continuous play)
+
+  Episode 40/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 3980.0
+    μ_M: $62.08k, μ_F: $49.21k
+    Wealth Gap: $12.87k
+    Episode Approval Rate M: 0.0188
+    Episode Approval Rate F: 0.0194
+    Episode Profit: $80.42k
+    Cumulative Profit: $831.98k
+
+  Starting Episode 41 (ALL state preserved - continuous play)
+
+  Episode 50/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 4975.0
+    μ_M: $62.38k, μ_F: $49.42k
+    Wealth Gap: $12.95k
+    Episode Approval Rate M: 0.0123
+    Episode Approval Rate F: 0.0179
+    Episode Profit: $59.49k
+    Cumulative Profit: $1126.09k
+
+  Starting Episode 51 (ALL state preserved - continuous play)
+
+  Episode 60/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 5970.0
+    μ_M: $62.70k, μ_F: $49.62k
+    Wealth Gap: $13.08k
+    Episode Approval Rate M: 0.0226
+    Episode Approval Rate F: 0.0142
+    Episode Profit: $69.88k
+    Cumulative Profit: $1347.44k
+
+  Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $62.98k, μ_F: $49.84k
+    Wealth Gap: $13.14k
+    Episode Approval Rate M: 0.0176
+    Episode Approval Rate F: 0.0154
+    Episode Profit: $66.19k
+    Cumulative Profit: $1886.20k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
+
+  Episode 80/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 7960.0
+    μ_M: $63.23k, μ_F: $50.12k
+    Wealth Gap: $13.11k
+    Episode Approval Rate M: 0.0225
+    Episode Approval Rate F: 0.0127
+    Episode Profit: $76.59k
+    Cumulative Profit: $2099.70k
+
+  Starting Episode 81 (ALL state preserved - continuous play)
+
+  Episode 90/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 8955.0
+    μ_M: $63.55k, μ_F: $50.31k
+    Wealth Gap: $13.24k
+    Episode Approval Rate M: 0.0237
+    Episode Approval Rate F: 0.0145
+    Episode Profit: $92.96k
+    Cumulative Profit: $2271.12k
+
+  Starting Episode 91 (ALL state preserved - continuous play)
+
+  Episode 100/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 9950.0
+    μ_M: $63.86k, μ_F: $50.54k
+    Wealth Gap: $13.33k
+    Episode Approval Rate M: 0.0201
+    Episode Approval Rate F: 0.0239
+    Episode Profit: $75.78k
+    Cumulative Profit: $2485.35k
+
+[6] Computing Final Metrics...
+
+================================================================================
+FINAL TESTING RESULTS
+================================================================================
+
+  Model: utilitarian_profit (wealth)
+  Episodes: 100
+  Total Time: 9950.0
+  Hawkes Events (M/F): 1224/956
+
+  --- Wealth Metrics ---
+  Initial μ_M,0: $60.82k
+  Initial μ_F,0: $48.29k
+  Final μ_M: $63.86k
+  Final μ_F: $50.54k
+  Final Wealth Gap: $13.33k
+
+  --- Long-term Social Welfare R_g(t) = (μ_g,t - μ_g,0) / t ---
+  R_M (Male):   0.000306 ($1000s per time unit)
+  R_F (Female): 0.000226 ($1000s per time unit)
+  R_total:      0.000266 ($1000s per time unit)
+  R_M / R_F:    1.3575
+
+  --- Inequality Ratio ρ = Δμ_M / Δμ_F (per episode) ---
+  Mean ρ:   1.7555
+  Std ρ:    1.5330
+  Min ρ:    0.3393
+  Max ρ:    13.3013
+  Last 5 episodes: ['0.689', '2.423', '0.692', '1.632', '1.466']
+
+  --- Approval Metrics ---
+  Total Applications M: 59915
+  Total Applications F: 47568
+  Total Loans Approved M: 1224
+  Total Loans Approved F: 956
+  Final Approval Rate M: 0.0204
+  Final Approval Rate F: 0.0201
+
+  --- Success Probabilities ---
+  Total Defaults M: 119
+  Total Defaults F: 79
+  Final Success Prob M: 0.9028
+  Final Success Prob F: 0.9174
+
+  --- Ground Truth Comparison (Males) ---
+  True Positives:  271
+  False Positives: 953
+  True Negatives:  46344
+  False Negatives: 12347
+  Accuracy:  0.7780
+  Precision: 0.2214
+  Recall:    0.0215
+
+  --- Ground Truth Comparison (Females) ---
+  True Positives:  100
+  False Positives: 856
+  True Negatives:  41603
+  False Negatives: 5009
+  Accuracy:  0.8767
+  Precision: 0.1046
+  Recall:    0.0196
+
+  --- Profit ---
+  Cumulative Profit: $2485.35k
+
+[7] Saving Results...
+  Saved episode metrics to ./pepg_sequential_results/test_episode_metrics_utilitarian_profit_wealth_seed2_20260123_112401.csv
+
+================================================================================
+Finished: 2026-01-23T11:24:02.369399
+Exit code: 0
+Test Exit code: 0
