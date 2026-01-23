@@ -58,3 +58,9 @@
 2026-01-23 00:22:25 | START | Job 26/36: fairness_lagrangian_both_seed2
 2026-01-23 00:43:16 | DONE  | Job 26/36: fairness_lagrangian_both_seed2 (20m 50s)
 2026-01-23 00:43:16 | START | Job 27/36: fairness_lagrangian_both_seed3
+2026-01-23 01:04:07 | DONE  | Job 27/36: fairness_lagrangian_both_seed3 (20m 51s)
+2026-01-23 01:04:07 | START | Job 28/36: utilitarian_profit_approval_rate_seed1
+2026-01-23 01:49:39 | DONE  | Job 28/36: utilitarian_profit_approval_rate_seed1 (45m 31s)
+2026-01-23 01:49:39 | START | Job 29/36: utilitarian_profit_approval_rate_seed2
+2026-01-23 02:34:41 | DONE  | Job 29/36: utilitarian_profit_approval_rate_seed2 (45m 1s)
+2026-01-23 02:34:41 | START | Job 30/36: utilitarian_profit_approval_rate_seed3

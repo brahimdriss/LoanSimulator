@@ -210,3 +210,87 @@ Loading model from ./pepg_sequential_results/pepg_fairness_lagrangian_wealth_see
     Cumulative Profit: $385794.25k
 
   Starting Episode 91 (ALL state preserved - continuous play)
+
+  Episode 100/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 9950.0
+    μ_M: $474.30k, μ_F: $415.57k
+    Wealth Gap: $58.73k
+    Episode Approval Rate M: 0.9905
+    Episode Approval Rate F: 0.9859
+    Episode Profit: $16349.36k
+    Cumulative Profit: $447955.24k
+
+[6] Computing Final Metrics...
+
+================================================================================
+FINAL TESTING RESULTS
+================================================================================
+
+  Model: fairness_lagrangian (wealth)
+  Episodes: 100
+  Total Time: 9950.0
+  Hawkes Events (M/F): 153256/134119
+
+  --- Wealth Metrics ---
+  Initial μ_M,0: $60.82k
+  Initial μ_F,0: $48.29k
+  Final μ_M: $474.30k
+  Final μ_F: $415.57k
+  Final Wealth Gap: $58.73k
+
+  --- Long-term Social Welfare R_g(t) = (μ_g,t - μ_g,0) / t ---
+  R_M (Male):   0.041556 ($1000s per time unit)
+  R_F (Female): 0.036913 ($1000s per time unit)
+  R_total:      0.039234 ($1000s per time unit)
+  R_M / R_F:    1.1258
+
+  --- Inequality Ratio ρ = Δμ_M / Δμ_F (per episode) ---
+  Mean ρ:   1.1806
+  Std ρ:    0.1679
+  Min ρ:    0.9063
+  Max ρ:    1.5968
+  Last 5 episodes: ['0.980', '0.906', '1.051', '0.986', '0.963']
+
+  --- Approval Metrics ---
+  Total Applications M: 155669
+  Total Applications F: 136158
+  Total Loans Approved M: 153256
+  Total Loans Approved F: 134119
+  Final Approval Rate M: 0.9845
+  Final Approval Rate F: 0.9850
+
+  --- Success Probabilities ---
+  Total Defaults M: 12995
+  Total Defaults F: 11481
+  Final Success Prob M: 0.9152
+  Final Success Prob F: 0.9144
+
+  --- Ground Truth Comparison (Males) ---
+  True Positives:  28431
+  False Positives: 124825
+  True Negatives:  1938
+  False Negatives: 475
+  Accuracy:  0.1951
+  Precision: 0.1855
+  Recall:    0.9836
+
+  --- Ground Truth Comparison (Females) ---
+  True Positives:  13597
+  False Positives: 120522
+  True Negatives:  1843
+  False Negatives: 196
+  Accuracy:  0.1134
+  Precision: 0.1014
+  Recall:    0.9858
+
+  --- Profit ---
+  Cumulative Profit: $447955.24k
+
+[7] Saving Results...
+  Saved episode metrics to ./pepg_sequential_results/test_episode_metrics_fairness_lagrangian_wealth_seed1_20260123_005526.csv
+
+================================================================================
+Finished: 2026-01-23T00:55:27.465162
+Exit code: 0
+Test Exit code: 0

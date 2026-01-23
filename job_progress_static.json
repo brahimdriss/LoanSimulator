@@ -25,8 +25,11 @@
     "fairness_lagrangian_wealth_seed2",
     "fairness_lagrangian_wealth_seed3",
     "fairness_lagrangian_both_seed1",
-    "fairness_lagrangian_both_seed2"
+    "fairness_lagrangian_both_seed2",
+    "fairness_lagrangian_both_seed3",
+    "utilitarian_profit_approval_rate_seed1",
+    "utilitarian_profit_approval_rate_seed2"
   ],
   "failed": [],
-  "in_progress": "fairness_lagrangian_both_seed3"
+  "in_progress": "utilitarian_profit_approval_rate_seed3"
 }

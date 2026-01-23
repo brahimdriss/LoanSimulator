@@ -48,3 +48,7 @@
 2026-01-22 21:16:33 | START | Job 21/36: fairness_lagrangian_approval_rate_seed3
 2026-01-22 22:54:41 | DONE  | Job 21/36: fairness_lagrangian_approval_rate_seed3 (1h 38m 8s)
 2026-01-22 22:54:41 | START | Job 22/36: fairness_lagrangian_wealth_seed1
+2026-01-23 00:55:27 | DONE  | Job 22/36: fairness_lagrangian_wealth_seed1 (2h 0m 45s)
+2026-01-23 00:55:27 | START | Job 23/36: fairness_lagrangian_wealth_seed2
+2026-01-23 02:53:13 | DONE  | Job 23/36: fairness_lagrangian_wealth_seed2 (1h 57m 46s)
+2026-01-23 02:53:13 | START | Job 24/36: fairness_lagrangian_wealth_seed3
