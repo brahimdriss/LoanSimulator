@@ -77,3 +77,10 @@
 2026-01-23 11:53:55 | START | Job 35/36: utilitarian_profit_both_seed2
 2026-01-23 12:08:59 | DONE  | Job 35/36: utilitarian_profit_both_seed2 (15m 3s)
 2026-01-23 12:08:59 | START | Job 36/36: utilitarian_profit_both_seed3
+2026-01-23 12:24:10 | DONE  | Job 36/36: utilitarian_profit_both_seed3 (15m 10s)
+2026-01-23 12:24:10 | INFO  | ==================================================
+2026-01-23 12:24:10 | INFO  | Scheduler Finished
+2026-01-23 12:24:10 | INFO  | Total time: 24h 58m 5s
+2026-01-23 12:24:10 | INFO  | Completed: 36/36
+2026-01-23 12:24:10 | INFO  | Failed: 0
+2026-01-23 12:24:10 | INFO  | ==================================================
