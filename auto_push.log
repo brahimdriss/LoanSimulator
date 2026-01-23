@@ -9,3 +9,11 @@ To https://github.com/brahimdriss/LoanSimulator.git
    43ab68d..59abb96  main -> main
 [2026-01-23 12:16:40] Push complete
 [2026-01-23 12:26:40] Changes detected, pushing...
+[main 0362d0c] Sync results
+ 7 files changed, 445 insertions(+), 2 deletions(-)
+ create mode 100644 pepg_sequential_results/pepg_utilitarian_profit_both_seed3.pt
+ create mode 100644 pepg_sequential_results/test_episode_metrics_utilitarian_profit_both_seed3_20260123_122409.csv
+To https://github.com/brahimdriss/LoanSimulator.git
+   59abb96..0362d0c  main -> main
+[2026-01-23 12:26:40] Push complete
+[2026-01-23 12:36:42] Changes detected, pushing...
