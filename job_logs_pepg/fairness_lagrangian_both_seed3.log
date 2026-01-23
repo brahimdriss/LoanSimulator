@@ -1,0 +1,53 @@
+Job: fairness_lagrangian_both_seed3
+Command: uv run python -u par_pepg.py --seeds 1 --seed 3 --reward fairness_lagrangian --constraint both --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-23T08:30:05.849979
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: FAIRNESS_LAGRANGIAN
+  Constraint: BOTH
+  Seed: 3
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'both' (lr=0.01)
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with fairness_lagrangian (both constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=-28473.99, Avg=-28473.99, ρ=1.46, λw=2.020, ‖∇std‖=8.746, ‖∇H‖=37225.484, ‖∇W‖=181976.359
+  [PePG] Ep 10: R=-47625.40, Avg=-47625.40, ρ=1.23, λw=2.233, ‖∇std‖=3.574, ‖∇H‖=11581.595, ‖∇W‖=54062.629
+  [PePG] Ep 20: R=-78243.80, Avg=-49404.81, ρ=1.34, λw=2.467, ‖∇std‖=12.386, ‖∇H‖=914.967, ‖∇W‖=2631.250
+  [PePG] Ep 30: R=-140979.26, Avg=-87683.28, ρ=1.30, λw=2.727, ‖∇std‖=6.600, ‖∇H‖=8183.943, ‖∇W‖=6977.293
+  [PePG] Ep 40: R=-257691.82, Avg=-159832.77, ρ=1.42, λw=3.014, ‖∇std‖=6.656, ‖∇H‖=13335.351, ‖∇W‖=47781.020
+  [PePG] Ep 50: R=-435037.03, Avg=-280141.17, ρ=1.19, λw=3.331, ‖∇std‖=1.421, ‖∇H‖=5118.464, ‖∇W‖=40110.945
+  [PePG] Ep 60: R=-656415.47, Avg=-451933.75, ρ=1.11, λw=3.681, ‖∇std‖=1.215, ‖∇H‖=8718.802, ‖∇W‖=18096.121
+  [PePG] Ep 70: R=-834068.63, Avg=-654861.48, ρ=1.07, λw=4.068, ‖∇std‖=2.931, ‖∇H‖=16079.785, ‖∇W‖=68129.523
+  [PePG] Ep 80: R=-990029.09, Avg=-840936.22, ρ=1.00, λw=4.496, ‖∇std‖=2.824, ‖∇H‖=27888.076, ‖∇W‖=54035.309
+  [PePG] Ep 90: R=-1113075.21, Avg=-992118.33, ρ=0.99, λw=4.969, ‖∇std‖=2.945, ‖∇H‖=27451.674, ‖∇W‖=63242.605

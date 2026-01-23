@@ -1,12 +1,12 @@
-Job: utilitarian_profit_wealth_seed1
-Command: uv run python -u adult_income_training.py --seed 1 --single --reward utilitarian_profit --constraint wealth --episodes 200 --weights-dir ./static_sequential_results
-Started: 2026-01-23T03:20:59.733983
+Job: utilitarian_profit_both_seed1
+Command: uv run python -u adult_income_training.py --seed 1 --single --reward utilitarian_profit --constraint both --episodes 200 --weights-dir ./static_sequential_results
+Started: 2026-01-23T05:38:14.307344
 ================================================================================
 
 ================================================================================
 SINGLE REWARD FUNCTION EXPERIMENT
   Reward: UTILITARIAN_PROFIT
-  Constraint: WEALTH
+  Constraint: BOTH
   Seed: 1
 ================================================================================
 
@@ -31,7 +31,7 @@ Female high-income rate: 0.116
 
 [STEP 4] Training Agent...
   Using device: cuda
-Training with utilitarian_profit (wealth constraint)...
+Training with utilitarian_profit (both constraint)...
   Episode 0: Reward=819.505, Avg=819.505, ρ=1.076, R_M=0.0067, R_F=0.0063
   Episode 20: Reward=1240.322, Avg=1135.570, ρ=1.512, R_M=0.0006, R_F=0.0004
   Episode 40: Reward=1434.133, Avg=1350.682, ρ=1.119, R_M=0.0003, R_F=0.0003
@@ -46,7 +46,7 @@ Training with utilitarian_profit (wealth constraint)...
 [STEP 5] Running Test Episode...
 
 ============================================================
-TRAINING COMPLETE: utilitarian_profit (wealth)
+TRAINING COMPLETE: utilitarian_profit (both)
 ============================================================
   Initial wealth gap: $12.525k
   Final wealth gap: $12.545k
@@ -60,12 +60,12 @@ TRAINING COMPLETE: utilitarian_profit (wealth)
   R_M / R_F:            1.2808
 
 [STEP 6] Saving Model Weights...
-  Model saved to ./static_sequential_results/utilitarian_profit_wealth_seed1.pt
-  Saved to: ./static_sequential_results/utilitarian_profit_wealth_seed1.pt
+  Model saved to ./static_sequential_results/utilitarian_profit_both_seed1.pt
+  Saved to: ./static_sequential_results/utilitarian_profit_both_seed1.pt
 ================================================================================
 TESTING TRAINED AGENT (EPISODE-WISE METRICS)
 ================================================================================
-  Model: ./static_sequential_results/utilitarian_profit_wealth_seed1.pt
+  Model: ./static_sequential_results/utilitarian_profit_both_seed1.pt
   Episodes: 100
   Continuous play: YES (no wealth reset between episodes)
   Credit threshold for ground truth: 0.5
@@ -83,10 +83,10 @@ Male applicants: 13519
 Female applicants: 6481
 Male ground truth approval rate: 0.180
 Female ground truth approval rate: 0.087
-Loading model from ./static_sequential_results/utilitarian_profit_wealth_seed1.pt...
+Loading model from ./static_sequential_results/utilitarian_profit_both_seed1.pt...
   ✓ Model loaded successfully
     Reward function: utilitarian_profit
-    Constraint type: wealth
+    Constraint type: both
 
 [5] Running 100 Episodes (Episodes 1 to 100)...
 
@@ -216,7 +216,7 @@ Loading model from ./static_sequential_results/utilitarian_profit_wealth_seed1.p
 FINAL TESTING RESULTS
 ================================================================================
 
-  Model: utilitarian_profit (wealth)
+  Model: utilitarian_profit (both)
   Episodes: 100
   Total Time: 9950.0
   Hawkes Events (M/F): 147768/129052
@@ -277,9 +277,9 @@ FINAL TESTING RESULTS
   Cumulative Profit: $442711.57k
 
 [7] Saving Results...
-  Saved episode metrics to ./static_sequential_results/test_episode_metrics_utilitarian_profit_wealth_seed1_20260123_040517.csv
+  Saved episode metrics to ./static_sequential_results/test_episode_metrics_utilitarian_profit_both_seed1_20260123_062501.csv
 
 ================================================================================
-Finished: 2026-01-23T04:05:18.250226
+Finished: 2026-01-23T06:25:02.088334
 Exit code: 0
 Test Exit code: 0
