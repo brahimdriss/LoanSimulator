@@ -1,0 +1,35 @@
+Job: utilitarian_profit_wealth_seed1
+Command: uv run python -u adult_income_training.py --seed 1 --single --reward utilitarian_profit --constraint wealth --episodes 200 --weights-dir ./static_sequential_results
+Started: 2026-01-23T03:20:59.733983
+================================================================================
+
+================================================================================
+SINGLE REWARD FUNCTION EXPERIMENT
+  Reward: UTILITARIAN_PROFIT
+  Constraint: WEALTH
+  Seed: 1
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Training Agent...
+  Using device: cuda
+Training with utilitarian_profit (wealth constraint)...
+  Episode 0: Reward=819.505, Avg=819.505, ρ=1.076, R_M=0.0067, R_F=0.0063
