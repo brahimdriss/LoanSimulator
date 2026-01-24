@@ -1,9 +1,16 @@
 {
   "completed": [
+<<<<<<< HEAD
     "social_welfare_wealth_seed1",
     "rawlsian_maximin_wealth_seed1",
     "fairness_lagrangian_wealth_seed1",
     "utilitarian_profit_wealth_seed1"
+=======
+    "social_welfare_approval_rate_seed1",
+    "rawlsian_maximin_approval_rate_seed1",
+    "fairness_lagrangian_approval_rate_seed1",
+    "utilitarian_profit_approval_rate_seed1"
+>>>>>>> 10bfdd49de93c9984cd4e9b7c93a3e31c4f75b75
   ],
   "failed": [],
   "in_progress": null

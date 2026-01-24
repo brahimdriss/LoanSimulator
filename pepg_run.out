@@ -1,86 +1,19 @@
-2026-01-22 11:26:05 | INFO  | ==================================================
-2026-01-22 11:26:05 | INFO  | Sequential PePG Job Scheduler Started
-2026-01-22 11:26:05 | INFO  | Total jobs: 36, Pending: 36, Completed: 0, Failed: 0
-2026-01-22 11:26:05 | INFO  | Episodes per job: 200
-2026-01-22 11:26:05 | INFO  | ==================================================
-2026-01-22 11:26:05 | START | Job 1/36: social_welfare_approval_rate_seed1
-2026-01-22 11:47:15 | DONE  | Job 1/36: social_welfare_approval_rate_seed1 (21m 9s)
-2026-01-22 11:47:15 | START | Job 2/36: social_welfare_approval_rate_seed2
-2026-01-22 12:04:05 | DONE  | Job 2/36: social_welfare_approval_rate_seed2 (16m 50s)
-2026-01-22 12:04:05 | START | Job 3/36: social_welfare_approval_rate_seed3
-2026-01-22 12:25:15 | DONE  | Job 3/36: social_welfare_approval_rate_seed3 (21m 9s)
-2026-01-22 12:25:15 | START | Job 4/36: social_welfare_wealth_seed1
-2026-01-22 12:41:48 | DONE  | Job 4/36: social_welfare_wealth_seed1 (16m 33s)
-2026-01-22 12:41:48 | START | Job 5/36: social_welfare_wealth_seed2
-2026-01-22 12:58:26 | DONE  | Job 5/36: social_welfare_wealth_seed2 (16m 38s)
-2026-01-22 12:58:26 | START | Job 6/36: social_welfare_wealth_seed3
-2026-01-22 13:19:56 | DONE  | Job 6/36: social_welfare_wealth_seed3 (21m 29s)
-2026-01-22 13:19:56 | START | Job 7/36: social_welfare_both_seed1
-2026-01-22 13:36:57 | DONE  | Job 7/36: social_welfare_both_seed1 (17m 0s)
-2026-01-22 13:36:57 | START | Job 8/36: social_welfare_both_seed2
-2026-01-22 13:57:05 | DONE  | Job 8/36: social_welfare_both_seed2 (20m 8s)
-2026-01-22 13:57:05 | START | Job 9/36: social_welfare_both_seed3
-2026-01-22 14:18:07 | DONE  | Job 9/36: social_welfare_both_seed3 (21m 1s)
-2026-01-22 14:18:07 | START | Job 10/36: rawlsian_maximin_approval_rate_seed1
-2026-01-22 14:41:19 | DONE  | Job 10/36: rawlsian_maximin_approval_rate_seed1 (23m 11s)
-2026-01-22 14:41:19 | INFO  | Progress: 10 completed, 0 failed, 26 remaining
-2026-01-22 14:41:19 | START | Job 11/36: rawlsian_maximin_approval_rate_seed2
-2026-01-22 15:07:49 | DONE  | Job 11/36: rawlsian_maximin_approval_rate_seed2 (26m 29s)
-2026-01-22 15:07:49 | START | Job 12/36: rawlsian_maximin_approval_rate_seed3
-2026-01-22 15:56:18 | DONE  | Job 12/36: rawlsian_maximin_approval_rate_seed3 (48m 28s)
-2026-01-22 15:56:18 | START | Job 13/36: rawlsian_maximin_wealth_seed1
-2026-01-22 16:16:33 | DONE  | Job 13/36: rawlsian_maximin_wealth_seed1 (20m 15s)
-2026-01-22 16:16:33 | START | Job 14/36: rawlsian_maximin_wealth_seed2
-2026-01-22 16:33:08 | DONE  | Job 14/36: rawlsian_maximin_wealth_seed2 (16m 34s)
-2026-01-22 16:33:08 | START | Job 15/36: rawlsian_maximin_wealth_seed3
-2026-01-22 16:52:58 | DONE  | Job 15/36: rawlsian_maximin_wealth_seed3 (19m 50s)
-2026-01-22 16:52:58 | START | Job 16/36: rawlsian_maximin_both_seed1
-2026-01-22 17:09:48 | DONE  | Job 16/36: rawlsian_maximin_both_seed1 (16m 50s)
-2026-01-22 17:09:48 | START | Job 17/36: rawlsian_maximin_both_seed2
-2026-01-22 17:30:26 | DONE  | Job 17/36: rawlsian_maximin_both_seed2 (20m 37s)
-2026-01-22 17:30:26 | START | Job 18/36: rawlsian_maximin_both_seed3
-2026-01-22 17:47:29 | DONE  | Job 18/36: rawlsian_maximin_both_seed3 (17m 3s)
-2026-01-22 17:47:29 | START | Job 19/36: fairness_lagrangian_approval_rate_seed1
-2026-01-22 19:33:44 | DONE  | Job 19/36: fairness_lagrangian_approval_rate_seed1 (1h 46m 15s)
-2026-01-22 19:33:44 | START | Job 20/36: fairness_lagrangian_approval_rate_seed2
-2026-01-22 21:16:33 | DONE  | Job 20/36: fairness_lagrangian_approval_rate_seed2 (1h 42m 48s)
-2026-01-22 21:16:33 | INFO  | Progress: 20 completed, 0 failed, 16 remaining
-2026-01-22 21:16:33 | START | Job 21/36: fairness_lagrangian_approval_rate_seed3
-2026-01-22 22:54:41 | DONE  | Job 21/36: fairness_lagrangian_approval_rate_seed3 (1h 38m 8s)
-2026-01-22 22:54:41 | START | Job 22/36: fairness_lagrangian_wealth_seed1
-2026-01-23 00:55:27 | DONE  | Job 22/36: fairness_lagrangian_wealth_seed1 (2h 0m 45s)
-2026-01-23 00:55:27 | START | Job 23/36: fairness_lagrangian_wealth_seed2
-2026-01-23 02:53:13 | DONE  | Job 23/36: fairness_lagrangian_wealth_seed2 (1h 57m 46s)
-2026-01-23 02:53:13 | START | Job 24/36: fairness_lagrangian_wealth_seed3
-2026-01-23 04:45:55 | DONE  | Job 24/36: fairness_lagrangian_wealth_seed3 (1h 52m 41s)
-2026-01-23 04:45:55 | START | Job 25/36: fairness_lagrangian_both_seed1
-2026-01-23 06:38:42 | DONE  | Job 25/36: fairness_lagrangian_both_seed1 (1h 52m 47s)
-2026-01-23 06:38:42 | START | Job 26/36: fairness_lagrangian_both_seed2
-2026-01-23 08:30:05 | DONE  | Job 26/36: fairness_lagrangian_both_seed2 (1h 51m 23s)
-2026-01-23 08:30:05 | START | Job 27/36: fairness_lagrangian_both_seed3
-2026-01-23 10:10:23 | DONE  | Job 27/36: fairness_lagrangian_both_seed3 (1h 40m 17s)
-2026-01-23 10:10:23 | START | Job 28/36: utilitarian_profit_approval_rate_seed1
-2026-01-23 10:25:04 | DONE  | Job 28/36: utilitarian_profit_approval_rate_seed1 (14m 40s)
-2026-01-23 10:25:04 | START | Job 29/36: utilitarian_profit_approval_rate_seed2
-2026-01-23 10:40:15 | DONE  | Job 29/36: utilitarian_profit_approval_rate_seed2 (15m 10s)
-2026-01-23 10:40:15 | START | Job 30/36: utilitarian_profit_approval_rate_seed3
-2026-01-23 10:54:56 | DONE  | Job 30/36: utilitarian_profit_approval_rate_seed3 (14m 41s)
-2026-01-23 10:54:56 | INFO  | Progress: 30 completed, 0 failed, 6 remaining
-2026-01-23 10:54:56 | START | Job 31/36: utilitarian_profit_wealth_seed1
-2026-01-23 11:09:15 | DONE  | Job 31/36: utilitarian_profit_wealth_seed1 (14m 18s)
-2026-01-23 11:09:15 | START | Job 32/36: utilitarian_profit_wealth_seed2
-2026-01-23 11:24:02 | DONE  | Job 32/36: utilitarian_profit_wealth_seed2 (14m 46s)
-2026-01-23 11:24:02 | START | Job 33/36: utilitarian_profit_wealth_seed3
-2026-01-23 11:39:20 | DONE  | Job 33/36: utilitarian_profit_wealth_seed3 (15m 18s)
-2026-01-23 11:39:20 | START | Job 34/36: utilitarian_profit_both_seed1
-2026-01-23 11:53:55 | DONE  | Job 34/36: utilitarian_profit_both_seed1 (14m 35s)
-2026-01-23 11:53:55 | START | Job 35/36: utilitarian_profit_both_seed2
-2026-01-23 12:08:59 | DONE  | Job 35/36: utilitarian_profit_both_seed2 (15m 3s)
-2026-01-23 12:08:59 | START | Job 36/36: utilitarian_profit_both_seed3
-2026-01-23 12:24:10 | DONE  | Job 36/36: utilitarian_profit_both_seed3 (15m 10s)
-2026-01-23 12:24:10 | INFO  | ==================================================
-2026-01-23 12:24:10 | INFO  | Scheduler Finished
-2026-01-23 12:24:10 | INFO  | Total time: 24h 58m 5s
-2026-01-23 12:24:10 | INFO  | Completed: 36/36
-2026-01-23 12:24:10 | INFO  | Failed: 0
-2026-01-23 12:24:10 | INFO  | ==================================================
+2026-01-24 02:03:20 | INFO  | ==================================================
+2026-01-24 02:03:20 | INFO  | Sequential PePG Job Scheduler Started
+2026-01-24 02:03:20 | INFO  | Total jobs: 4, Pending: 4, Completed: 0, Failed: 0
+2026-01-24 02:03:20 | INFO  | Episodes per job: 200
+2026-01-24 02:03:20 | INFO  | ==================================================
+2026-01-24 02:03:20 | START | Job 1/4: social_welfare_approval_rate_seed1
+2026-01-24 02:44:11 | DONE  | Job 1/4: social_welfare_approval_rate_seed1 (40m 50s)
+2026-01-24 02:44:11 | START | Job 2/4: rawlsian_maximin_approval_rate_seed1
+2026-01-24 03:33:13 | DONE  | Job 2/4: rawlsian_maximin_approval_rate_seed1 (49m 2s)
+2026-01-24 03:33:13 | START | Job 3/4: fairness_lagrangian_approval_rate_seed1
+2026-01-24 04:22:54 | DONE  | Job 3/4: fairness_lagrangian_approval_rate_seed1 (49m 41s)
+2026-01-24 04:22:54 | START | Job 4/4: utilitarian_profit_approval_rate_seed1
+2026-01-24 05:14:16 | DONE  | Job 4/4: utilitarian_profit_approval_rate_seed1 (51m 22s)
+2026-01-24 05:14:16 | INFO  | ==================================================
+2026-01-24 05:14:16 | INFO  | Scheduler Finished
+2026-01-24 05:14:16 | INFO  | Total time: 3h 10m 55s
+2026-01-24 05:14:16 | INFO  | Completed: 4/4
+2026-01-24 05:14:16 | INFO  | Failed: 0
+2026-01-24 05:14:16 | INFO  | ==================================================

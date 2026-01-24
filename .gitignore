@@ -4,3 +4,5 @@
 # *.csv
 # *.pt
 # *.log
+auto_push.log
+*.json

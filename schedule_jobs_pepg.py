@@ -30,10 +30,15 @@ JOB_MATRIX = {
         "fairness_lagrangian",
         "utilitarian_profit",
     ],
+<<<<<<< HEAD
     "constraints": ["wealth"],
     "seeds": range(1, 2),
+=======
+    "constraints": ["approval_rate","wealth", "both"],
+    "seeds": range(25, 30),
+>>>>>>> 10bfdd49de93c9984cd4e9b7c93a3e31c4f75b75
 }
-
+# "constraints": ["approval_rate", "wealth", "both"],
 
 def get_job_id(reward: str, constraint: str, seed: int) -> str:
     """Generate a unique job identifier."""
