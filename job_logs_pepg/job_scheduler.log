@@ -10,3 +10,10 @@
 2026-01-24 03:33:13 | START | Job 3/4: fairness_lagrangian_approval_rate_seed1
 2026-01-24 04:22:54 | DONE  | Job 3/4: fairness_lagrangian_approval_rate_seed1 (49m 41s)
 2026-01-24 04:22:54 | START | Job 4/4: utilitarian_profit_approval_rate_seed1
+2026-01-24 05:14:16 | DONE  | Job 4/4: utilitarian_profit_approval_rate_seed1 (51m 22s)
+2026-01-24 05:14:16 | INFO  | ==================================================
+2026-01-24 05:14:16 | INFO  | Scheduler Finished
+2026-01-24 05:14:16 | INFO  | Total time: 3h 10m 55s
+2026-01-24 05:14:16 | INFO  | Completed: 4/4
+2026-01-24 05:14:16 | INFO  | Failed: 0
+2026-01-24 05:14:16 | INFO  | ==================================================
