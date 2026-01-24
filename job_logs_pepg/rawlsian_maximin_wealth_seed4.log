@@ -51,3 +51,5 @@ Training PePG V2 with rawlsian_maximin (wealth constraint)...
   [PePG] Ep 70: R=1035812.05, Avg=771797.91, ρ=1.19, λw=4.068, Number of Approvals R = 592.000, Number of Approvals B = 510.000, 
   [PePG] Ep 80: R=1448301.17, Avg=1073049.60, ρ=1.25, λw=4.496, Number of Approvals R = 708.000, Number of Approvals B = 571.000, 
   [PePG] Ep 90: R=1928621.51, Avg=1473757.13, ρ=1.38, λw=4.969, Number of Approvals R = 832.000, Number of Approvals B = 585.000, 
+  [PePG] Ep 100: R=2660109.26, Avg=1995206.42, ρ=1.11, λw=5.491, Number of Approvals R = 812.000, Number of Approvals B = 709.000, 
+  [PePG] Ep 110: R=3515922.93, Avg=2692091.98, ρ=1.03, λw=6.069, Number of Approvals R = 878.000, Number of Approvals B = 744.000, 
