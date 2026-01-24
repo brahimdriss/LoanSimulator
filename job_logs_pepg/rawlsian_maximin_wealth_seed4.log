@@ -210,3 +210,87 @@ Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_wealth_seed4.
     Cumulative Profit: $126063.03k
 
   Starting Episode 91 (ALL state preserved - continuous play)
+
+  Episode 100/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 9950.0
+    μ_M: $211.27k, μ_F: $158.74k
+    Wealth Gap: $52.53k
+    Episode Approval Rate M: 0.4932
+    Episode Approval Rate F: 0.4878
+    Episode Profit: $6115.14k
+    Cumulative Profit: $147639.06k
+
+[6] Computing Final Metrics...
+
+================================================================================
+FINAL TESTING RESULTS
+================================================================================
+
+  Model: rawlsian_maximin (wealth)
+  Episodes: 100
+  Total Time: 9950.0
+  Hawkes Events (M/F): 55001/40701
+
+  --- Wealth Metrics ---
+  Initial μ_M,0: $60.82k
+  Initial μ_F,0: $48.29k
+  Final μ_M: $211.27k
+  Final μ_F: $158.74k
+  Final Wealth Gap: $52.53k
+
+  --- Long-term Social Welfare R_g(t) = (μ_g,t - μ_g,0) / t ---
+  R_M (Male):   0.015121 ($1000s per time unit)
+  R_F (Female): 0.011100 ($1000s per time unit)
+  R_total:      0.013111 ($1000s per time unit)
+  R_M / R_F:    1.3622
+
+  --- Inequality Ratio ρ = Δμ_M / Δμ_F (per episode) ---
+  Mean ρ:   1.3674
+  Std ρ:    0.1285
+  Min ρ:    1.0951
+  Max ρ:    1.7131
+  Last 5 episodes: ['1.205', '1.224', '1.310', '1.285', '1.490']
+
+  --- Approval Metrics ---
+  Total Applications M: 109562
+  Total Applications F: 81806
+  Total Loans Approved M: 55001
+  Total Loans Approved F: 40701
+  Final Approval Rate M: 0.5020
+  Final Approval Rate F: 0.4975
+
+  --- Success Probabilities ---
+  Total Defaults M: 4755
+  Total Defaults F: 3459
+  Final Success Prob M: 0.9135
+  Final Success Prob F: 0.9150
+
+  --- Ground Truth Comparison (Males) ---
+  True Positives:  10882
+  False Positives: 44119
+  True Negatives:  43728
+  False Negatives: 10833
+  Accuracy:  0.4984
+  Precision: 0.1979
+  Recall:    0.5011
+
+  --- Ground Truth Comparison (Females) ---
+  True Positives:  4341
+  False Positives: 36360
+  True Negatives:  36649
+  False Negatives: 4456
+  Accuracy:  0.5011
+  Precision: 0.1067
+  Recall:    0.4935
+
+  --- Profit ---
+  Cumulative Profit: $147639.06k
+
+[7] Saving Results...
+  Saved episode metrics to ./pepg_sequential_results/test_episode_metrics_rawlsian_maximin_wealth_seed4_20260125_000457.csv
+
+================================================================================
+Finished: 2026-01-25T00:05:01.224044
+Exit code: 0
+Test Exit code: 0
