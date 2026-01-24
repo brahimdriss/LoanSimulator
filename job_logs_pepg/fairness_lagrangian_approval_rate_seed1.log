@@ -60,3 +60,93 @@ Training PePG V2 with fairness_lagrangian (approval_rate constraint)...
   [PePG] Ep 160: R=5857.35, Avg=5756.18, ρ=0.94, λw=2.000, Number of Approvals R = 1930.000, Number of Approvals B = 1943.000, 
   [PePG] Ep 170: R=5848.07, Avg=5771.28, ρ=1.03, λw=2.000, Number of Approvals R = 1920.000, Number of Approvals B = 1940.000, 
   [PePG] Ep 180: R=5604.62, Avg=5731.74, ρ=0.95, λw=2.000, Number of Approvals R = 1933.000, Number of Approvals B = 1946.000, 
+  [PePG] Ep 190: R=5496.58, Avg=5660.50, ρ=1.05, λw=2.000, Number of Approvals R = 1948.000, Number of Approvals B = 1913.000, 
+  [PePG] Ep 199: R=5675.52, Avg=5634.79, ρ=0.99, λw=2.000, Number of Approvals R = 1904.000, Number of Approvals B = 1909.000, 
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $60.860k
+  Approval disparity: 0.0040
+  Total profit: $6970.498k
+  Mean ρ: 1.1090
+  PePG V2 model saved to ./pepg_sequential_results/pepg_fairness_lagrangian_approval_rate_seed1.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_fairness_lagrangian_approval_rate_seed1.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_fairness_lagrangian_approval_rate_seed1.pt...
+  ✓ Model loaded successfully
+    Reward function: fairness_lagrangian
+    Constraint type: approval_rate
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $78.51k, μ_F: $62.30k
+    Wealth Gap: $16.21k
+    Episode Approval Rate M: 0.9117
+    Episode Approval Rate F: 0.9130
+    Episode Profit: $5214.71k
+    Cumulative Profit: $16570.07k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $100.10k, μ_F: $78.25k
+    Wealth Gap: $21.85k
+    Episode Approval Rate M: 0.9238
+    Episode Approval Rate F: 0.9152
+    Episode Profit: $6049.05k
+    Cumulative Profit: $39055.88k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $126.39k, μ_F: $98.34k
+    Wealth Gap: $28.06k
+    Episode Approval Rate M: 0.9178
+    Episode Approval Rate F: 0.9125
+    Episode Profit: $7761.83k
+    Cumulative Profit: $67039.61k
+
+  Starting Episode 31 (ALL state preserved - continuous play)
+
+  Episode 40/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 3980.0
+    μ_M: $159.60k, μ_F: $122.02k
+    Wealth Gap: $37.59k
+    Episode Approval Rate M: 0.9228
+    Episode Approval Rate F: 0.9286
+    Episode Profit: $9676.27k
+    Cumulative Profit: $102054.10k
+
+  Starting Episode 41 (ALL state preserved - continuous play)
