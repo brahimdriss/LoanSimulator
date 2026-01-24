@@ -58,3 +58,47 @@ Training PePG V2 with rawlsian_maximin (approval_rate constraint)...
   [PePG] Ep 140: R=24015.86, Avg=22927.09, ρ=0.95, λw=2.000, Number of Approvals R = 1953.000, Number of Approvals B = 1954.000, 
   [PePG] Ep 150: R=24691.50, Avg=23894.41, ρ=0.97, λw=2.000, Number of Approvals R = 1968.000, Number of Approvals B = 1976.000, 
   [PePG] Ep 160: R=25791.78, Avg=24849.35, ρ=0.99, λw=2.000, Number of Approvals R = 1965.000, Number of Approvals B = 1969.000, 
+  [PePG] Ep 170: R=26986.06, Avg=25820.65, ρ=1.03, λw=2.000, Number of Approvals R = 1966.000, Number of Approvals B = 1951.000, 
+  [PePG] Ep 180: R=28100.14, Avg=26930.07, ρ=1.01, λw=2.000, Number of Approvals R = 1965.000, Number of Approvals B = 1961.000, 
+  [PePG] Ep 190: R=29469.03, Avg=28128.39, ρ=0.99, λw=2.000, Number of Approvals R = 1960.000, Number of Approvals B = 1958.000, 
+  [PePG] Ep 199: R=31091.72, Avg=29446.90, ρ=1.00, λw=2.000, Number of Approvals R = 1961.000, Number of Approvals B = 1963.000, 
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $57.168k
+  Approval disparity: -0.0090
+  Total profit: $6854.950k
+  Mean ρ: 1.1061
+  PePG V2 model saved to ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed3.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed3.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed3.pt...
+  ✓ Model loaded successfully
+    Reward function: rawlsian_maximin
+    Constraint type: approval_rate
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
