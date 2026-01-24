@@ -52,3 +52,5 @@ Training PePG V2 with utilitarian_profit (wealth constraint)...
   [PePG] Ep 90: R=5858.11, Avg=5621.39, ρ=1.00, λw=2.000, Number of Approvals R = 1848.000, Number of Approvals B = 1832.000, 
   [PePG] Ep 100: R=6143.65, Avg=5881.40, ρ=1.04, λw=2.000, Number of Approvals R = 1881.000, Number of Approvals B = 1875.000, 
   [PePG] Ep 110: R=6139.47, Avg=5995.14, ρ=0.95, λw=2.000, Number of Approvals R = 1914.000, Number of Approvals B = 1862.000, 
+  [PePG] Ep 120: R=6138.12, Avg=6055.84, ρ=0.99, λw=2.000, Number of Approvals R = 1873.000, Number of Approvals B = 1865.000, 
+  [PePG] Ep 130: R=5837.28, Avg=6025.00, ρ=1.00, λw=2.000, Number of Approvals R = 1852.000, Number of Approvals B = 1822.000, 
