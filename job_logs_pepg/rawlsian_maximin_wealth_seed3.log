@@ -174,3 +174,15 @@ Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_wealth_seed3.
     Cumulative Profit: $195276.90k
 
   Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $304.54k, μ_F: $241.10k
+    Wealth Gap: $63.44k
+    Episode Approval Rate M: 0.9587
+    Episode Approval Rate F: 0.9654
+    Episode Profit: $14993.92k
+    Cumulative Profit: $248729.96k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
