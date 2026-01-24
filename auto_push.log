@@ -844,3 +844,12 @@ To https://github.com/brahimdriss/LoanSimulator.git
    0b4e6d5..0722542  main -> main
 [2026-01-24 01:57:35] Push complete
 [2026-01-24 02:07:38] Changes detected, pushing...
+[main 600bfb6] Sync results
+ 5 files changed, 69 insertions(+), 182 deletions(-)
+ rewrite job_logs_pepg/job_scheduler.log (85%)
+ rewrite job_logs_pepg/social_welfare_approval_rate_seed1.log (69%)
+ delete mode 100644 pepg_sequential_results/pepg_social_welfare_approval_rate_seed1.pt
+To https://github.com/brahimdriss/LoanSimulator.git
+   0722542..600bfb6  main -> main
+[2026-01-24 02:07:38] Push complete
+[2026-01-24 02:17:38] Changes detected, pushing...
