@@ -31,7 +31,7 @@ JOB_MATRIX = {
         "utilitarian_profit",
     ],
     "constraints": ["approval_rate"],
-    "seeds": range(1, 2),
+    "seeds": range(2, 6),
 }
 # "constraints": ["approval_rate", "wealth", "both"],
 
