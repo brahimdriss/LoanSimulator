@@ -1,0 +1,44 @@
+Job: rawlsian_maximin_approval_rate_seed2
+Command: uv run python -u par_pepg.py --seeds 1 --seed 2 --reward rawlsian_maximin --constraint approval_rate --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-24T21:13:22.275514
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: RAWLSIAN_MAXIMIN
+  Constraint: APPROVAL_RATE
+  Seed: 2
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'approval_rate' (lr=0.01)
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with rawlsian_maximin (approval_rate constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=2047.75, Avg=2047.75, ρ=1.19, λw=2.000, Number of Approvals R = 329.000, Number of Approvals B = 251.000, 

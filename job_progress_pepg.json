@@ -6,8 +6,9 @@
     "utilitarian_profit_approval_rate_seed1",
     "social_welfare_approval_rate_seed2",
     "social_welfare_approval_rate_seed3",
-    "social_welfare_approval_rate_seed4"
+    "social_welfare_approval_rate_seed4",
+    "social_welfare_approval_rate_seed5"
   ],
   "failed": [],
-  "in_progress": "social_welfare_approval_rate_seed5"
+  "in_progress": "rawlsian_maximin_approval_rate_seed2"
 }
