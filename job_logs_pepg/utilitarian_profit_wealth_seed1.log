@@ -59,3 +59,69 @@ Training PePG V2 with utilitarian_profit (wealth constraint)...
   [PePG] Ep 160: R=6094.17, Avg=6045.25, ρ=1.02, λw=2.000, Number of Approvals R = 1908.000, Number of Approvals B = 1913.000, 
   [PePG] Ep 170: R=6224.66, Avg=6123.28, ρ=1.04, λw=2.000, Number of Approvals R = 1901.000, Number of Approvals B = 1900.000, 
   [PePG] Ep 180: R=6268.08, Avg=6125.29, ρ=1.00, λw=2.000, Number of Approvals R = 1913.000, Number of Approvals B = 1906.000, 
+  [PePG] Ep 190: R=6250.15, Avg=6158.43, ρ=0.99, λw=2.000, Number of Approvals R = 1930.000, Number of Approvals B = 1936.000, 
+  [PePG] Ep 199: R=6267.66, Avg=6220.99, ρ=0.99, λw=2.000, Number of Approvals R = 1940.000, Number of Approvals B = 1946.000, 
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $58.541k
+  Approval disparity: -0.0045
+  Total profit: $6195.953k
+  Mean ρ: 1.1075
+  PePG V2 model saved to ./pepg_sequential_results/pepg_utilitarian_profit_wealth_seed1.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_utilitarian_profit_wealth_seed1.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_utilitarian_profit_wealth_seed1.pt...
+  ✓ Model loaded successfully
+    Reward function: utilitarian_profit
+    Constraint type: wealth
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $77.76k, μ_F: $61.72k
+    Wealth Gap: $16.04k
+    Episode Approval Rate M: 0.9024
+    Episode Approval Rate F: 0.8894
+    Episode Profit: $5095.77k
+    Cumulative Profit: $15404.00k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $98.76k, μ_F: $77.41k
+    Wealth Gap: $21.35k
+    Episode Approval Rate M: 0.9171
+    Episode Approval Rate F: 0.9000
+    Episode Profit: $6021.81k
+    Cumulative Profit: $37255.79k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
