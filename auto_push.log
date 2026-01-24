@@ -967,8 +967,8 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 20:13:46] Push complete
-s(-)
- create mode 100644 job_logs_pepg/utilitarian_profit_approval_rate_seed1.log
+[2026-01-24 20:23:46] Changes detected, pushing...
+profit_approval_rate_seed1.log
  create mode 100644 pepg_sequential_results/test_episode_metrics_fairness_lagrangian_approval_rate_seed1_20260124_042253.csv
 To https://github.com/brahimdriss/LoanSimulator.git
    f7b7c89..937c509  main -> main
@@ -1868,3 +1868,14 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 20:08:52] Push complete
 [2026-01-24 20:18:52] Changes detected, pushing...
+[main 0551469] Sync results
+ 2 files changed, 24 insertions(+), 16 deletions(-)
+To https://github.com/brahimdriss/LoanSimulator.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-24 20:18:52] Push complete
