@@ -41,3 +41,10 @@ Female high-income rate: 0.116
 Training PePG V2 with fairness_lagrangian (wealth constraint)...
   Warmup episodes: 0
   Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=-27206.10, Avg=-27206.10, ρ=1.07, λw=2.020, Number of Approvals R = 281.000, Number of Approvals B = 238.000, 
+  [PePG] Ep 10: R=-34045.30, Avg=-34045.30, ρ=1.27, λw=2.233, Number of Approvals R = 177.000, Number of Approvals B = 158.000, 
+  [PePG] Ep 20: R=-38804.89, Avg=-33533.25, ρ=1.30, λw=2.467, Number of Approvals R = 156.000, Number of Approvals B = 123.000, 
+  [PePG] Ep 30: R=-51086.99, Avg=-41876.94, ρ=1.21, λw=2.727, Number of Approvals R = 245.000, Number of Approvals B = 186.000, 
+  [PePG] Ep 40: R=-63319.28, Avg=-53015.24, ρ=1.06, λw=3.014, Number of Approvals R = 220.000, Number of Approvals B = 193.000, 
+  [PePG] Ep 50: R=-90190.23, Avg=-68367.99, ρ=1.24, λw=3.331, Number of Approvals R = 279.000, Number of Approvals B = 213.000, 
+  [PePG] Ep 60: R=-111939.13, Avg=-88255.51, ρ=1.22, λw=3.681, Number of Approvals R = 310.000, Number of Approvals B = 258.000, 
