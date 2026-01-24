@@ -126,3 +126,39 @@ Loading model from ./pepg_sequential_results/pepg_social_welfare_approval_rate_s
     Cumulative Profit: $42883.27k
 
   Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $131.89k, μ_F: $102.99k
+    Wealth Gap: $28.90k
+    Episode Approval Rate M: 0.9713
+    Episode Approval Rate F: 0.9737
+    Episode Profit: $8360.00k
+    Cumulative Profit: $75180.05k
+
+  Starting Episode 31 (ALL state preserved - continuous play)
+
+  Episode 40/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 3980.0
+    μ_M: $168.33k, μ_F: $130.23k
+    Wealth Gap: $38.10k
+    Episode Approval Rate M: 0.9762
+    Episode Approval Rate F: 0.9824
+    Episode Profit: $10729.06k
+    Cumulative Profit: $116488.75k
+
+  Starting Episode 41 (ALL state preserved - continuous play)
+
+  Episode 50/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 4975.0
+    μ_M: $212.94k, μ_F: $165.13k
+    Wealth Gap: $47.81k
+    Episode Approval Rate M: 0.9833
+    Episode Approval Rate F: 0.9816
+    Episode Profit: $13191.91k
+    Cumulative Profit: $162548.70k
+
+  Starting Episode 51 (ALL state preserved - continuous play)

@@ -931,25 +931,19 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 19:43:44] Push complete
 [2026-01-24 19:53:45] Changes detected, pushing...
-925a  main -> main
-[2026-01-24 03:07:44] Push complete
-[2026-01-24 03:17:47] Changes detected, pushing...
-[main 014b3bf] Sync results
- 2 files changed, 12 insertions(+)
+[main 6f4e3d2] Sync results
+ 3 files changed, 80 insertions(+), 2 deletions(-)
+ create mode 100644 pepg_sequential_results/pepg_social_welfare_approval_rate_seed4.pt
 To https://github.com/brahimdriss/LoanSimulator.git
-   82b3d1f..014b3bf  main -> main
-[2026-01-24 03:17:47] Push complete
-[2026-01-24 03:27:47] Changes detected, pushing...
-[main 911e15d] Sync results
- 2 files changed, 12 insertions(+)
-To https://github.com/brahimdriss/LoanSimulator.git
-   819ef41..911e15d  main -> main
-[2026-01-24 03:27:47] Push complete
-[2026-01-24 03:37:48] Changes detected, pushing...
-[main 5887c34] Sync results
- 7 files changed, 242 insertions(+), 2 deletions(-)
- create mode 100644 job_logs_pepg/fairness_lagrangian_approval_rate_seed1.log
- create mode 100644 pepg_sequential_results/test_episode_metrics_rawlsian_maximin_approval_rate_seed1_20260124_033312.csv
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-24 19:53:45] Push complete
+reate mode 100644 pepg_sequential_results/test_episode_metrics_rawlsian_maximin_approval_rate_seed1_20260124_033312.csv
 To https://github.com/brahimdriss/LoanSimulator.git
    ea67553..5887c34  main -> main
 [2026-01-24 03:37:48] Push complete
@@ -1856,3 +1850,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 19:48:51] Push complete
+[2026-01-24 19:58:51] Changes detected, pushing...
