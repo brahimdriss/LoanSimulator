@@ -49,3 +49,8 @@ Training PePG V2 with social_welfare (approval_rate constraint)...
   [PePG] Ep 50: R=12143.05, Avg=9869.09, ρ=1.34, λw=2.000, Number of Approvals R = 1516.000, Number of Approvals B = 1152.000, 
   [PePG] Ep 60: R=14692.60, Avg=12304.22, ρ=1.19, λw=2.000, Number of Approvals R = 1690.000, Number of Approvals B = 1393.000, 
   [PePG] Ep 70: R=17161.97, Avg=14842.92, ρ=1.05, λw=2.000, Number of Approvals R = 1784.000, Number of Approvals B = 1620.000, 
+  [PePG] Ep 80: R=19224.59, Avg=17319.80, ρ=1.03, λw=2.000, Number of Approvals R = 1841.000, Number of Approvals B = 1769.000, 
+  [PePG] Ep 90: R=21134.95, Avg=19407.81, ρ=1.04, λw=2.000, Number of Approvals R = 1902.000, Number of Approvals B = 1860.000, 
+  [PePG] Ep 100: R=22647.81, Avg=21173.04, ρ=0.97, λw=2.000, Number of Approvals R = 1928.000, Number of Approvals B = 1921.000, 
+  [PePG] Ep 110: R=23973.91, Avg=22636.61, ρ=0.97, λw=2.000, Number of Approvals R = 1960.000, Number of Approvals B = 1938.000, 
+  [PePG] Ep 120: R=25438.76, Avg=24020.68, ρ=0.99, λw=2.000, Number of Approvals R = 1974.000, Number of Approvals B = 1963.000, 
