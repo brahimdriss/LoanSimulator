@@ -54,3 +54,6 @@ Training PePG V2 with social_welfare (wealth constraint)...
   [PePG] Ep 100: R=14280244.45, Avg=11104590.61, ρ=0.96, λw=5.491, Number of Approvals R = 1679.000, Number of Approvals B = 1666.000, 
   [PePG] Ep 110: R=18055782.04, Avg=14512305.00, ρ=1.05, λw=6.069, Number of Approvals R = 1554.000, Number of Approvals B = 1554.000, 
   [PePG] Ep 120: R=22139571.84, Avg=18313774.48, ρ=1.01, λw=6.707, Number of Approvals R = 1152.000, Number of Approvals B = 1180.000, 
+  [PePG] Ep 130: R=25549025.22, Avg=22199336.27, ρ=0.98, λw=7.412, Number of Approvals R = 410.000, Number of Approvals B = 429.000, 
+  [PePG] Ep 140: R=29032092.98, Avg=25784681.95, ρ=0.94, λw=8.192, Number of Approvals R = 366.000, Number of Approvals B = 370.000, 
+  [PePG] Ep 150: R=32592266.35, Avg=29230205.26, ρ=1.29, λw=9.053, Number of Approvals R = 159.000, Number of Approvals B = 160.000, 
