@@ -1,0 +1,50 @@
+Job: fairness_lagrangian_approval_rate_seed1
+Command: uv run python -u par_pepg.py --seeds 1 --seed 1 --reward fairness_lagrangian --constraint approval_rate --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-24T03:33:13.168545
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: FAIRNESS_LAGRANGIAN
+  Constraint: APPROVAL_RATE
+  Seed: 1
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'approval_rate' (lr=0.01)
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with fairness_lagrangian (approval_rate constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=703.29, Avg=703.29, ρ=1.07, λw=2.000, Number of Approvals R = 281.000, Number of Approvals B = 238.000, 
+  [PePG] Ep 10: R=1426.05, Avg=1426.05, ρ=1.16, λw=2.000, Number of Approvals R = 528.000, Number of Approvals B = 487.000, 
+  [PePG] Ep 20: R=2118.60, Avg=1498.23, ρ=1.37, λw=2.000, Number of Approvals R = 799.000, Number of Approvals B = 525.000, 
+  [PePG] Ep 30: R=2622.83, Avg=2094.10, ρ=1.32, λw=2.000, Number of Approvals R = 1003.000, Number of Approvals B = 730.000, 
+  [PePG] Ep 40: R=3319.93, Avg=2707.67, ρ=1.39, λw=2.000, Number of Approvals R = 1251.000, Number of Approvals B = 885.000, 
+  [PePG] Ep 50: R=4024.56, Avg=3414.07, ρ=1.31, λw=2.000, Number of Approvals R = 1563.000, Number of Approvals B = 1165.000, 
+  [PePG] Ep 60: R=4833.24, Avg=4179.30, ρ=1.18, λw=2.000, Number of Approvals R = 1725.000, Number of Approvals B = 1432.000, 

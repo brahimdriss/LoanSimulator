@@ -6,3 +6,5 @@
 2026-01-24 02:03:20 | START | Job 1/4: social_welfare_approval_rate_seed1
 2026-01-24 02:44:11 | DONE  | Job 1/4: social_welfare_approval_rate_seed1 (40m 50s)
 2026-01-24 02:44:11 | START | Job 2/4: rawlsian_maximin_approval_rate_seed1
+2026-01-24 03:33:13 | DONE  | Job 2/4: rawlsian_maximin_approval_rate_seed1 (49m 2s)
+2026-01-24 03:33:13 | START | Job 3/4: fairness_lagrangian_approval_rate_seed1

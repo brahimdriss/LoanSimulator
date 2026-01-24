@@ -1,7 +1,8 @@
 {
   "completed": [
-    "social_welfare_approval_rate_seed1"
+    "social_welfare_approval_rate_seed1",
+    "rawlsian_maximin_approval_rate_seed1"
   ],
   "failed": [],
-  "in_progress": "rawlsian_maximin_approval_rate_seed1"
+  "in_progress": "fairness_lagrangian_approval_rate_seed1"
 }
