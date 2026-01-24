@@ -49,3 +49,104 @@ Training PePG V2 with rawlsian_maximin (wealth constraint)...
   [PePG] Ep 50: R=589225.92, Avg=428837.01, ρ=1.35, λw=3.331, Number of Approvals R = 638.000, Number of Approvals B = 511.000, 
   [PePG] Ep 60: R=901263.42, Avg=623341.78, ρ=1.34, λw=3.681, Number of Approvals R = 820.000, Number of Approvals B = 573.000, 
   [PePG] Ep 70: R=1288252.44, Avg=922422.90, ρ=1.22, λw=4.068, Number of Approvals R = 889.000, Number of Approvals B = 678.000, 
+  [PePG] Ep 80: R=1918937.90, Avg=1346001.31, ρ=1.28, λw=4.496, Number of Approvals R = 1077.000, Number of Approvals B = 843.000, 
+  [PePG] Ep 90: R=2832036.93, Avg=1964200.47, ρ=1.19, λw=4.969, Number of Approvals R = 1408.000, Number of Approvals B = 1184.000, 
+  [PePG] Ep 100: R=4037995.43, Avg=2894097.38, ρ=1.07, λw=5.491, Number of Approvals R = 1510.000, Number of Approvals B = 1362.000, 
+  [PePG] Ep 110: R=5639777.65, Avg=4169045.75, ρ=1.07, λw=6.069, Number of Approvals R = 1569.000, Number of Approvals B = 1408.000, 
+  [PePG] Ep 120: R=7552662.16, Avg=5777696.71, ρ=1.00, λw=6.707, Number of Approvals R = 1535.000, Number of Approvals B = 1521.000, 
+  [PePG] Ep 130: R=9678966.33, Avg=7682660.84, ρ=1.01, λw=7.412, Number of Approvals R = 1534.000, Number of Approvals B = 1489.000, 
+  [PePG] Ep 140: R=12063217.34, Avg=9842504.68, ρ=0.98, λw=8.192, Number of Approvals R = 1529.000, Number of Approvals B = 1515.000, 
+  [PePG] Ep 150: R=14926452.57, Avg=12289578.98, ρ=0.95, λw=9.053, Number of Approvals R = 1631.000, Number of Approvals B = 1635.000, 
+  [PePG] Ep 160: R=18366912.25, Avg=15177021.74, ρ=0.95, λw=10.006, Number of Approvals R = 1780.000, Number of Approvals B = 1798.000, 
+  [PePG] Ep 170: R=22465125.85, Avg=18663696.06, ρ=0.97, λw=11.058, Number of Approvals R = 1805.000, Number of Approvals B = 1843.000, 
+  [PePG] Ep 180: R=27295154.50, Avg=22818840.46, ρ=1.00, λw=12.221, Number of Approvals R = 1828.000, Number of Approvals B = 1816.000, 
+  [PePG] Ep 190: R=32783555.30, Avg=27657337.05, ρ=1.02, λw=13.506, Number of Approvals R = 1776.000, Number of Approvals B = 1788.000, 
+  [PePG] Ep 199: R=38467703.10, Avg=32635473.10, ρ=1.04, λw=14.778, Number of Approvals R = 1775.000, Number of Approvals B = 1743.000, 
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $51.678k
+  Approval disparity: 0.0111
+  Total profit: $6128.204k
+  Mean ρ: 1.1344
+  PePG V2 model saved to ./pepg_sequential_results/pepg_rawlsian_maximin_wealth_seed2.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_rawlsian_maximin_wealth_seed2.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_wealth_seed2.pt...
+  ✓ Model loaded successfully
+    Reward function: rawlsian_maximin
+    Constraint type: wealth
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $76.62k, μ_F: $61.01k
+    Wealth Gap: $15.61k
+    Episode Approval Rate M: 0.8511
+    Episode Approval Rate F: 0.8716
+    Episode Profit: $4647.86k
+    Cumulative Profit: $17881.55k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $96.35k, μ_F: $75.67k
+    Wealth Gap: $20.68k
+    Episode Approval Rate M: 0.8627
+    Episode Approval Rate F: 0.8638
+    Episode Profit: $5548.01k
+    Cumulative Profit: $38201.92k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $120.28k, μ_F: $93.26k
+    Wealth Gap: $27.02k
+    Episode Approval Rate M: 0.8646
+    Episode Approval Rate F: 0.8661
+    Episode Profit: $6621.42k
+    Cumulative Profit: $64718.25k
+
+  Starting Episode 31 (ALL state preserved - continuous play)
+
+  Episode 40/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 3980.0
+    μ_M: $150.78k, μ_F: $114.75k
+    Wealth Gap: $36.03k
+    Episode Approval Rate M: 0.8693
+    Episode Approval Rate F: 0.8811
+    Episode Profit: $8766.50k
+    Cumulative Profit: $96158.62k
+
+  Starting Episode 41 (ALL state preserved - continuous play)
