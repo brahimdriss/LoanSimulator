@@ -173,3 +173,15 @@ Loading model from ./pepg_sequential_results/pepg_utilitarian_profit_wealth_seed
     Cumulative Profit: $187149.84k
 
   Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $289.04k, μ_F: $227.83k
+    Wealth Gap: $61.22k
+    Episode Approval Rate M: 0.9419
+    Episode Approval Rate F: 0.9369
+    Episode Profit: $14672.34k
+    Cumulative Profit: $242596.38k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
