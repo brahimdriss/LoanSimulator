@@ -10,3 +10,10 @@
 2026-01-24 07:32:56 | START | Job 3/4: fairness_lagrangian_wealth_seed1
 2026-01-24 09:11:51 | DONE  | Job 3/4: fairness_lagrangian_wealth_seed1 (1h 38m 55s)
 2026-01-24 09:11:51 | START | Job 4/4: utilitarian_profit_wealth_seed1
+2026-01-24 12:02:36 | DONE  | Job 4/4: utilitarian_profit_wealth_seed1 (2h 50m 44s)
+2026-01-24 12:02:36 | INFO  | ==================================================
+2026-01-24 12:02:36 | INFO  | Scheduler Finished
+2026-01-24 12:02:36 | INFO  | Total time: 10h 1m 20s
+2026-01-24 12:02:36 | INFO  | Completed: 4/4
+2026-01-24 12:02:36 | INFO  | Failed: 0
+2026-01-24 12:02:36 | INFO  | ==================================================
