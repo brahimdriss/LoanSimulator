@@ -86,3 +86,79 @@ TESTING TRAINED AGENT (EPISODE-WISE METRICS)
 
 [1] Loading Data...
 Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed5.pt...
+  ✓ Model loaded successfully
+    Reward function: rawlsian_maximin
+    Constraint type: approval_rate
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $77.87k, μ_F: $61.74k
+    Wealth Gap: $16.13k
+    Episode Approval Rate M: 0.8753
+    Episode Approval Rate F: 0.8768
+    Episode Profit: $5039.61k
+    Cumulative Profit: $14826.62k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $99.06k, μ_F: $77.28k
+    Wealth Gap: $21.77k
+    Episode Approval Rate M: 0.8938
+    Episode Approval Rate F: 0.8750
+    Episode Profit: $6135.53k
+    Cumulative Profit: $34475.88k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $125.01k, μ_F: $96.35k
+    Wealth Gap: $28.66k
+    Episode Approval Rate M: 0.8923
+    Episode Approval Rate F: 0.8810
+    Episode Profit: $7956.24k
+    Cumulative Profit: $59483.07k
+
+  Starting Episode 31 (ALL state preserved - continuous play)
+
+  Episode 40/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 3980.0
+    μ_M: $157.55k, μ_F: $119.11k
+    Wealth Gap: $38.44k
+    Episode Approval Rate M: 0.8874
+    Episode Approval Rate F: 0.8759
+    Episode Profit: $8597.34k
+    Cumulative Profit: $88539.13k
+
+  Starting Episode 41 (ALL state preserved - continuous play)
+
+  Episode 50/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 4975.0
+    μ_M: $195.82k, μ_F: $147.76k
+    Wealth Gap: $48.06k
+    Episode Approval Rate M: 0.8930
+    Episode Approval Rate F: 0.9031
+    Episode Profit: $10929.89k
+    Cumulative Profit: $126421.12k
+
+  Starting Episode 51 (ALL state preserved - continuous play)
