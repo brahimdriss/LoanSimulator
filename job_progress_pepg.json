@@ -8,8 +8,9 @@
     "social_welfare_approval_rate_seed3",
     "social_welfare_approval_rate_seed4",
     "social_welfare_approval_rate_seed5",
-    "rawlsian_maximin_approval_rate_seed2"
+    "rawlsian_maximin_approval_rate_seed2",
+    "rawlsian_maximin_approval_rate_seed3"
   ],
   "failed": [],
-  "in_progress": "rawlsian_maximin_approval_rate_seed3"
+  "in_progress": "rawlsian_maximin_approval_rate_seed4"
 }

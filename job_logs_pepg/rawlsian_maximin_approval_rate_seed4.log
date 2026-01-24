@@ -1,0 +1,18 @@
+Job: rawlsian_maximin_approval_rate_seed4
+Command: uv run python -u par_pepg.py --seeds 1 --seed 4 --reward rawlsian_maximin --constraint approval_rate --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-24T22:53:50.708779
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: RAWLSIAN_MAXIMIN
+  Constraint: APPROVAL_RATE
+  Seed: 4
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA GeForce RTX 2080 Ti
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
