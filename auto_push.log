@@ -859,3 +859,10 @@ To https://github.com/brahimdriss/LoanSimulator.git
    600bfb6..71dcd5e  main -> main
 [2026-01-24 02:17:38] Push complete
 [2026-01-24 02:27:39] Changes detected, pushing...
+[main a3f3597] Sync results
+ 3 files changed, 66 insertions(+)
+ create mode 100644 pepg_sequential_results/pepg_social_welfare_approval_rate_seed1.pt
+To https://github.com/brahimdriss/LoanSimulator.git
+   71dcd5e..a3f3597  main -> main
+[2026-01-24 02:27:39] Push complete
+[2026-01-24 02:37:42] Changes detected, pushing...
