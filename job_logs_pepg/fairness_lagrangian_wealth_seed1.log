@@ -48,3 +48,8 @@ Training PePG V2 with fairness_lagrangian (wealth constraint)...
   [PePG] Ep 40: R=-63319.28, Avg=-53015.24, ρ=1.06, λw=3.014, Number of Approvals R = 220.000, Number of Approvals B = 193.000, 
   [PePG] Ep 50: R=-90190.23, Avg=-68367.99, ρ=1.24, λw=3.331, Number of Approvals R = 279.000, Number of Approvals B = 213.000, 
   [PePG] Ep 60: R=-111939.13, Avg=-88255.51, ρ=1.22, λw=3.681, Number of Approvals R = 310.000, Number of Approvals B = 258.000, 
+  [PePG] Ep 70: R=-144209.27, Avg=-113628.32, ρ=1.32, λw=4.068, Number of Approvals R = 338.000, Number of Approvals B = 266.000, 
+  [PePG] Ep 80: R=-188779.98, Avg=-148221.59, ρ=1.50, λw=4.496, Number of Approvals R = 240.000, Number of Approvals B = 195.000, 
+  [PePG] Ep 90: R=-225650.52, Avg=-188550.15, ρ=1.11, λw=4.969, Number of Approvals R = 212.000, Number of Approvals B = 205.000, 
+  [PePG] Ep 100: R=-279326.14, Avg=-231269.88, ρ=1.20, λw=5.491, Number of Approvals R = 229.000, Number of Approvals B = 199.000, 
+  [PePG] Ep 110: R=-342053.75, Avg=-282300.47, ρ=1.12, λw=6.069, Number of Approvals R = 195.000, Number of Approvals B = 149.000, 
