@@ -1,19 +1,7 @@
-2026-01-24 02:01:15 | INFO  | ==================================================
-2026-01-24 02:01:15 | INFO  | Sequential PePG Job Scheduler Started
-2026-01-24 02:01:15 | INFO  | Total jobs: 4, Pending: 4, Completed: 0, Failed: 0
-2026-01-24 02:01:15 | INFO  | Episodes per job: 200
-2026-01-24 02:01:15 | INFO  | ==================================================
-2026-01-24 02:01:15 | START | Job 1/4: social_welfare_wealth_seed1
-2026-01-24 03:54:17 | DONE  | Job 1/4: social_welfare_wealth_seed1 (1h 53m 2s)
-2026-01-24 03:54:17 | START | Job 2/4: rawlsian_maximin_wealth_seed1
-2026-01-24 07:32:56 | DONE  | Job 2/4: rawlsian_maximin_wealth_seed1 (3h 38m 39s)
-2026-01-24 07:32:56 | START | Job 3/4: fairness_lagrangian_wealth_seed1
-2026-01-24 09:11:51 | DONE  | Job 3/4: fairness_lagrangian_wealth_seed1 (1h 38m 55s)
-2026-01-24 09:11:51 | START | Job 4/4: utilitarian_profit_wealth_seed1
-2026-01-24 12:02:36 | DONE  | Job 4/4: utilitarian_profit_wealth_seed1 (2h 50m 44s)
-2026-01-24 12:02:36 | INFO  | ==================================================
-2026-01-24 12:02:36 | INFO  | Scheduler Finished
-2026-01-24 12:02:36 | INFO  | Total time: 10h 1m 20s
-2026-01-24 12:02:36 | INFO  | Completed: 4/4
-2026-01-24 12:02:36 | INFO  | Failed: 0
-2026-01-24 12:02:36 | INFO  | ==================================================
+Warning: Could not load progress file: Expecting value: line 3 column 1 (char 19)
+2026-01-24 17:49:52 | INFO  | ==================================================
+2026-01-24 17:49:52 | INFO  | Sequential PePG Job Scheduler Started
+2026-01-24 17:49:52 | INFO  | Total jobs: 16, Pending: 16, Completed: 0, Failed: 0
+2026-01-24 17:49:52 | INFO  | Episodes per job: 200
+2026-01-24 17:49:52 | INFO  | ==================================================
+2026-01-24 17:49:52 | START | Job 1/16: social_welfare_wealth_seed2
