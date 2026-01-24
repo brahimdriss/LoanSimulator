@@ -5,8 +5,9 @@
     "fairness_lagrangian_approval_rate_seed1",
     "utilitarian_profit_approval_rate_seed1",
     "social_welfare_approval_rate_seed2",
-    "social_welfare_approval_rate_seed3"
+    "social_welfare_approval_rate_seed3",
+    "social_welfare_approval_rate_seed4"
   ],
   "failed": [],
-  "in_progress": "social_welfare_approval_rate_seed4"
+  "in_progress": "social_welfare_approval_rate_seed5"
 }

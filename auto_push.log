@@ -968,21 +968,18 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 20:13:46] Push complete
 [2026-01-24 20:23:46] Changes detected, pushing...
-profit_approval_rate_seed1.log
- create mode 100644 pepg_sequential_results/test_episode_metrics_fairness_lagrangian_approval_rate_seed1_20260124_042253.csv
+[main dadbf07] Sync results
+ 1 file changed, 13 insertions(+), 2 deletions(-)
 To https://github.com/brahimdriss/LoanSimulator.git
-   f7b7c89..937c509  main -> main
-[2026-01-24 04:27:54] Push complete
-[2026-01-24 04:37:55] Changes detected, pushing...
-[main cfd3042] Sync results
- 2 files changed, 4 insertions(+)
-To https://github.com/brahimdriss/LoanSimulator.git
-   8c36719..cfd3042  main -> main
-[2026-01-24 04:37:55] Push complete
-[2026-01-24 04:47:55] Changes detected, pushing...
-[main 30015c0] Sync results
- 3 files changed, 89 insertions(+)
- create mode 100644 pepg_sequential_results/pepg_utilitarian_profit_approval_rate_seed1.pt
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-24 20:23:46] Push complete
+g_sequential_results/pepg_utilitarian_profit_approval_rate_seed1.pt
 To https://github.com/brahimdriss/LoanSimulator.git
    40c3db3..30015c0  main -> main
 [2026-01-24 04:47:55] Push complete
@@ -1879,3 +1876,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 20:18:52] Push complete
+[2026-01-24 20:28:52] Changes detected, pushing...
