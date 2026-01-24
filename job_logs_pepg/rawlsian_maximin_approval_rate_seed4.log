@@ -102,3 +102,75 @@ Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate
 [5] Running 100 Episodes (Episodes 1 to 100)...
 
   Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $73.74k, μ_F: $58.47k
+    Wealth Gap: $15.26k
+    Episode Approval Rate M: 0.7098
+    Episode Approval Rate F: 0.7131
+    Episode Profit: $3841.60k
+    Cumulative Profit: $15320.11k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $89.21k, μ_F: $70.49k
+    Wealth Gap: $18.72k
+    Episode Approval Rate M: 0.7327
+    Episode Approval Rate F: 0.7183
+    Episode Profit: $4722.65k
+    Cumulative Profit: $30151.73k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $107.93k, μ_F: $84.10k
+    Wealth Gap: $23.84k
+    Episode Approval Rate M: 0.7377
+    Episode Approval Rate F: 0.7312
+    Episode Profit: $5091.14k
+    Cumulative Profit: $50297.08k
+
+  Starting Episode 31 (ALL state preserved - continuous play)
+
+  Episode 40/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 3980.0
+    μ_M: $130.07k, μ_F: $99.90k
+    Wealth Gap: $30.16k
+    Episode Approval Rate M: 0.7247
+    Episode Approval Rate F: 0.7055
+    Episode Profit: $5994.88k
+    Cumulative Profit: $73076.29k
+
+  Starting Episode 41 (ALL state preserved - continuous play)
+
+  Episode 50/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 4975.0
+    μ_M: $156.84k, μ_F: $119.67k
+    Wealth Gap: $37.17k
+    Episode Approval Rate M: 0.7328
+    Episode Approval Rate F: 0.7098
+    Episode Profit: $7417.80k
+    Cumulative Profit: $99507.30k
+
+  Starting Episode 51 (ALL state preserved - continuous play)
+
+  Episode 60/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 5970.0
+    μ_M: $187.51k, μ_F: $142.98k
+    Wealth Gap: $44.53k
+    Episode Approval Rate M: 0.7481
+    Episode Approval Rate F: 0.7566
+    Episode Profit: $8660.53k
+    Cumulative Profit: $128835.09k
+
+  Starting Episode 61 (ALL state preserved - continuous play)
