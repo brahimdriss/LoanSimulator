@@ -1117,25 +1117,19 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 22:13:51] Push complete
 [2026-01-24 22:23:52] Changes detected, pushing...
-10:08:22] Push complete
-[2026-01-24 10:18:23] Changes detected, pushing...
-[main 17e136f] Sync results
- 1 file changed, 7 insertions(+), 1 deletion(-)
+[main bac9586] Sync results
+ 3 files changed, 57 insertions(+), 3 deletions(-)
+ create mode 100644 pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed3.pt
 To https://github.com/brahimdriss/LoanSimulator.git
-   d498720..17e136f  main -> main
-[2026-01-24 10:18:23] Push complete
-[2026-01-24 10:28:23] Changes detected, pushing...
-[main 578b90e] Sync results
- 1 file changed, 7 insertions(+), 1 deletion(-)
-To https://github.com/brahimdriss/LoanSimulator.git
-   f7a34e8..578b90e  main -> main
-[2026-01-24 10:28:23] Push complete
-[2026-01-24 10:38:24] Changes detected, pushing...
-[main 18994e6] Sync results
- 1 file changed, 7 insertions(+), 1 deletion(-)
-To https://github.com/brahimdriss/LoanSimulator.git
-   1b43d2b..18994e6  main -> main
-[2026-01-24 10:38:24] Push complete
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-24 22:23:52] Push complete
+-01-24 10:38:24] Push complete
 [2026-01-24 10:48:25] Changes detected, pushing...
 [main e1ffe40] Sync results
  1 file changed, 7 insertions(+), 1 deletion(-)
@@ -1965,3 +1959,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 22:18:58] Push complete
+[2026-01-24 22:28:58] Changes detected, pushing...
