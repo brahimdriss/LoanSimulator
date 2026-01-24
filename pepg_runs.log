@@ -4,3 +4,5 @@
 2026-01-24 02:01:15 | INFO  | Episodes per job: 200
 2026-01-24 02:01:15 | INFO  | ==================================================
 2026-01-24 02:01:15 | START | Job 1/4: social_welfare_wealth_seed1
+2026-01-24 03:54:17 | DONE  | Job 1/4: social_welfare_wealth_seed1 (1h 53m 2s)
+2026-01-24 03:54:17 | START | Job 2/4: rawlsian_maximin_wealth_seed1
