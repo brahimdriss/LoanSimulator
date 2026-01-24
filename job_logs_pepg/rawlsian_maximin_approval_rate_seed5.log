@@ -174,3 +174,15 @@ Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate
     Cumulative Profit: $171075.97k
 
   Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $286.14k, μ_F: $224.21k
+    Wealth Gap: $61.93k
+    Episode Approval Rate M: 0.9105
+    Episode Approval Rate F: 0.9117
+    Episode Profit: $14181.64k
+    Cumulative Profit: $222037.28k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
