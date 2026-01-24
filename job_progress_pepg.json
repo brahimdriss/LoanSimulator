@@ -4,8 +4,9 @@
     "rawlsian_maximin_approval_rate_seed1",
     "fairness_lagrangian_approval_rate_seed1",
     "utilitarian_profit_approval_rate_seed1",
-    "social_welfare_approval_rate_seed2"
+    "social_welfare_approval_rate_seed2",
+    "social_welfare_approval_rate_seed3"
   ],
   "failed": [],
-  "in_progress": "social_welfare_approval_rate_seed3"
+  "in_progress": "social_welfare_approval_rate_seed4"
 }
