@@ -1029,28 +1029,20 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 21:03:48] Push complete
 [2026-01-24 21:13:49] Changes detected, pushing...
-driss/LoanSimulator.git
-   bbd0e9b..c9fd180  main -> main
-[2026-01-24 06:38:06] Push complete
-[2026-01-24 06:48:07] Changes detected, pushing...
-[main f0c0b57] Sync results
- 1 file changed, 0 insertions(+), 0 deletions(-)
+[main d5f1c5f] Sync results
+ 7 files changed, 249 insertions(+), 4 deletions(-)
+ create mode 100644 job_logs_pepg/rawlsian_maximin_approval_rate_seed2.log
+ create mode 100644 pepg_sequential_results/test_episode_metrics_social_welfare_approval_rate_seed5_20260124_211321.csv
 To https://github.com/brahimdriss/LoanSimulator.git
-   01df23b..f0c0b57  main -> main
-[2026-01-24 06:48:07] Push complete
-[2026-01-24 06:58:07] Changes detected, pushing...
-[main 97074f4] Sync results
- 1 file changed, 0 insertions(+), 0 deletions(-)
-To https://github.com/brahimdriss/LoanSimulator.git
-   3910830..97074f4  main -> main
-[2026-01-24 06:58:07] Push complete
-[2026-01-24 07:08:08] Changes detected, pushing...
-[main 4655ba8] Sync results
- 1 file changed, 0 insertions(+), 0 deletions(-)
-To https://github.com/brahimdriss/LoanSimulator.git
-   9df6ff6..4655ba8  main -> main
-[2026-01-24 07:08:08] Push complete
-[2026-01-24 07:18:09] Changes detected, pushing...
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-24 21:13:49] Push complete
+26-01-24 07:18:09] Changes detected, pushing...
 [main 6e293dd] Sync results
  1 file changed, 0 insertions(+), 0 deletions(-)
 To https://github.com/brahimdriss/LoanSimulator.git
@@ -1920,3 +1912,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 21:08:54] Push complete
+[2026-01-24 21:18:55] Changes detected, pushing...

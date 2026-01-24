@@ -42,3 +42,10 @@ Training PePG V2 with rawlsian_maximin (approval_rate constraint)...
   Warmup episodes: 0
   Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
   [PePG] Ep 0: R=2047.75, Avg=2047.75, ρ=1.19, λw=2.000, Number of Approvals R = 329.000, Number of Approvals B = 251.000, 
+  [PePG] Ep 10: R=4006.02, Avg=4006.02, ρ=1.19, λw=2.000, Number of Approvals R = 625.000, Number of Approvals B = 474.000, 
+  [PePG] Ep 20: R=4981.83, Avg=4027.21, ρ=1.30, λw=2.000, Number of Approvals R = 743.000, Number of Approvals B = 608.000, 
+  [PePG] Ep 30: R=6511.71, Avg=5275.74, ρ=1.21, λw=2.000, Number of Approvals R = 897.000, Number of Approvals B = 691.000, 
+  [PePG] Ep 40: R=8915.49, Avg=6921.22, ρ=1.47, λw=2.000, Number of Approvals R = 1219.000, Number of Approvals B = 847.000, 
+  [PePG] Ep 50: R=11134.56, Avg=9022.37, ρ=1.38, λw=2.000, Number of Approvals R = 1412.000, Number of Approvals B = 1061.000, 
+  [PePG] Ep 60: R=13735.81, Avg=11317.75, ρ=1.11, λw=2.000, Number of Approvals R = 1638.000, Number of Approvals B = 1355.000, 
+  [PePG] Ep 70: R=15103.77, Avg=13592.57, ρ=1.04, λw=2.000, Number of Approvals R = 1655.000, Number of Approvals B = 1571.000, 
