@@ -41,3 +41,9 @@ Training PePG V2 with utilitarian_profit (wealth constraint)...
   Warmup episodes: 0
   Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
   [PePG] Ep 0: R=830.98, Avg=830.98, ρ=1.07, λw=2.000, Number of Approvals R = 281.000, Number of Approvals B = 238.000, 
+  [PePG] Ep 10: R=1781.45, Avg=1781.45, ρ=1.17, λw=2.000, Number of Approvals R = 631.000, Number of Approvals B = 498.000, 
+  [PePG] Ep 20: R=1979.39, Avg=1720.69, ρ=1.23, λw=2.000, Number of Approvals R = 719.000, Number of Approvals B = 573.000, 
+  [PePG] Ep 30: R=2442.26, Avg=2115.16, ρ=1.35, λw=2.000, Number of Approvals R = 890.000, Number of Approvals B = 696.000, 
+  [PePG] Ep 40: R=2858.80, Avg=2544.42, ρ=1.55, λw=2.000, Number of Approvals R = 1078.000, Number of Approvals B = 711.000, 
+  [PePG] Ep 50: R=3674.40, Avg=3023.60, ρ=1.17, λw=2.000, Number of Approvals R = 1228.000, Number of Approvals B = 1007.000, 
+  [PePG] Ep 60: R=4362.30, Avg=3670.83, ρ=1.23, λw=2.000, Number of Approvals R = 1509.000, Number of Approvals B = 1247.000, 
