@@ -705,8 +705,6 @@ class PePGAgentV2:
     def _compute_standard_gradient(self, decisions: List[dict]) -> torch.Tensor:
         """
         Compute Term 1: Standard policy gradient A(s,a) · ∇θ log πθ(a|s)
-
-        Uses REINFORCE with baseline. VECTORIZED.
         """
         if not decisions:
             return torch.zeros(
@@ -717,7 +715,8 @@ class PePGAgentV2:
         states = np.array([d["state"] for d in decisions])
         actions = np.array([d["approval_prob"] for d in decisions])
         rewards = np.array([d.get("reward", 0.0) for d in decisions])
-
+        transitions = np.log(np.array([d.get("p_theta") for d in decisions]))
+        
         # Compute returns (G_t = Σ γ^k r_{t+k})
         T = len(rewards)
         returns = np.zeros(T)
@@ -752,7 +751,7 @@ class PePGAgentV2:
 
         # Discounted policy gradient
         discounts = torch.FloatTensor([self.gamma**t for t in range(T)]).to(self.device)
-        policy_loss = -(discounts * advantages_tensor * log_probs).sum()
+        policy_loss = -(discounts *(advantages_tensor * log_probs+ advantages_tensor*(torch.FloatTensor(transitions).to(self.device)) + torch.FloatTensor(rewards).to(self.device))).sum()
 
         policy_loss.backward()
 
@@ -766,291 +765,9 @@ class PePGAgentV2:
 
         return torch.cat(grads)
 
-    def _compute_hawkes_transition_gradient(
-        self, decisions: List[dict], grad_matrix: torch.Tensor = None
-    ) -> torch.Tensor:
-        """
-        Compute Hawkes component of Term 2: ∇θ log P^πθ(s'|s,a) for intensity.
-
-        VECTORIZED VERSION - O(T) instead of O(T²) backward passes.
-
-        Key insight: We precompute all gradients, then use matrix operations
-        to compute the weighted sum.
-        """
-        num_params = sum(p.numel() for p in self.policy_net.parameters())
-
-        if not decisions:
-            return torch.zeros(num_params, device=self.device)
-
-        T = len(decisions)
-
-        # Get times and group info
-        times = np.array([d["time"] for d in decisions])
-        groups = np.array([d["group"] for d in decisions])
-        approved = np.array([d["approved"] for d in decisions])
-
-        # Compute returns for advantage weighting
-        rewards = np.array([d.get("reward", 0.0) for d in decisions])
-        returns = np.zeros(T)
-        G = 0.0
-        for t in reversed(range(T)):
-            G = rewards[t] + self.gamma * G
-            returns[t] = G
-        baseline = np.mean(returns) if len(returns) > 0 else 0.0
-        advantages = returns - baseline
-
-        # Get indices of approved decisions by group
-        approved_R_mask = approved & (groups == "male")
-        approved_B_mask = approved & (groups == "female")
-        approved_R_idx = np.where(approved_R_mask)[0]
-        approved_B_idx = np.where(approved_B_mask)[0]
-
-        if len(approved_R_idx) == 0 and len(approved_B_idx) == 0:
-            return torch.zeros(num_params, device=self.device)
-
-        # If grad_matrix not provided, compute only for approved decisions
-        if grad_matrix is None:
-            approved_mask = approved_R_mask | approved_B_mask
-            approved_idx = np.where(approved_mask)[0]
-
-            if len(approved_idx) == 0:
-                return torch.zeros(num_params, device=self.device)
-
-            approved_states = np.array([decisions[i]["state"] for i in approved_idx])
-            approved_actions = np.array(
-                [decisions[i]["approval_prob"] for i in approved_idx]
-            )
-            approved_grad_matrix = self._compute_all_grad_log_pi_batched(
-                approved_states, approved_actions
-            )
-
-            # Create mapping from decision index to row in approved_grad_matrix
-            idx_to_row = {idx: row for row, idx in enumerate(approved_idx)}
-        else:
-            # grad_matrix contains gradients for ALL decisions, indexed by decision order
-            idx_to_row = None
-
-        gradient = torch.zeros(num_params, device=self.device)
-
-        # Process male approvals
-        if len(approved_R_idx) > 0:
-            for approval_idx in approved_R_idx:
-                approval_time = times[approval_idx]
-
-                # Find all future timesteps
-                future_mask = times > approval_time
-                future_times = times[future_mask]
-                future_t_indices = np.where(future_mask)[0]
-
-                if len(future_times) == 0:
-                    continue
-
-                # Compute excitation for all future times
-                ages = future_times - approval_time
-                excitations = self.alpha_R * np.exp(-self.beta_R * ages)
-
-                # Compute weighted sum
-                discounts = np.array([self.gamma**t for t in future_t_indices])
-                future_advantages = advantages[future_mask]
-
-                weight = np.sum(discounts * future_advantages * excitations)
-
-                # Get gradient for this approval
-                if idx_to_row is not None:
-                    grad = approved_grad_matrix[idx_to_row[approval_idx]]
-                else:
-                    grad = grad_matrix[approval_idx]
-
-                gradient += weight * grad
-
-        # Process female approvals
-        if len(approved_B_idx) > 0:
-            for approval_idx in approved_B_idx:
-                approval_time = times[approval_idx]
-
-                future_mask = times > approval_time
-                future_times = times[future_mask]
-                future_t_indices = np.where(future_mask)[0]
-
-                if len(future_times) == 0:
-                    continue
-
-                ages = future_times - approval_time
-                excitations = self.alpha_B * np.exp(-self.beta_B * ages)
-
-                discounts = np.array([self.gamma**t for t in future_t_indices])
-                future_advantages = advantages[future_mask]
-
-                weight = np.sum(discounts * future_advantages * excitations)
-
-                if idx_to_row is not None:
-                    grad = approved_grad_matrix[idx_to_row[approval_idx]]
-                else:
-                    grad = grad_matrix[approval_idx]
-
-                gradient += weight * grad
-
-        return gradient
-
-    def _compute_wealth_transition_gradient(
-        self, decisions: List[dict], grad_matrix: torch.Tensor = None
-    ) -> torch.Tensor:
-        """
-        Compute wealth component of Term 2: ∇θ log P^πθ(s'|s,a) for wealth dynamics.
-
-        VECTORIZED VERSION.
-        """
-        num_params = sum(p.numel() for p in self.policy_net.parameters())
-
-        if not decisions:
-            return torch.zeros(num_params, device=self.device)
-
-        # Get approved decisions
-        approved_idx = [i for i, d in enumerate(decisions) if d["approved"]]
-
-        if not approved_idx:
-            return torch.zeros(num_params, device=self.device)
-
-        # Compute returns for advantage weighting
-        rewards = np.array([d.get("reward", 0.0) for d in decisions])
-        T = len(rewards)
-        returns = np.zeros(T)
-        G = 0.0
-        for t in reversed(range(T)):
-            G = rewards[t] + self.gamma * G
-            returns[t] = G
-        baseline = np.mean(returns) if len(returns) > 0 else 0.0
-
-        # Get gradients for approved decisions
-        if grad_matrix is None:
-            # Compute gradients only for approved decisions
-            approved_states = np.array([decisions[i]["state"] for i in approved_idx])
-            approved_actions = np.array(
-                [decisions[i]["approval_prob"] for i in approved_idx]
-            )
-            approved_grad_matrix = self._compute_all_grad_log_pi_batched(
-                approved_states, approved_actions
-            )
-        else:
-            # grad_matrix has all decisions, select approved ones
-            approved_grad_matrix = grad_matrix[approved_idx]
-
-        # Compute weights for each approved decision
-        weights = []
-        for row, i in enumerate(approved_idx):
-            d = decisions[i]
-            advantage = returns[i] - baseline
-            discount = self.gamma**i
-
-            default_prob = d.get("default_prob", 0.1)
-            wealth_gain = d.get("wealth_gain", 0.0)
-            expected_wealth_change = (1.0 - default_prob) * wealth_gain
-
-            weights.append(discount * advantage * expected_wealth_change)
-
-        weights_tensor = torch.FloatTensor(weights).to(self.device)
-        # Weighted sum of gradients
-        gradient = (weights_tensor.unsqueeze(1) * approved_grad_matrix).sum(dim=0)
-
-        return gradient
-
-    def _compute_reward_gradient(
-        self, decisions: List[dict], grad_matrix: torch.Tensor = None
-    ) -> torch.Tensor:
-        """
-        Compute Term 3: ∇θ r^πθ(s,a) - gradient of performative reward.
-
-        VECTORIZED VERSION.
-        """
-        num_params = sum(p.numel() for p in self.policy_net.parameters())
-
-        if not decisions:
-            return torch.zeros(num_params, device=self.device)
-
-        T = len(decisions)
-
-        # Extract all states and actions
-        states = np.array([d["state"] for d in decisions])
-        actions = np.array([d["approval_prob"] for d in decisions])
-
-        # Compute all gradients if not provided
-        if grad_matrix is None:
-            grad_matrix = self._compute_all_grad_log_pi_batched(states, actions)
-
-        lambda_w, lambda_a = self._get_current_lambdas()
-
-        # Compute weights for each decision
-        weights = np.zeros(T)
-
-        for t, decision in enumerate(decisions):
-            discount = self.gamma**t
-
-            # --- Profit weight ---
-            default_prob = decision.get("default_prob", 0.1)
-            loan_amount = decision.get("loan_amount", 30.0)
-            interest_rate = self.env.interest_rate
-
-            revenue = (1.0 - default_prob) * loan_amount * interest_rate
-            loss = default_prob * loan_amount
-            expected_profit = revenue - loss
-
-            weight = discount * expected_profit
-
-            # --- Fairness weight (wealth constraint) ---
-            if self.constraint_type in ["wealth", "both"] and lambda_w > 0:
-                wealth_gain = decision.get("wealth_gain", 0.0)
-                success_prob = 1.0 - default_prob
-
-                if decision["group"] == "male":
-                    gap_sign = np.sign(self.env.mu_R - self.env.mu_B)
-                    fairness_weight = (
-                        -lambda_w
-                        * gap_sign
-                        * success_prob
-                        * wealth_gain
-                        / self.env.N_male
-                    )
-                else:
-                    gap_sign = np.sign(self.env.mu_R - self.env.mu_B)
-                    fairness_weight = (
-                        lambda_w
-                        * gap_sign
-                        * success_prob
-                        * wealth_gain
-                        / self.env.N_female
-                    )
-
-                weight += discount * fairness_weight
-
-            # --- Approval rate fairness weight ---
-            if self.constraint_type in ["approval_rate", "both"] and lambda_a > 0:
-                approval_rate_M = self.env.total_loans_R / max(
-                    self.env.total_applications_R, 1
-                )
-                approval_rate_F = self.env.total_loans_B / max(
-                    self.env.total_applications_B, 1
-                )
-                rate_gap_sign = np.sign(approval_rate_M - approval_rate_F)
-
-                if decision["group"] == "male":
-                    rate_weight = -lambda_a * rate_gap_sign
-                else:
-                    rate_weight = lambda_a * rate_gap_sign
-
-                weight += discount * rate_weight
-
-            weights[t] = weight
-
-        weights_tensor = torch.FloatTensor(weights).to(self.device)
-
-        # Weighted sum of gradients
-        gradient = (weights_tensor.unsqueeze(1) * grad_matrix).sum(dim=0)
-
-        return gradient
-
     def _compute_full_pepg_gradient(
         self, decisions: List[dict]
-    ) -> Tuple[torch.Tensor, dict]:
+        ) -> Tuple[torch.Tensor, dict]:
         """
         Compute the full PePG gradient combining all three terms.
 
@@ -1065,55 +782,40 @@ class PePGAgentV2:
         if not decisions:
             return torch.zeros(num_params, device=self.device), {
                 "standard_norm": 0.0,
-                "hawkes_norm": 0.0,
-                "wealth_norm": 0.0,
-                "reward_norm": 0.0,
                 "total_norm": 0.0,
             }
 
         # Precompute gradient matrix for ALL decisions ONCE
         states = np.array([d["state"] for d in decisions])
         actions = np.array([d["approval_prob"] for d in decisions])
-        grad_matrix = self._compute_all_grad_log_pi_batched(states, actions)
+        # grad_matrix = self._compute_all_grad_log_pi_batched(states, actions)
 
         # Term 1: Standard policy gradient (uses its own efficient computation)
         standard_grad = self._compute_standard_gradient(decisions)
 
         # Term 2a: Hawkes transition gradient (pass precomputed gradients)
-        hawkes_grad = self._compute_hawkes_transition_gradient(decisions, grad_matrix)
-
-        # Term 2b: Wealth transition gradient (pass precomputed gradients)
-        wealth_grad = self._compute_wealth_transition_gradient(decisions, grad_matrix)
-
-        # Term 3: Reward gradient (pass precomputed gradients)
-        reward_grad = self._compute_reward_gradient(decisions, grad_matrix)
 
         # Free the gradient matrix memory
-        del grad_matrix
+        # del grad_matrix
         del states
         del actions
 
         # Combine with weights
-        transition_grad = (
-            self.hawkes_weight * hawkes_grad + self.wealth_weight * wealth_grad
-        )
+       
 
         total_grad = (
             standard_grad
-            + self.transition_weight * transition_grad
-            + self.reward_weight * reward_grad
+            # + self.transition_weight * transition_grad
+            # + self.reward_weight * reward_grad
         )
 
         grad_info = {
             "standard_norm": standard_grad.norm().item(),
-            "hawkes_norm": hawkes_grad.norm().item(),
-            "wealth_norm": wealth_grad.norm().item(),
-            "reward_norm": reward_grad.norm().item(),
             "total_norm": total_grad.norm().item(),
         }
 
         # Clean up intermediate gradients
-        del standard_grad, hawkes_grad, wealth_grad, reward_grad, transition_grad
+        del standard_grad
 
         return total_grad, grad_info
 
@@ -1146,6 +848,7 @@ class PePGAgentV2:
         actions = []
         rewards = []
         log_probs = []
+        p_theta = []
 
         done = False
         lambda_w, lambda_a = self._get_current_lambdas()
@@ -1174,6 +877,8 @@ class PePGAgentV2:
             # Get applicant info before step (if there's a current applicant)
             applicant = self.env.current_applicant
 
+
+            
             # Step environment
             next_obs, _, terminated, truncated, info = self.env.step(action_np)
             done = terminated or truncated
@@ -1193,6 +898,13 @@ class PePGAgentV2:
             if applicant is not None:
                 # Determine if approved (stochastic based on approval_prob)
                 approved = np.random.random() < approval_prob
+                
+                if applicant["group"]=="male":
+                    p_theta.append(info['p_theta_R'])
+                    app_p_theta = info['p_theta_R']
+                else:
+                    p_theta.append(info['p_theta_B'])
+                    app_p_theta = info['p_theta_B']
 
                 # Determine if defaulted (if approved)
                 defaulted = None
@@ -1216,8 +928,10 @@ class PePGAgentV2:
                     "wealth_gain": wealth_gain,
                     "log_prob": log_prob.cpu().item(),
                     "reward": reward,
+                    "p_theta": app_p_theta
                 }
                 self.decision_tracker.add_decision(decision_data)
+                
 
             obs = next_obs
             step += 1
@@ -1228,6 +942,7 @@ class PePGAgentV2:
             "actions": actions,
             "rewards": rewards,
             "log_probs": log_probs,
+            "p_theta":p_theta,
             "decisions": self.decision_tracker.get_decisions(),
             "hawkes_events_R": self.decision_tracker.hawkes_events_R.copy(),
             "hawkes_events_B": self.decision_tracker.hawkes_events_B.copy(),
@@ -1268,17 +983,11 @@ class PePGAgentV2:
             self.gradient_metrics["standard_grad_norm"].append(
                 grad_info["standard_norm"]
             )
-            self.gradient_metrics["hawkes_grad_norm"].append(grad_info["hawkes_norm"])
-            self.gradient_metrics["wealth_grad_norm"].append(grad_info["wealth_norm"])
-            self.gradient_metrics["reward_grad_norm"].append(grad_info["reward_norm"])
             self.gradient_metrics["total_grad_norm"].append(grad_info["total_norm"])
         else:
             # Standard policy gradient only
             total_grad = self._compute_standard_gradient(decisions)
             self.gradient_metrics["standard_grad_norm"].append(total_grad.norm().item())
-            self.gradient_metrics["hawkes_grad_norm"].append(0.0)
-            self.gradient_metrics["wealth_grad_norm"].append(0.0)
-            self.gradient_metrics["reward_grad_norm"].append(0.0)
             self.gradient_metrics["total_grad_norm"].append(total_grad.norm().item())
 
         # Record decision counts
@@ -1475,8 +1184,10 @@ class PePGAgentV2:
 
                 # Gradient norms
                 std_norm = self.gradient_metrics["standard_grad_norm"][-1]
-                hawkes_norm = self.gradient_metrics["hawkes_grad_norm"][-1]
-                wealth_norm = self.gradient_metrics["wealth_grad_norm"][-1]
+                # hawkes_norm = self.gradient_metrics["hawkes_grad_norm"][-1]
+                # wealth_norm = self.gradient_metrics["wealth_grad_norm"][-1]
+                approvals_r = self.gradient_metrics['num_approvals_R'][-1]
+                approvals_b = self.gradient_metrics['num_approvals_B'][-1]
 
                 in_warmup = episode < self.warmup_episodes
                 mode_str = "WARMUP" if in_warmup else "PePG"
@@ -1485,7 +1196,8 @@ class PePGAgentV2:
                     f"  [{mode_str}] Ep {episode}: R={episode_reward:.2f}, "
                     f"Avg={avg_reward:.2f}, ρ={rho:.2f}, "
                     f"λw={lambda_w:.3f}, "
-                    f"‖∇std‖={std_norm:.3f}, ‖∇H‖={hawkes_norm:.3f}, ‖∇W‖={wealth_norm:.3f}"
+                    f"Number of Approvals R = {approvals_r:.3f}, "
+                    f"Number of Approvals B = {approvals_b:.3f}, "
                 )
 
         print(f"\nTraining complete. Buffer: {len(self.replay_buffer)} episodes")
