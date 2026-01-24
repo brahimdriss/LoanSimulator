@@ -58,3 +58,31 @@ Training PePG V2 with rawlsian_maximin (approval_rate constraint)...
   [PePG] Ep 140: R=21317.75, Avg=21169.06, ρ=0.97, λw=2.000, Number of Approvals R = 1856.000, Number of Approvals B = 1852.000, 
   [PePG] Ep 150: R=22007.73, Avg=21576.41, ρ=1.02, λw=2.000, Number of Approvals R = 1812.000, Number of Approvals B = 1806.000, 
   [PePG] Ep 160: R=24160.57, Avg=22466.70, ρ=0.98, λw=2.000, Number of Approvals R = 1852.000, Number of Approvals B = 1846.000, 
+  [PePG] Ep 170: R=26757.82, Avg=24430.64, ρ=1.00, λw=2.000, Number of Approvals R = 1889.000, Number of Approvals B = 1887.000, 
+  [PePG] Ep 180: R=28998.64, Avg=26837.56, ρ=0.96, λw=2.000, Number of Approvals R = 1915.000, Number of Approvals B = 1922.000, 
+  [PePG] Ep 190: R=30709.76, Avg=28889.82, ρ=1.02, λw=2.000, Number of Approvals R = 1919.000, Number of Approvals B = 1914.000, 
+  [PePG] Ep 199: R=32772.53, Avg=30648.63, ρ=0.99, λw=2.000, Number of Approvals R = 1946.000, Number of Approvals B = 1932.000, 
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $58.703k
+  Approval disparity: 0.0025
+  Total profit: $4551.866k
+  Mean ρ: 1.0931
+  PePG V2 model saved to ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed5.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate_seed5.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
