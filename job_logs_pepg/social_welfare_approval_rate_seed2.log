@@ -210,3 +210,87 @@ Loading model from ./pepg_sequential_results/pepg_social_welfare_approval_rate_s
     Cumulative Profit: $380609.94k
 
   Starting Episode 91 (ALL state preserved - continuous play)
+
+  Episode 100/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 9950.0
+    μ_M: $464.10k, μ_F: $405.49k
+    Wealth Gap: $58.62k
+    Episode Approval Rate M: 0.9875
+    Episode Approval Rate F: 0.9814
+    Episode Profit: $16221.81k
+    Cumulative Profit: $444125.17k
+
+[6] Computing Final Metrics...
+
+================================================================================
+FINAL TESTING RESULTS
+================================================================================
+
+  Model: social_welfare (approval_rate)
+  Episodes: 100
+  Total Time: 9950.0
+  Hawkes Events (M/F): 151473/132482
+
+  --- Wealth Metrics ---
+  Initial μ_M,0: $60.82k
+  Initial μ_F,0: $48.29k
+  Final μ_M: $464.10k
+  Final μ_F: $405.49k
+  Final Wealth Gap: $58.62k
+
+  --- Long-term Social Welfare R_g(t) = (μ_g,t - μ_g,0) / t ---
+  R_M (Male):   0.040531 ($1000s per time unit)
+  R_F (Female): 0.035899 ($1000s per time unit)
+  R_total:      0.038215 ($1000s per time unit)
+  R_M / R_F:    1.1290
+
+  --- Inequality Ratio ρ = Δμ_M / Δμ_F (per episode) ---
+  Mean ρ:   1.1868
+  Std ρ:    0.1651
+  Min ρ:    0.9483
+  Max ρ:    1.6035
+  Last 5 episodes: ['1.000', '0.972', '1.027', '1.012', '0.973']
+
+  --- Approval Metrics ---
+  Total Applications M: 154530
+  Total Applications F: 135165
+  Total Loans Approved M: 151473
+  Total Loans Approved F: 132482
+  Final Approval Rate M: 0.9802
+  Final Approval Rate F: 0.9802
+
+  --- Success Probabilities ---
+  Total Defaults M: 12835
+  Total Defaults F: 11299
+  Final Success Prob M: 0.9153
+  Final Success Prob F: 0.9147
+
+  --- Ground Truth Comparison (Males) ---
+  True Positives:  27965
+  False Positives: 123508
+  True Negatives:  2484
+  False Negatives: 573
+  Accuracy:  0.1970
+  Precision: 0.1846
+  Recall:    0.9799
+
+  --- Ground Truth Comparison (Females) ---
+  True Positives:  13316
+  False Positives: 119166
+  True Negatives:  2427
+  False Negatives: 256
+  Accuracy:  0.1165
+  Precision: 0.1005
+  Recall:    0.9811
+
+  --- Profit ---
+  Cumulative Profit: $444125.17k
+
+[7] Saving Results...
+  Saved episode metrics to ./pepg_sequential_results/test_episode_metrics_social_welfare_approval_rate_seed2_20260124_183724.csv
+
+================================================================================
+Finished: 2026-01-24T18:37:25.573121
+Exit code: 0
+Test Exit code: 0
