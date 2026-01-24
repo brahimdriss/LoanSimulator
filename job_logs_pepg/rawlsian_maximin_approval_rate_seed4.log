@@ -16,3 +16,36 @@ CUDA Available: NVIDIA GeForce RTX 2080 Ti
 [STEP 1] Loading Adult Income Data...
 Downloading Adult Income dataset...
   Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'approval_rate' (lr=0.01)
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with rawlsian_maximin (approval_rate constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=1376.33, Avg=1376.33, ρ=1.23, λw=2.000, Number of Approvals R = 200.000, Number of Approvals B = 176.000, 
+  [PePG] Ep 10: R=2350.83, Avg=2350.83, ρ=1.34, λw=2.000, Number of Approvals R = 392.000, Number of Approvals B = 318.000, 
+  [PePG] Ep 20: R=3905.27, Avg=2515.50, ρ=1.31, λw=2.000, Number of Approvals R = 560.000, Number of Approvals B = 457.000, 
+  [PePG] Ep 30: R=5120.51, Avg=3956.02, ρ=1.32, λw=2.000, Number of Approvals R = 738.000, Number of Approvals B = 552.000, 
+  [PePG] Ep 40: R=7344.19, Avg=5575.45, ρ=1.36, λw=2.000, Number of Approvals R = 974.000, Number of Approvals B = 754.000, 
+  [PePG] Ep 50: R=9548.47, Avg=7480.24, ρ=1.35, λw=2.000, Number of Approvals R = 1267.000, Number of Approvals B = 925.000, 
+  [PePG] Ep 60: R=12211.96, Avg=9735.69, ρ=1.21, λw=2.000, Number of Approvals R = 1415.000, Number of Approvals B = 1112.000, 
+  [PePG] Ep 70: R=14074.84, Avg=12219.65, ρ=1.23, λw=2.000, Number of Approvals R = 1593.000, Number of Approvals B = 1313.000, 

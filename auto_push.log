@@ -1154,10 +1154,10 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 22:43:53] Push complete
 [2026-01-24 22:53:53] Changes detected, pushing...
-1:18:27] Push complete
-[2026-01-24 11:28:28] Changes detected, pushing...
-[main 7e4facd] Sync results
- 1 file changed, 13 insertions(+), 1 deletion(-)
+[main 650ec60] Sync results
+ 7 files changed, 223 insertions(+), 4 deletions(-)
+ create mode 100644 job_logs_pepg/rawlsian_maximin_approval_rate_seed4.log
+ create mode 100644 pepg_sequential_results/test_episode_metrics_rawlsian_maximin_approval_rate_seed3_20260124_225349.csv
 To https://github.com/brahimdriss/LoanSimulator.git
  ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
@@ -1166,10 +1166,8 @@ hint: not have locally. This is usually caused by another repository pushing
 hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
-[2026-01-24 11:28:28] Push complete
-[2026-01-24 11:38:28] Changes detected, pushing...
-[main e35c263] Sync results
- 1 file changed, 13 insertions(+), 1 deletion(-)
+[2026-01-24 22:53:53] Push complete
+)
 To https://github.com/brahimdriss/LoanSimulator.git
  ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
@@ -1990,3 +1988,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 22:48:59] Push complete
+[2026-01-24 22:59:00] Changes detected, pushing...
