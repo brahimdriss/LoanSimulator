@@ -1091,28 +1091,20 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 21:53:50] Push complete
 [2026-01-24 22:03:51] Changes detected, pushing...
-letion(-)
+[main 726dd98] Sync results
+ 7 files changed, 251 insertions(+), 4 deletions(-)
+ create mode 100644 job_logs_pepg/rawlsian_maximin_approval_rate_seed3.log
+ create mode 100644 pepg_sequential_results/test_episode_metrics_rawlsian_maximin_approval_rate_seed2_20260124_220242.csv
 To https://github.com/brahimdriss/LoanSimulator.git
-   751912b..8089e42  main -> main
-[2026-01-24 09:08:17] Push complete
-[2026-01-24 09:18:18] Changes detected, pushing...
-[main 9697321] Sync results
- 1 file changed, 7 insertions(+), 1 deletion(-)
-To https://github.com/brahimdriss/LoanSimulator.git
-   d659202..9697321  main -> main
-[2026-01-24 09:18:18] Push complete
-[2026-01-24 09:28:19] Changes detected, pushing...
-[main 88baf86] Sync results
- 1 file changed, 7 insertions(+), 1 deletion(-)
-To https://github.com/brahimdriss/LoanSimulator.git
-   ad9a24c..88baf86  main -> main
-[2026-01-24 09:28:19] Push complete
-[2026-01-24 09:38:20] Changes detected, pushing...
-[main 67ec5fd] Sync results
- 1 file changed, 7 insertions(+), 1 deletion(-)
-To https://github.com/brahimdriss/LoanSimulator.git
-   0087750..67ec5fd  main -> main
-[2026-01-24 09:38:20] Push complete
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-24 22:03:51] Push complete
+01-24 09:38:20] Push complete
 [2026-01-24 09:48:20] Changes detected, pushing...
 [main a8e852a] Sync results
  1 file changed, 7 insertions(+), 1 deletion(-)
@@ -1954,3 +1946,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 21:58:57] Push complete
+[2026-01-24 22:08:57] Changes detected, pushing...
