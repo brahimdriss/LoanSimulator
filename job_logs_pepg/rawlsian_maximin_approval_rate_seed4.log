@@ -210,3 +210,87 @@ Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_approval_rate
     Cumulative Profit: $247377.12k
 
   Starting Episode 91 (ALL state preserved - continuous play)
+
+  Episode 100/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 9950.0
+    μ_M: $342.27k, μ_F: $276.63k
+    Wealth Gap: $65.63k
+    Episode Approval Rate M: 0.7764
+    Episode Approval Rate F: 0.7664
+    Episode Profit: $12575.06k
+    Cumulative Profit: $295804.24k
+
+[6] Computing Final Metrics...
+
+================================================================================
+FINAL TESTING RESULTS
+================================================================================
+
+  Model: rawlsian_maximin (approval_rate)
+  Episodes: 100
+  Total Time: 9950.0
+  Hawkes Events (M/F): 102531/83086
+
+  --- Wealth Metrics ---
+  Initial μ_M,0: $60.82k
+  Initial μ_F,0: $48.29k
+  Final μ_M: $342.27k
+  Final μ_F: $276.63k
+  Final Wealth Gap: $65.63k
+
+  --- Long-term Social Welfare R_g(t) = (μ_g,t - μ_g,0) / t ---
+  R_M (Male):   0.028286 ($1000s per time unit)
+  R_F (Female): 0.022949 ($1000s per time unit)
+  R_total:      0.025618 ($1000s per time unit)
+  R_M / R_F:    1.2326
+
+  --- Inequality Ratio ρ = Δμ_M / Δμ_F (per episode) ---
+  Mean ρ:   1.2700
+  Std ρ:    0.1296
+  Min ρ:    1.0285
+  Max ρ:    1.5754
+  Last 5 episodes: ['1.049', '1.032', '1.037', '1.059', '1.029']
+
+  --- Approval Metrics ---
+  Total Applications M: 137483
+  Total Applications F: 111339
+  Total Loans Approved M: 102531
+  Total Loans Approved F: 83086
+  Final Approval Rate M: 0.7458
+  Final Approval Rate F: 0.7462
+
+  --- Success Probabilities ---
+  Total Defaults M: 8766
+  Total Defaults F: 7031
+  Final Success Prob M: 0.9145
+  Final Success Prob F: 0.9154
+
+  --- Ground Truth Comparison (Males) ---
+  True Positives:  19382
+  False Positives: 83149
+  True Negatives:  28249
+  False Negatives: 6703
+  Accuracy:  0.3465
+  Precision: 0.1890
+  Recall:    0.7430
+
+  --- Ground Truth Comparison (Females) ---
+  True Positives:  8615
+  False Positives: 74471
+  True Negatives:  25331
+  False Negatives: 2922
+  Accuracy:  0.3049
+  Precision: 0.1037
+  Recall:    0.7467
+
+  --- Profit ---
+  Cumulative Profit: $295804.24k
+
+[7] Saving Results...
+  Saved episode metrics to ./pepg_sequential_results/test_episode_metrics_rawlsian_maximin_approval_rate_seed4_20260124_233302.csv
+
+================================================================================
+Finished: 2026-01-24T23:33:02.989192
+Exit code: 0
+Test Exit code: 0
