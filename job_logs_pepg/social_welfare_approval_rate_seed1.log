@@ -56,3 +56,63 @@ Training PePG V2 with social_welfare (approval_rate constraint)...
   [PePG] Ep 120: R=23406.92, Avg=22205.55, ρ=1.02, λw=2.000, Number of Approvals R = 1901.000, Number of Approvals B = 1895.000, 
   [PePG] Ep 130: R=25076.28, Avg=23582.15, ρ=1.02, λw=2.000, Number of Approvals R = 1930.000, Number of Approvals B = 1932.000, 
   [PePG] Ep 140: R=26501.59, Avg=25068.16, ρ=0.99, λw=2.000, Number of Approvals R = 1933.000, Number of Approvals B = 1914.000, 
+  [PePG] Ep 150: R=28317.69, Avg=26670.39, ρ=1.01, λw=2.000, Number of Approvals R = 1937.000, Number of Approvals B = 1931.000, 
+  [PePG] Ep 160: R=29998.15, Avg=28399.00, ρ=1.00, λw=2.000, Number of Approvals R = 1938.000, Number of Approvals B = 1948.000, 
+  [PePG] Ep 170: R=32080.37, Avg=30225.09, ρ=1.01, λw=2.000, Number of Approvals R = 1947.000, Number of Approvals B = 1959.000, 
+  [PePG] Ep 180: R=34649.53, Avg=32328.55, ρ=0.99, λw=2.000, Number of Approvals R = 1952.000, Number of Approvals B = 1958.000, 
+  [PePG] Ep 190: R=37316.90, Avg=34772.67, ρ=1.02, λw=2.000, Number of Approvals R = 1972.000, Number of Approvals B = 1974.000, 
+  [PePG] Ep 199: R=40405.62, Avg=37305.19, ρ=0.97, λw=2.000, Number of Approvals R = 1961.000, Number of Approvals B = 1959.000, 
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $58.880k
+  Approval disparity: -0.0040
+  Total profit: $6945.663k
+  Mean ρ: 1.1000
+  PePG V2 model saved to ./pepg_sequential_results/pepg_social_welfare_approval_rate_seed1.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_social_welfare_approval_rate_seed1.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_social_welfare_approval_rate_seed1.pt...
+  ✓ Model loaded successfully
+    Reward function: social_welfare
+    Constraint type: approval_rate
+
+[4.5] Found existing checkpoint, resuming...
+  ✓ Loaded checkpoint: 67 episodes completed, time=6666.5
+  Resuming from episode 68
+
+[5] Running 33 Episodes (Episodes 68 to 100)...
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $302.40k, μ_F: $244.98k
+    Wealth Gap: $57.41k
+    Episode Approval Rate M: 0.9655
+    Episode Approval Rate F: 0.9615
+    Episode Profit: $15386.66k
+    Cumulative Profit: $262769.48k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
