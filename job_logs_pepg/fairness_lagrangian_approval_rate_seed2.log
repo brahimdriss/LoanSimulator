@@ -45,3 +45,8 @@ Training PePG V2 with fairness_lagrangian (approval_rate constraint)...
   [PePG] Ep 10: R=1716.66, Avg=1716.66, ρ=1.16, λw=2.000, Number of Approvals R = 596.000, Number of Approvals B = 480.000, 
   [PePG] Ep 20: R=2056.01, Avg=1637.17, ρ=1.29, λw=2.000, Number of Approvals R = 790.000, Number of Approvals B = 630.000, 
   [PePG] Ep 30: R=2472.69, Avg=2146.95, ρ=1.20, λw=2.000, Number of Approvals R = 943.000, Number of Approvals B = 713.000, 
+  [PePG] Ep 40: R=3265.24, Avg=2675.99, ρ=1.45, λw=2.000, Number of Approvals R = 1211.000, Number of Approvals B = 838.000, 
+  [PePG] Ep 50: R=3423.23, Avg=3179.59, ρ=1.29, λw=2.000, Number of Approvals R = 1339.000, Number of Approvals B = 1013.000, 
+  [PePG] Ep 60: R=4209.91, Avg=3622.10, ρ=1.21, λw=2.000, Number of Approvals R = 1529.000, Number of Approvals B = 1230.000, 
+  [PePG] Ep 70: R=4835.52, Avg=4172.17, ρ=1.12, λw=2.000, Number of Approvals R = 1663.000, Number of Approvals B = 1484.000, 
+  [PePG] Ep 80: R=5181.41, Avg=4762.15, ρ=1.03, λw=2.000, Number of Approvals R = 1745.000, Number of Approvals B = 1645.000, 
