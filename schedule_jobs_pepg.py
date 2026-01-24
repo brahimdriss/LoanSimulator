@@ -30,8 +30,8 @@ JOB_MATRIX = {
         "fairness_lagrangian",
         "utilitarian_profit",
     ],
-    "constraints": ["approval_rate"],
-    "seeds": range(1, 2),
+    "constraints": ["approval_rate","wealth", "both"],
+    "seeds": range(25, 30),
 }
 # "constraints": ["approval_rate", "wealth", "both"],
 
