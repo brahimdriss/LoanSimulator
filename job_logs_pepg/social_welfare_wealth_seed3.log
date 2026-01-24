@@ -114,3 +114,183 @@ Loading model from ./pepg_sequential_results/pepg_social_welfare_wealth_seed3.pt
     Cumulative Profit: $3119.71k
 
   Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $65.79k, μ_F: $52.30k
+    Wealth Gap: $13.49k
+    Episode Approval Rate M: 0.1612
+    Episode Approval Rate F: 0.1476
+    Episode Profit: $746.54k
+    Cumulative Profit: $5784.60k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
+
+  Episode 30/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 2985.0
+    μ_M: $68.41k, μ_F: $54.31k
+    Wealth Gap: $14.10k
+    Episode Approval Rate M: 0.1536
+    Episode Approval Rate F: 0.1728
+    Episode Profit: $758.32k
+    Cumulative Profit: $8320.68k
+
+  Starting Episode 31 (ALL state preserved - continuous play)
+
+  Episode 40/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 3980.0
+    μ_M: $71.14k, μ_F: $56.35k
+    Wealth Gap: $14.79k
+    Episode Approval Rate M: 0.1485
+    Episode Approval Rate F: 0.1516
+    Episode Profit: $674.08k
+    Cumulative Profit: $10997.02k
+
+  Starting Episode 41 (ALL state preserved - continuous play)
+
+  Episode 50/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 4975.0
+    μ_M: $73.60k, μ_F: $58.33k
+    Wealth Gap: $15.27k
+    Episode Approval Rate M: 0.1601
+    Episode Approval Rate F: 0.1703
+    Episode Profit: $772.98k
+    Cumulative Profit: $15010.51k
+
+  Starting Episode 51 (ALL state preserved - continuous play)
+
+  Episode 60/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 5970.0
+    μ_M: $76.44k, μ_F: $60.62k
+    Wealth Gap: $15.82k
+    Episode Approval Rate M: 0.1408
+    Episode Approval Rate F: 0.1484
+    Episode Profit: $669.76k
+    Cumulative Profit: $17291.60k
+
+  Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $79.25k, μ_F: $62.71k
+    Wealth Gap: $16.55k
+    Episode Approval Rate M: 0.1394
+    Episode Approval Rate F: 0.1488
+    Episode Profit: $755.55k
+    Cumulative Profit: $20509.01k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
+
+  Episode 80/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 7960.0
+    μ_M: $82.20k, μ_F: $64.89k
+    Wealth Gap: $17.31k
+    Episode Approval Rate M: 0.1658
+    Episode Approval Rate F: 0.1704
+    Episode Profit: $828.91k
+    Cumulative Profit: $23289.56k
+
+  Starting Episode 81 (ALL state preserved - continuous play)
+
+  Episode 90/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 8955.0
+    μ_M: $84.98k, μ_F: $67.15k
+    Wealth Gap: $17.83k
+    Episode Approval Rate M: 0.1413
+    Episode Approval Rate F: 0.1617
+    Episode Profit: $822.95k
+    Cumulative Profit: $26604.34k
+
+  Starting Episode 91 (ALL state preserved - continuous play)
+
+  Episode 100/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 9950.0
+    μ_M: $87.87k, μ_F: $69.48k
+    Wealth Gap: $18.39k
+    Episode Approval Rate M: 0.1402
+    Episode Approval Rate F: 0.1341
+    Episode Profit: $700.38k
+    Cumulative Profit: $29821.16k
+
+[6] Computing Final Metrics...
+
+================================================================================
+FINAL TESTING RESULTS
+================================================================================
+
+  Model: social_welfare (wealth)
+  Episodes: 100
+  Total Time: 9950.0
+  Hawkes Events (M/F): 10799/8334
+
+  --- Wealth Metrics ---
+  Initial μ_M,0: $60.82k
+  Initial μ_F,0: $48.29k
+  Final μ_M: $87.87k
+  Final μ_F: $69.48k
+  Final Wealth Gap: $18.39k
+
+  --- Long-term Social Welfare R_g(t) = (μ_g,t - μ_g,0) / t ---
+  R_M (Male):   0.002719 ($1000s per time unit)
+  R_F (Female): 0.002130 ($1000s per time unit)
+  R_total:      0.002425 ($1000s per time unit)
+  R_M / R_F:    1.2766
+
+  --- Inequality Ratio ρ = Δμ_M / Δμ_F (per episode) ---
+  Mean ρ:   1.3121
+  Std ρ:    0.2761
+  Min ρ:    0.8037
+  Max ρ:    2.2273
+  Last 5 episodes: ['1.080', '0.905', '1.580', '1.203', '1.574']
+
+  --- Approval Metrics ---
+  Total Applications M: 68985
+  Total Applications F: 53574
+  Total Loans Approved M: 10799
+  Total Loans Approved F: 8334
+  Final Approval Rate M: 0.1565
+  Final Approval Rate F: 0.1556
+
+  --- Success Probabilities ---
+  Total Defaults M: 873
+  Total Defaults F: 704
+  Final Success Prob M: 0.9192
+  Final Success Prob F: 0.9155
+
+  --- Ground Truth Comparison (Males) ---
+  True Positives:  2269
+  False Positives: 8530
+  True Negatives:  45989
+  False Negatives: 12197
+  Accuracy:  0.6995
+  Precision: 0.2101
+  Recall:    0.1569
+
+  --- Ground Truth Comparison (Females) ---
+  True Positives:  925
+  False Positives: 7409
+  True Negatives:  40246
+  False Negatives: 4994
+  Accuracy:  0.7685
+  Precision: 0.1110
+  Recall:    0.1563
+
+  --- Profit ---
+  Cumulative Profit: $29821.16k
+
+[7] Saving Results...
+  Saved episode metrics to ./pepg_sequential_results/test_episode_metrics_social_welfare_wealth_seed3_20260124_183544.csv
+
+================================================================================
+Finished: 2026-01-24T18:35:45.371836
+Exit code: 0
+Test Exit code: 0
