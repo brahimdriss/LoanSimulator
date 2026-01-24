@@ -1142,10 +1142,8 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 22:33:52] Push complete
 [2026-01-24 22:43:53] Changes detected, pushing...
- 11:08:26] Push complete
-[2026-01-24 11:18:27] Changes detected, pushing...
-[main 5280a9e] Sync results
- 1 file changed, 13 insertions(+), 1 deletion(-)
+[main a9631d1] Sync results
+ 2 files changed, 25 insertions(+), 3 deletions(-)
 To https://github.com/brahimdriss/LoanSimulator.git
  ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
@@ -1154,6 +1152,8 @@ hint: not have locally. This is usually caused by another repository pushing
 hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-24 22:43:53] Push complete
+ds' in 'git push --help' for details.
 [2026-01-24 11:18:27] Push complete
 [2026-01-24 11:28:28] Changes detected, pushing...
 [main 7e4facd] Sync results
@@ -1978,3 +1978,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 22:38:59] Push complete
+[2026-01-24 22:48:59] Changes detected, pushing...
