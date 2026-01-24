@@ -1054,9 +1054,8 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 21:23:49] Push complete
- -> main
-[2026-01-24 07:38:10] Push complete
-[2026-01-24 07:48:11] Changes detected, pushing...
+[2026-01-24 21:33:50] Changes detected, pushing...
+01-24 07:48:11] Changes detected, pushing...
 [main 1ddf3af] Sync results
  1 file changed, 0 insertions(+), 0 deletions(-)
 To https://github.com/brahimdriss/LoanSimulator.git
@@ -1921,3 +1920,14 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-24 21:18:55] Push complete
 [2026-01-24 21:28:55] Changes detected, pushing...
+[main fa77ad3] Sync results
+ 2 files changed, 16 insertions(+), 15 deletions(-)
+To https://github.com/brahimdriss/LoanSimulator.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-24 21:28:55] Push complete

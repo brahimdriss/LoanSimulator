@@ -57,3 +57,7 @@ Training PePG V2 with rawlsian_maximin (approval_rate constraint)...
   [PePG] Ep 130: R=22996.02, Avg=21940.91, ρ=1.07, λw=2.000, Number of Approvals R = 1866.000, Number of Approvals B = 1893.000, 
   [PePG] Ep 140: R=24078.49, Avg=23059.11, ρ=1.01, λw=2.000, Number of Approvals R = 1881.000, Number of Approvals B = 1880.000, 
   [PePG] Ep 150: R=25528.10, Avg=24251.35, ρ=1.03, λw=2.000, Number of Approvals R = 1861.000, Number of Approvals B = 1878.000, 
+  [PePG] Ep 160: R=26669.39, Avg=25660.93, ρ=0.99, λw=2.000, Number of Approvals R = 1869.000, Number of Approvals B = 1852.000, 
+  [PePG] Ep 170: R=29102.77, Avg=27307.17, ρ=1.01, λw=2.000, Number of Approvals R = 1881.000, Number of Approvals B = 1867.000, 
+  [PePG] Ep 180: R=31484.59, Avg=29411.31, ρ=1.03, λw=2.000, Number of Approvals R = 1910.000, Number of Approvals B = 1905.000, 
+  [PePG] Ep 190: R=33591.55, Avg=31612.32, ρ=0.98, λw=2.000, Number of Approvals R = 1903.000, Number of Approvals B = 1896.000, 
