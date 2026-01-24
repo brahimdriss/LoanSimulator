@@ -1,8 +1,9 @@
 {
   "completed": [
     "social_welfare_wealth_seed1",
-    "rawlsian_maximin_wealth_seed1"
+    "rawlsian_maximin_wealth_seed1",
+    "fairness_lagrangian_wealth_seed1"
   ],
   "failed": [],
-  "in_progress": "fairness_lagrangian_wealth_seed1"
+  "in_progress": "utilitarian_profit_wealth_seed1"
 }
