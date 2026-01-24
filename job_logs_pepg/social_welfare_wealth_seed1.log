@@ -150,3 +150,39 @@ Loading model from ./pepg_sequential_results/pepg_social_welfare_wealth_seed1.pt
     Cumulative Profit: $35613.61k
 
   Starting Episode 41 (ALL state preserved - continuous play)
+
+  Episode 50/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 4975.0
+    μ_M: $102.21k, μ_F: $80.40k
+    Wealth Gap: $21.80k
+    Episode Approval Rate M: 0.3989
+    Episode Approval Rate F: 0.3988
+    Episode Profit: $2674.42k
+    Cumulative Profit: $44975.44k
+
+  Starting Episode 51 (ALL state preserved - continuous play)
+
+  Episode 60/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 5970.0
+    μ_M: $111.86k, μ_F: $87.85k
+    Wealth Gap: $24.00k
+    Episode Approval Rate M: 0.3484
+    Episode Approval Rate F: 0.4113
+    Episode Profit: $2798.92k
+    Cumulative Profit: $55420.25k
+
+  Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $121.96k, μ_F: $95.80k
+    Wealth Gap: $26.16k
+    Episode Approval Rate M: 0.3411
+    Episode Approval Rate F: 0.3271
+    Episode Profit: $2718.55k
+    Cumulative Profit: $65455.05k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
