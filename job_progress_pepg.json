@@ -10,8 +10,9 @@
     "rawlsian_maximin_wealth_seed5",
     "fairness_lagrangian_wealth_seed2",
     "fairness_lagrangian_wealth_seed3",
-    "fairness_lagrangian_wealth_seed4"
+    "fairness_lagrangian_wealth_seed4",
+    "fairness_lagrangian_wealth_seed5"
   ],
   "failed": [],
-  "in_progress": "fairness_lagrangian_wealth_seed5"
+  "in_progress": "utilitarian_profit_wealth_seed2"
 }
