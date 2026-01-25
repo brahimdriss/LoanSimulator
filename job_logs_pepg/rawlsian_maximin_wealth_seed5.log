@@ -186,3 +186,111 @@ Loading model from ./pepg_sequential_results/pepg_rawlsian_maximin_wealth_seed5.
     Cumulative Profit: $25675.76k
 
   Starting Episode 71 (ALL state preserved - continuous play)
+
+  Episode 80/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 7960.0
+    μ_M: $88.24k, μ_F: $68.74k
+    Wealth Gap: $19.50k
+    Episode Approval Rate M: 0.2003
+    Episode Approval Rate F: 0.1802
+    Episode Profit: $1011.45k
+    Cumulative Profit: $28848.27k
+
+  Starting Episode 81 (ALL state preserved - continuous play)
+
+  Episode 90/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 8955.0
+    μ_M: $92.25k, μ_F: $71.59k
+    Wealth Gap: $20.66k
+    Episode Approval Rate M: 0.2005
+    Episode Approval Rate F: 0.1751
+    Episode Profit: $1077.25k
+    Cumulative Profit: $31923.65k
+
+  Starting Episode 91 (ALL state preserved - continuous play)
+
+  Episode 100/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 9950.0
+    μ_M: $96.35k, μ_F: $74.80k
+    Wealth Gap: $21.55k
+    Episode Approval Rate M: 0.1647
+    Episode Approval Rate F: 0.1906
+    Episode Profit: $1015.27k
+    Cumulative Profit: $34135.19k
+
+[6] Computing Final Metrics...
+
+================================================================================
+FINAL TESTING RESULTS
+================================================================================
+
+  Model: rawlsian_maximin (wealth)
+  Episodes: 100
+  Total Time: 9950.0
+  Hawkes Events (M/F): 13830/10519
+
+  --- Wealth Metrics ---
+  Initial μ_M,0: $60.82k
+  Initial μ_F,0: $48.29k
+  Final μ_M: $96.35k
+  Final μ_F: $74.80k
+  Final Wealth Gap: $21.55k
+
+  --- Long-term Social Welfare R_g(t) = (μ_g,t - μ_g,0) / t ---
+  R_M (Male):   0.003572 ($1000s per time unit)
+  R_F (Female): 0.002665 ($1000s per time unit)
+  R_total:      0.003118 ($1000s per time unit)
+  R_M / R_F:    1.3404
+
+  --- Inequality Ratio ρ = Δμ_M / Δμ_F (per episode) ---
+  Mean ρ:   1.3585
+  Std ρ:    0.2233
+  Min ρ:    0.8728
+  Max ρ:    2.2749
+  Last 5 episodes: ['1.798', '1.166', '1.367', '1.397', '1.068']
+
+  --- Approval Metrics ---
+  Total Applications M: 72026
+  Total Applications F: 55641
+  Total Loans Approved M: 13830
+  Total Loans Approved F: 10519
+  Final Approval Rate M: 0.1920
+  Final Approval Rate F: 0.1891
+
+  --- Success Probabilities ---
+  Total Defaults M: 1220
+  Total Defaults F: 909
+  Final Success Prob M: 0.9118
+  Final Success Prob F: 0.9136
+
+  --- Ground Truth Comparison (Males) ---
+  True Positives:  2869
+  False Positives: 10961
+  True Negatives:  46047
+  False Negatives: 12149
+  Accuracy:  0.6791
+  Precision: 0.2074
+  Recall:    0.1910
+
+  --- Ground Truth Comparison (Females) ---
+  True Positives:  1091
+  False Positives: 9428
+  True Negatives:  40041
+  False Negatives: 5081
+  Accuracy:  0.7392
+  Precision: 0.1037
+  Recall:    0.1768
+
+  --- Profit ---
+  Cumulative Profit: $34135.19k
+
+[7] Saving Results...
+  Saved episode metrics to ./pepg_sequential_results/test_episode_metrics_rawlsian_maximin_wealth_seed5_20260125_012039.csv
+
+================================================================================
+Finished: 2026-01-25T01:20:42.842580
+Exit code: 0
+Test Exit code: 0
