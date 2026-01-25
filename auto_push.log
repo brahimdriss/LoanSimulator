@@ -1457,7 +1457,10 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-25 02:44:05] Push complete
 [2026-01-25 02:54:06] Changes detected, pushing...
-file changed, 13 insertions(+), 1 deletion(-)
+[main df292ab] Sync results
+ 7 files changed, 254 insertions(+), 5 deletions(-)
+ create mode 100644 job_logs_pepg/fairness_lagrangian_approval_rate_seed5.log
+ create mode 100644 pepg_sequential_results/test_episode_metrics_fairness_lagrangian_approval_rate_seed4_20260125_025041.csv
 To https://github.com/brahimdriss/LoanSimulator.git
  ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
@@ -1466,13 +1469,8 @@ hint: not have locally. This is usually caused by another repository pushing
 hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
-[2026-01-24 15:48:39] Push complete
-[2026-01-24 15:58:40] Changes detected, pushing...
-[main 9aa662c] Sync results
- 1 file changed, 13 insertions(+), 1 deletion(-)
-To https://github.com/brahimdriss/LoanSimulator.git
- ! [rejected]        main -> main (fetch first)
-error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+[2026-01-25 02:54:06] Push complete
+iled to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
 hint: Updates were rejected because the remote contains work that you do
 hint: not have locally. This is usually caused by another repository pushing
 hint: to the same ref. You may want to first integrate the remote changes
@@ -2266,3 +2264,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-25 02:49:10] Push complete
+[2026-01-25 02:59:11] Changes detected, pushing...
