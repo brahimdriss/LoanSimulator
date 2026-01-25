@@ -1,0 +1,46 @@
+Job: fairness_lagrangian_wealth_seed4
+Command: uv run python -u par_pepg.py --seeds 1 --seed 4 --reward fairness_lagrangian --constraint wealth --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-25T03:59:42.478151
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: FAIRNESS_LAGRANGIAN
+  Constraint: WEALTH
+  Seed: 4
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA L40S
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'wealth' (lr=0.01)
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with fairness_lagrangian (wealth constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=-25863.87, Avg=-25863.87, ρ=1.23, λw=2.020, Number of Approvals R = 200.000, Number of Approvals B = 176.000, 
+  [PePG] Ep 10: R=-32212.77, Avg=-32212.77, ρ=1.34, λw=2.233, Number of Approvals R = 110.000, Number of Approvals B = 78.000, 
+  [PePG] Ep 20: R=-40420.67, Avg=-33440.68, ρ=1.11, λw=2.467, Number of Approvals R = 66.000, Number of Approvals B = 65.000, 
