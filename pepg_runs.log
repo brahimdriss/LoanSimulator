@@ -21,3 +21,5 @@ Warning: Could not load progress file: Expecting value: line 3 column 1 (char 19
 2026-01-25 00:05:01 | START | Job 8/16: rawlsian_maximin_wealth_seed5
 2026-01-25 01:20:42 | DONE  | Job 8/16: rawlsian_maximin_wealth_seed5 (1h 15m 41s)
 2026-01-25 01:20:42 | START | Job 9/16: fairness_lagrangian_wealth_seed2
+2026-01-25 02:59:06 | DONE  | Job 9/16: fairness_lagrangian_wealth_seed2 (1h 38m 23s)
+2026-01-25 02:59:06 | START | Job 10/16: fairness_lagrangian_wealth_seed3

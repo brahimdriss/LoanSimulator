@@ -1,0 +1,47 @@
+Job: fairness_lagrangian_wealth_seed3
+Command: uv run python -u par_pepg.py --seeds 1 --seed 3 --reward fairness_lagrangian --constraint wealth --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-25T02:59:06.129957
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: FAIRNESS_LAGRANGIAN
+  Constraint: WEALTH
+  Seed: 3
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA L40S
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'wealth' (lr=0.01)
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with fairness_lagrangian (wealth constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=-28361.34, Avg=-28361.34, ρ=1.46, λw=2.020, Number of Approvals R = 310.000, Number of Approvals B = 244.000, 
+  [PePG] Ep 10: R=-39367.49, Avg=-39367.49, ρ=1.13, λw=2.233, Number of Approvals R = 264.000, Number of Approvals B = 198.000, 
+  [PePG] Ep 20: R=-46636.08, Avg=-37326.61, ρ=1.43, λw=2.467, Number of Approvals R = 194.000, Number of Approvals B = 155.000, 
+  [PePG] Ep 30: R=-58337.88, Avg=-47906.98, ρ=0.94, λw=2.727, Number of Approvals R = 206.000, Number of Approvals B = 153.000, 

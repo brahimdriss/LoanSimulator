@@ -7,8 +7,9 @@
     "rawlsian_maximin_wealth_seed2",
     "rawlsian_maximin_wealth_seed3",
     "rawlsian_maximin_wealth_seed4",
-    "rawlsian_maximin_wealth_seed5"
+    "rawlsian_maximin_wealth_seed5",
+    "fairness_lagrangian_wealth_seed2"
   ],
   "failed": [],
-  "in_progress": "fairness_lagrangian_wealth_seed2"
+  "in_progress": "fairness_lagrangian_wealth_seed3"
 }
