@@ -1394,13 +1394,10 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-25 01:54:03] Push complete
 [2026-01-25 02:04:03] Changes detected, pushing...
-e same ref. You may want to first integrate the remote changes
-hint: (e.g., 'git pull ...') before pushing again.
-hint: See the 'Note about fast-forwards' in 'git push --help' for details.
-[2026-01-24 14:48:37] Push complete
-[2026-01-24 14:58:37] Changes detected, pushing...
-[main 3cc4100] Sync results
- 1 file changed, 13 insertions(+), 1 deletion(-)
+[main 99c26aa] Sync results
+ 7 files changed, 257 insertions(+), 4 deletions(-)
+ create mode 100644 job_logs_pepg/fairness_lagrangian_approval_rate_seed4.log
+ create mode 100644 pepg_sequential_results/test_episode_metrics_fairness_lagrangian_approval_rate_seed3_20260125_015952.csv
 To https://github.com/brahimdriss/LoanSimulator.git
  ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
@@ -1409,6 +1406,8 @@ hint: not have locally. This is usually caused by another repository pushing
 hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-25 02:04:03] Push complete
+in 'git push --help' for details.
 [2026-01-24 14:58:37] Push complete
 [2026-01-24 15:08:37] Changes detected, pushing...
 [main 45f7868] Sync results
@@ -2209,3 +2208,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-25 01:59:08] Push complete
+[2026-01-25 02:09:09] Changes detected, pushing...
