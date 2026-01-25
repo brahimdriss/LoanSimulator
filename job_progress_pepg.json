@@ -1,5 +1,6 @@
 {
   "completed": [
+<<<<<<< HEAD
     "social_welfare_approval_rate_seed1",
     "rawlsian_maximin_approval_rate_seed1",
     "fairness_lagrangian_approval_rate_seed1",
@@ -22,4 +23,23 @@
   ],
   "failed": [],
   "in_progress": "utilitarian_profit_approval_rate_seed5"
+=======
+    "social_welfare_wealth_seed2",
+    "social_welfare_wealth_seed3",
+    "social_welfare_wealth_seed4",
+    "social_welfare_wealth_seed5",
+    "rawlsian_maximin_wealth_seed2",
+    "rawlsian_maximin_wealth_seed3",
+    "rawlsian_maximin_wealth_seed4",
+    "rawlsian_maximin_wealth_seed5",
+    "fairness_lagrangian_wealth_seed2",
+    "fairness_lagrangian_wealth_seed3",
+    "fairness_lagrangian_wealth_seed4",
+    "fairness_lagrangian_wealth_seed5",
+    "utilitarian_profit_wealth_seed2",
+    "utilitarian_profit_wealth_seed3"
+  ],
+  "failed": [],
+  "in_progress": "utilitarian_profit_wealth_seed4"
+>>>>>>> 82c6d04f9c50547bb771e017b1a81f6b3cfe6b6e
 }

@@ -58,3 +58,70 @@ Training PePG V2 with utilitarian_profit (approval_rate constraint)...
   [PePG] Ep 150: R=6283.06, Avg=6189.91, ρ=1.00, λw=2.000, Number of Approvals R = 1919.000, Number of Approvals B = 1935.000, 
   [PePG] Ep 160: R=6133.52, Avg=6162.57, ρ=0.96, λw=2.000, Number of Approvals R = 1896.000, Number of Approvals B = 1890.000, 
   [PePG] Ep 170: R=6055.88, Avg=6082.88, ρ=1.01, λw=2.000, Number of Approvals R = 1914.000, Number of Approvals B = 1893.000, 
+  [PePG] Ep 180: R=6106.18, Avg=6070.29, ρ=1.00, λw=2.000, Number of Approvals R = 1907.000, Number of Approvals B = 1912.000, 
+  [PePG] Ep 190: R=6173.27, Avg=6144.34, ρ=0.95, λw=2.000, Number of Approvals R = 1912.000, Number of Approvals B = 1935.000, 
+  [PePG] Ep 199: R=6136.22, Avg=6170.50, ρ=1.03, λw=2.000, Number of Approvals R = 1934.000, Number of Approvals B = 1917.000, 
+
+Training complete. Buffer: 50 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $64.977k
+  Approval disparity: 0.0055
+  Total profit: $6642.752k
+  Mean ρ: 1.1103
+  PePG V2 model saved to ./pepg_sequential_results/pepg_utilitarian_profit_approval_rate_seed5.pt
+================================================================================
+TESTING TRAINED AGENT (EPISODE-WISE METRICS)
+================================================================================
+  Model: ./pepg_sequential_results/pepg_utilitarian_profit_approval_rate_seed5.pt
+  Episodes: 100
+  Continuous play: YES (no wealth reset between episodes)
+  Credit threshold for ground truth: 0.5
+  Checkpoint directory: ./checkpoints
+  Resume from checkpoint: True
+================================================================================
+
+[1] Loading Data...
+Downloading Adult Income dataset...
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness (ground truth) using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male ground truth approval rate: 0.180
+Female ground truth approval rate: 0.087
+Loading model from ./pepg_sequential_results/pepg_utilitarian_profit_approval_rate_seed5.pt...
+  ✓ Model loaded successfully
+    Reward function: utilitarian_profit
+    Constraint type: approval_rate
+
+[5] Running 100 Episodes (Episodes 1 to 100)...
+
+  Starting Episode 1 (ALL state preserved - continuous play)
+
+  Episode 10/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 995.0
+    μ_M: $78.97k, μ_F: $61.99k
+    Wealth Gap: $16.98k
+    Episode Approval Rate M: 0.9103
+    Episode Approval Rate F: 0.9494
+    Episode Profit: $5259.49k
+    Cumulative Profit: $18787.18k
+
+  Starting Episode 11 (ALL state preserved - continuous play)
+
+  Episode 20/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 1990.0
+    μ_M: $101.16k, μ_F: $78.79k
+    Wealth Gap: $22.37k
+    Episode Approval Rate M: 0.9280
+    Episode Approval Rate F: 0.9376
+    Episode Profit: $6667.04k
+    Cumulative Profit: $40884.15k
+
+  Starting Episode 21 (ALL state preserved - continuous play)
