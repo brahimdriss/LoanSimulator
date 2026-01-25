@@ -16,8 +16,9 @@
     "fairness_lagrangian_approval_rate_seed3",
     "fairness_lagrangian_approval_rate_seed4",
     "fairness_lagrangian_approval_rate_seed5",
-    "utilitarian_profit_approval_rate_seed2"
+    "utilitarian_profit_approval_rate_seed2",
+    "utilitarian_profit_approval_rate_seed3"
   ],
   "failed": [],
-  "in_progress": "utilitarian_profit_approval_rate_seed3"
+  "in_progress": "utilitarian_profit_approval_rate_seed4"
 }
