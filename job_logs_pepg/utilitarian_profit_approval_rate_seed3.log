@@ -44,3 +44,8 @@ Training PePG V2 with utilitarian_profit (approval_rate constraint)...
   [PePG] Ep 10: R=1180.16, Avg=1180.16, ρ=1.22, λw=2.000, Number of Approvals R = 408.000, Number of Approvals B = 340.000, 
   [PePG] Ep 20: R=1296.46, Avg=1143.52, ρ=1.55, λw=2.000, Number of Approvals R = 469.000, Number of Approvals B = 309.000, 
   [PePG] Ep 30: R=2100.13, Avg=1434.84, ρ=1.46, λw=2.000, Number of Approvals R = 793.000, Number of Approvals B = 577.000, 
+  [PePG] Ep 40: R=2802.60, Avg=2099.34, ρ=1.28, λw=2.000, Number of Approvals R = 994.000, Number of Approvals B = 787.000, 
+  [PePG] Ep 50: R=3450.55, Avg=2812.11, ρ=1.21, λw=2.000, Number of Approvals R = 1270.000, Number of Approvals B = 949.000, 
+  [PePG] Ep 60: R=4268.25, Avg=3528.17, ρ=1.21, λw=2.000, Number of Approvals R = 1537.000, Number of Approvals B = 1150.000, 
+  [PePG] Ep 70: R=4709.12, Avg=4262.94, ρ=1.22, λw=2.000, Number of Approvals R = 1725.000, Number of Approvals B = 1409.000, 
+  [PePG] Ep 80: R=5421.43, Avg=4936.81, ρ=1.09, λw=2.000, Number of Approvals R = 1805.000, Number of Approvals B = 1655.000, 
