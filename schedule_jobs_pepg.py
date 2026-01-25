@@ -111,7 +111,7 @@ def run_job(
     """
     job_id = get_job_id(reward, constraint, seed)
     log_file = os.path.join(logs_dir, f"{job_id}.log")
-
+    
     # Build command using uv
     cmd = [
         "uv",
