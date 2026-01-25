@@ -12,8 +12,9 @@
     "rawlsian_maximin_approval_rate_seed3",
     "rawlsian_maximin_approval_rate_seed4",
     "rawlsian_maximin_approval_rate_seed5",
-    "fairness_lagrangian_approval_rate_seed2"
+    "fairness_lagrangian_approval_rate_seed2",
+    "fairness_lagrangian_approval_rate_seed3"
   ],
   "failed": [],
-  "in_progress": "fairness_lagrangian_approval_rate_seed3"
+  "in_progress": "fairness_lagrangian_approval_rate_seed4"
 }
