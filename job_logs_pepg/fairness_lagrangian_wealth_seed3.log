@@ -150,3 +150,51 @@ Loading model from ./pepg_sequential_results/pepg_fairness_lagrangian_wealth_see
     Cumulative Profit: $12202.09k
 
   Starting Episode 41 (ALL state preserved - continuous play)
+
+  Episode 50/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 4975.0
+    μ_M: $76.02k, μ_F: $60.18k
+    Wealth Gap: $15.84k
+    Episode Approval Rate M: 0.2058
+    Episode Approval Rate F: 0.1893
+    Episode Profit: $927.05k
+    Cumulative Profit: $14672.53k
+
+  Starting Episode 51 (ALL state preserved - continuous play)
+
+  Episode 60/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 5970.0
+    μ_M: $79.44k, μ_F: $62.53k
+    Wealth Gap: $16.91k
+    Episode Approval Rate M: 0.1743
+    Episode Approval Rate F: 0.1807
+    Episode Profit: $867.52k
+    Cumulative Profit: $17944.41k
+
+  Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $82.61k, μ_F: $65.31k
+    Wealth Gap: $17.30k
+    Episode Approval Rate M: 0.1945
+    Episode Approval Rate F: 0.2024
+    Episode Profit: $1055.32k
+    Cumulative Profit: $21415.77k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
+
+  Episode 80/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 7960.0
+    μ_M: $85.90k, μ_F: $68.07k
+    Wealth Gap: $17.83k
+    Episode Approval Rate M: 0.1850
+    Episode Approval Rate F: 0.1947
+    Episode Profit: $1041.28k
+    Cumulative Profit: $25627.12k
+
+  Starting Episode 81 (ALL state preserved - continuous play)
