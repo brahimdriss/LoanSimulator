@@ -174,3 +174,15 @@ Loading model from ./pepg_sequential_results/pepg_fairness_lagrangian_approval_r
     Cumulative Profit: $203505.23k
 
   Starting Episode 61 (ALL state preserved - continuous play)
+
+  Episode 70/100 Complete:
+    Timesteps this episode: 199
+    Total time elapsed: 6965.0
+    μ_M: $308.33k, μ_F: $244.83k
+    Wealth Gap: $63.50k
+    Episode Approval Rate M: 0.9502
+    Episode Approval Rate F: 0.9643
+    Episode Profit: $15317.95k
+    Cumulative Profit: $260558.60k
+
+  Starting Episode 71 (ALL state preserved - continuous play)
