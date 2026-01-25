@@ -1331,7 +1331,11 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-25 01:04:00] Push complete
 [2026-01-25 01:14:00] Changes detected, pushing...
-ator.git
+[main eb9b373] Sync results
+ 7 files changed, 251 insertions(+), 4 deletions(-)
+ create mode 100644 job_logs_pepg/fairness_lagrangian_approval_rate_seed3.log
+ create mode 100644 pepg_sequential_results/test_episode_metrics_fairness_lagrangian_approval_rate_seed2_20260125_011251.csv
+To https://github.com/brahimdriss/LoanSimulator.git
  ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
 hint: Updates were rejected because the remote contains work that you do
@@ -1339,14 +1343,8 @@ hint: not have locally. This is usually caused by another repository pushing
 hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
-[2026-01-24 13:58:34] Push complete
-[2026-01-24 14:08:35] Changes detected, pushing...
-[main 07786c7] Sync results
- 1 file changed, 13 insertions(+), 1 deletion(-)
-To https://github.com/brahimdriss/LoanSimulator.git
- ! [rejected]        main -> main (fetch first)
-error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
-hint: Updates were rejected because the remote contains work that you do
+[2026-01-25 01:14:00] Push complete
+s were rejected because the remote contains work that you do
 hint: not have locally. This is usually caused by another repository pushing
 hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
@@ -2151,3 +2149,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-25 01:09:06] Push complete
+[2026-01-25 01:19:06] Changes detected, pushing...
