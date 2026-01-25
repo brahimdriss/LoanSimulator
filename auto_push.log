@@ -1646,20 +1646,20 @@ hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-25 05:14:13] Push complete
 [2026-01-25 05:24:13] Changes detected, pushing...
-   main -> main (fetch first)
+[main 8108d60] Sync results
+ 7 files changed, 252 insertions(+), 4 deletions(-)
+ create mode 100644 job_logs_pepg/utilitarian_profit_approval_rate_seed4.log
+ create mode 100644 pepg_sequential_results/test_episode_metrics_utilitarian_profit_approval_rate_seed3_20260125_052200.csv
+To https://github.com/brahimdriss/LoanSimulator.git
+ ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
 hint: Updates were rejected because the remote contains work that you do
 hint: not have locally. This is usually caused by another repository pushing
 hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
-[2026-01-24 18:28:47] Push complete
-[2026-01-24 18:38:47] Changes detected, pushing...
-[main 02d8fed] Sync results
- 7 files changed, 251 insertions(+), 3 deletions(-)
- create mode 100644 job_logs_pepg/social_welfare_approval_rate_seed3.log
- create mode 100644 pepg_sequential_results/test_episode_metrics_social_welfare_approval_rate_seed2_20260124_183724.csv
-To https://github.com/brahimdriss/LoanSimulator.git
+[2026-01-25 05:24:13] Push complete
+mdriss/LoanSimulator.git
  ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
 hint: Updates were rejected because the remote contains work that you do
@@ -2440,3 +2440,4 @@ hint: to the same ref. You may want to first integrate the remote changes
 hint: (e.g., 'git pull ...') before pushing again.
 hint: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-01-25 05:19:17] Push complete
+[2026-01-25 05:29:18] Changes detected, pushing...
