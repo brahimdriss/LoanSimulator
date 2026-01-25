@@ -1,0 +1,47 @@
+Job: utilitarian_profit_wealth_seed5
+Command: uv run python -u par_pepg.py --seeds 1 --seed 5 --reward utilitarian_profit --constraint wealth --episodes 200 --workers 1 --weights-dir ./pepg_sequential_results
+Started: 2026-01-25T06:54:22.078857
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: UTILITARIAN_PROFIT
+  Constraint: WEALTH
+  Seed: 5
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA L40S
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Replay buffer capacity: 50 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with utilitarian_profit (wealth constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=891.55, Avg=891.55, ρ=1.13, λw=2.000, Number of Approvals R = 295.000, Number of Approvals B = 244.000, 
+  [PePG] Ep 10: R=1818.22, Avg=1818.22, ρ=1.19, λw=2.000, Number of Approvals R = 620.000, Number of Approvals B = 484.000, 
+  [PePG] Ep 20: R=2339.84, Avg=1748.26, ρ=1.29, λw=2.000, Number of Approvals R = 870.000, Number of Approvals B = 618.000, 
+  [PePG] Ep 30: R=2939.70, Avg=2338.13, ρ=1.32, λw=2.000, Number of Approvals R = 1077.000, Number of Approvals B = 796.000, 
+  [PePG] Ep 40: R=3725.87, Avg=2942.89, ρ=1.39, λw=2.000, Number of Approvals R = 1325.000, Number of Approvals B = 980.000, 
