@@ -1,0 +1,11 @@
+- Oracle
+- Logistic regression between context and default ground truth
+- Give everyone loan
+- Randomized policy 
+
+- Be biased against richer
+- Make rich richer
+
+Profit trajectory
+Wealth gap trajectory
+Approval rate difference trajectory
