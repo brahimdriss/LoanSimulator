@@ -463,11 +463,18 @@ class PePGAgentV2:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"  Using device: {self.device}")
 
-        # Mixed precision
+        # Mixed precision (compatible with older PyTorch versions)
         self.use_amp = use_amp and self.device.type == "cuda"
-        self.scaler = torch.amp.GradScaler("cuda") if self.use_amp else None
         if self.use_amp:
+            try:
+                # PyTorch >= 2.0
+                self.scaler = torch.amp.GradScaler("cuda")
+            except (AttributeError, TypeError):
+                # PyTorch < 2.0
+                self.scaler = torch.cuda.amp.GradScaler()
             print(f"  Mixed precision (AMP): Enabled")
+        else:
+            self.scaler = None
 
         # Policy network (Beta distribution for approval probability)
         self.policy_net = self._build_policy_network(12, hidden_dim).to(self.device)
@@ -503,9 +510,15 @@ class PePGAgentV2:
         self.per_step_rewards = []
         self.lambda_history = {"wealth": [], "approval": []}
 
-        # Episode-level metrics
+        # Episode-level metrics (comprehensive tracking)
         self.episode_metrics = {
+            # Episode identification
             "episode": [],
+            "time_start": [],
+            "time_end": [],
+            "timesteps_in_episode": [],
+            
+            # Wealth metrics
             "mu_M_start": [],
             "mu_M_end": [],
             "mu_F_start": [],
@@ -516,14 +529,88 @@ class PePGAgentV2:
             "R_M": [],
             "R_F": [],
             "R_total": [],
-            "approval_rate_M": [],
-            "approval_rate_F": [],
-            "success_prob_M": [],
-            "success_prob_F": [],
             "wealth_gap": [],
+            
+            # Episode-level counts
+            "loans_M_episode": [],
+            "loans_F_episode": [],
+            "applications_M_episode": [],
+            "applications_F_episode": [],
+            "defaults_M_episode": [],
+            "defaults_F_episode": [],
+            "profit_episode": [],
+            
+            # Episode-level rates
+            "approval_rate_M_episode": [],
+            "approval_rate_F_episode": [],
+            "success_prob_M_episode": [],
+            "success_prob_F_episode": [],
+            
+            # Cumulative totals (across all episodes)
+            "total_loans_M": [],
+            "total_loans_F": [],
+            "total_applications_M": [],
+            "total_applications_F": [],
+            "total_defaults_M": [],
+            "total_defaults_F": [],
+            "cumulative_profit": [],
+            
+            # Cumulative rates
+            "approval_rate_M_cumulative": [],
+            "approval_rate_F_cumulative": [],
+            "success_prob_M_cumulative": [],
+            "success_prob_F_cumulative": [],
+            
+            # Agent decisions vs true labels (for confusion matrix)
+            # "actual" = agent's decision, "true" = would the loan have succeeded (based on default_prob threshold)
+            "actual_approvals_M_episode": [],
+            "actual_approvals_F_episode": [],
+            "true_approvals_M_episode": [],  # Based on whether default_prob < 0.5
+            "true_approvals_F_episode": [],
+            
+            # Confusion matrix (M = Male, F = Female)
+            # True Positive: approved AND didn't default (or would not have defaulted)
+            # False Positive: approved AND defaulted
+            # True Negative: rejected AND would have defaulted
+            # False Negative: rejected AND would not have defaulted
+            "true_positive_M": [],
+            "false_positive_M": [],
+            "true_negative_M": [],
+            "false_negative_M": [],
+            "true_positive_F": [],
+            "false_positive_F": [],
+            "true_negative_F": [],
+            "false_negative_F": [],
+            
+            # Classification metrics
+            "accuracy_M": [],
+            "accuracy_F": [],
+            "precision_M": [],
+            "precision_F": [],
+            "recall_M": [],
+            "recall_F": [],
+            
+            # Hawkes process events
+            "hawkes_events_M": [],
+            "hawkes_events_F": [],
+            
+            # Legacy metrics (for backwards compatibility)
             "total_profit": [],
             "cumulative_time": [],
+            "approval_rate_M": [],  # Same as approval_rate_M_cumulative
+            "approval_rate_F": [],  # Same as approval_rate_F_cumulative
+            "success_prob_M": [],   # Same as success_prob_M_cumulative
+            "success_prob_F": [],   # Same as success_prob_F_cumulative
         }
+        
+        # Track cumulative values across episodes
+        self.cumulative_loans_M = 0
+        self.cumulative_loans_F = 0
+        self.cumulative_applications_M = 0
+        self.cumulative_applications_F = 0
+        self.cumulative_defaults_M = 0
+        self.cumulative_defaults_F = 0
+        self.cumulative_profit = 0.0
 
         # Performative gradient metrics
         self.gradient_metrics = {
@@ -594,7 +681,7 @@ class PePGAgentV2:
         obs_tensor = torch.FloatTensor(obs).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
-            with torch.amp.autocast("cuda", enabled=self.use_amp):
+            with torch.cuda.amp.autocast(enabled=self.use_amp):
                 alpha, beta = self.policy_net(obs_tensor)
 
         dist = Beta(alpha, beta)
@@ -777,7 +864,7 @@ class PePGAgentV2:
         # Compute policy gradient (vectorized)
         self.policy_net.zero_grad()
 
-        with torch.amp.autocast("cuda", enabled=self.use_amp):
+        with torch.cuda.amp.autocast(enabled=self.use_amp):
             alpha, beta = self.policy_net(states_tensor)
 
         dist = Beta(alpha.squeeze(-1), beta.squeeze(-1))
@@ -918,7 +1005,7 @@ class PePGAgentV2:
             # Get action from policy
             obs_tensor = torch.FloatTensor(obs).to(self.device)
 
-            with torch.amp.autocast("cuda", enabled=self.use_amp):
+            with torch.cuda.amp.autocast(enabled=self.use_amp):
                 alpha, beta = self.policy_net(obs_tensor.unsqueeze(0))
 
             dist = Beta(alpha, beta)
@@ -1198,10 +1285,11 @@ class PePGAgentV2:
         return lambda_loss_value, wealth_gap, rate_gap
 
     def _update_episode_metrics(self, episode_data: dict):
-        """Update episode-level metrics."""
+        """Update episode-level metrics with comprehensive tracking."""
         self.total_episodes_completed += 1
         self.cumulative_time += self.env.T
 
+        # Basic episode info
         mu_M_start = episode_data["mu_M_start"]
         mu_M_end = episode_data["mu_M_end"]
         mu_F_start = episode_data["mu_F_start"]
@@ -1223,19 +1311,128 @@ class PePGAgentV2:
         else:
             R_M = R_F = 0.0
 
-        approval_rate_M = self.env.total_loans_R / max(self.env.total_applications_R, 1)
-        approval_rate_F = self.env.total_loans_B / max(self.env.total_applications_B, 1)
-        success_prob_M = 1.0 - self.env.total_defaults_R / max(
-            self.env.total_loans_R, 1
-        )
-        success_prob_F = 1.0 - self.env.total_defaults_B / max(
-            self.env.total_loans_B, 1
-        )
-
-        total_profit = sum(self.env.history["profit"])
-
+        # Get decisions from episode
+        decisions = episode_data.get("decisions", [])
+        
+        # Episode-level counts from decisions
+        male_decisions = [d for d in decisions if d["group"] == "male"]
+        female_decisions = [d for d in decisions if d["group"] == "female"]
+        
+        applications_M_episode = len(male_decisions)
+        applications_F_episode = len(female_decisions)
+        
+        loans_M_episode = len([d for d in male_decisions if d["approved"]])
+        loans_F_episode = len([d for d in female_decisions if d["approved"]])
+        
+        defaults_M_episode = len([d for d in male_decisions if d["approved"] and d.get("defaulted", False)])
+        defaults_F_episode = len([d for d in female_decisions if d["approved"] and d.get("defaulted", False)])
+        
+        # Episode profit
+        profit_episode = sum(episode_data.get("rewards", []))
+        
+        # Episode-level rates
+        approval_rate_M_episode = loans_M_episode / max(applications_M_episode, 1)
+        approval_rate_F_episode = loans_F_episode / max(applications_F_episode, 1)
+        success_prob_M_episode = 1.0 - defaults_M_episode / max(loans_M_episode, 1)
+        success_prob_F_episode = 1.0 - defaults_F_episode / max(loans_F_episode, 1)
+        
+        # Update cumulative totals
+        self.cumulative_loans_M += loans_M_episode
+        self.cumulative_loans_F += loans_F_episode
+        self.cumulative_applications_M += applications_M_episode
+        self.cumulative_applications_F += applications_F_episode
+        self.cumulative_defaults_M += defaults_M_episode
+        self.cumulative_defaults_F += defaults_F_episode
+        self.cumulative_profit += profit_episode
+        
+        # Cumulative rates
+        approval_rate_M_cumulative = self.cumulative_loans_M / max(self.cumulative_applications_M, 1)
+        approval_rate_F_cumulative = self.cumulative_loans_F / max(self.cumulative_applications_F, 1)
+        success_prob_M_cumulative = 1.0 - self.cumulative_defaults_M / max(self.cumulative_loans_M, 1)
+        success_prob_F_cumulative = 1.0 - self.cumulative_defaults_F / max(self.cumulative_loans_F, 1)
+        
+        # Confusion matrix computation
+        # "True" label: whether the loan SHOULD have been approved (based on default_prob < 0.5)
+        # For approved loans: we know actual outcome
+        # For rejected loans: we use default_prob as proxy
+        
+        # Initialize confusion matrix counters
+        tp_M, fp_M, tn_M, fn_M = 0, 0, 0, 0
+        tp_F, fp_F, tn_F, fn_F = 0, 0, 0, 0
+        
+        actual_approvals_M = 0
+        actual_approvals_F = 0
+        true_approvals_M = 0  # Count of applications that "should" be approved (low default risk)
+        true_approvals_F = 0
+        
+        for d in male_decisions:
+            # True label: should this loan have been approved? (default_prob < 0.5 means low risk)
+            should_approve = d["default_prob"] < 0.5
+            if should_approve:
+                true_approvals_M += 1
+            
+            if d["approved"]:
+                actual_approvals_M += 1
+                if not d.get("defaulted", False):
+                    tp_M += 1  # Approved and didn't default
+                else:
+                    fp_M += 1  # Approved but defaulted
+            else:
+                # Rejected - use default_prob to determine "true" outcome
+                if d["default_prob"] >= 0.5:
+                    tn_M += 1  # Rejected high-risk (correct)
+                else:
+                    fn_M += 1  # Rejected low-risk (missed opportunity)
+        
+        for d in female_decisions:
+            should_approve = d["default_prob"] < 0.5
+            if should_approve:
+                true_approvals_F += 1
+            
+            if d["approved"]:
+                actual_approvals_F += 1
+                if not d.get("defaulted", False):
+                    tp_F += 1
+                else:
+                    fp_F += 1
+            else:
+                if d["default_prob"] >= 0.5:
+                    tn_F += 1
+                else:
+                    fn_F += 1
+        
+        # Classification metrics
+        total_M = tp_M + fp_M + tn_M + fn_M
+        total_F = tp_F + fp_F + tn_F + fn_F
+        
+        accuracy_M = (tp_M + tn_M) / max(total_M, 1)
+        accuracy_F = (tp_F + tn_F) / max(total_F, 1)
+        
+        precision_M = tp_M / max(tp_M + fp_M, 1)
+        precision_F = tp_F / max(tp_F + fp_F, 1)
+        
+        recall_M = tp_M / max(tp_M + fn_M, 1)
+        recall_F = tp_F / max(tp_F + fn_F, 1)
+        
+        # Hawkes events
+        hawkes_events_M = len(episode_data.get("hawkes_events_R", []))
+        hawkes_events_F = len(episode_data.get("hawkes_events_B", []))
+        
+        # Time tracking
+        time_start = 0.0  # Episode always starts at t=0
+        time_end = self.env.current_time
+        timesteps_in_episode = len(decisions)
+        
+        # Record all metrics
         m = self.episode_metrics
+        
+        # Episode identification
         m["episode"].append(self.total_episodes_completed)
+        m["time_start"].append(time_start)
+        m["time_end"].append(time_end)
+        m["timesteps_in_episode"].append(timesteps_in_episode)
+        
+        # Wealth metrics
         m["mu_M_start"].append(mu_M_start)
         m["mu_M_end"].append(mu_M_end)
         m["mu_F_start"].append(mu_F_start)
@@ -1246,13 +1443,73 @@ class PePGAgentV2:
         m["R_M"].append(R_M)
         m["R_F"].append(R_F)
         m["R_total"].append((R_M + R_F) / 2)
-        m["approval_rate_M"].append(approval_rate_M)
-        m["approval_rate_F"].append(approval_rate_F)
-        m["success_prob_M"].append(success_prob_M)
-        m["success_prob_F"].append(success_prob_F)
         m["wealth_gap"].append(mu_M_end - mu_F_end)
-        m["total_profit"].append(total_profit)
+        
+        # Episode-level counts
+        m["loans_M_episode"].append(loans_M_episode)
+        m["loans_F_episode"].append(loans_F_episode)
+        m["applications_M_episode"].append(applications_M_episode)
+        m["applications_F_episode"].append(applications_F_episode)
+        m["defaults_M_episode"].append(defaults_M_episode)
+        m["defaults_F_episode"].append(defaults_F_episode)
+        m["profit_episode"].append(profit_episode)
+        
+        # Episode-level rates
+        m["approval_rate_M_episode"].append(approval_rate_M_episode)
+        m["approval_rate_F_episode"].append(approval_rate_F_episode)
+        m["success_prob_M_episode"].append(success_prob_M_episode)
+        m["success_prob_F_episode"].append(success_prob_F_episode)
+        
+        # Cumulative totals
+        m["total_loans_M"].append(self.cumulative_loans_M)
+        m["total_loans_F"].append(self.cumulative_loans_F)
+        m["total_applications_M"].append(self.cumulative_applications_M)
+        m["total_applications_F"].append(self.cumulative_applications_F)
+        m["total_defaults_M"].append(self.cumulative_defaults_M)
+        m["total_defaults_F"].append(self.cumulative_defaults_F)
+        m["cumulative_profit"].append(self.cumulative_profit)
+        
+        # Cumulative rates
+        m["approval_rate_M_cumulative"].append(approval_rate_M_cumulative)
+        m["approval_rate_F_cumulative"].append(approval_rate_F_cumulative)
+        m["success_prob_M_cumulative"].append(success_prob_M_cumulative)
+        m["success_prob_F_cumulative"].append(success_prob_F_cumulative)
+        
+        # Agent decisions vs true labels
+        m["actual_approvals_M_episode"].append(actual_approvals_M)
+        m["actual_approvals_F_episode"].append(actual_approvals_F)
+        m["true_approvals_M_episode"].append(true_approvals_M)
+        m["true_approvals_F_episode"].append(true_approvals_F)
+        
+        # Confusion matrix
+        m["true_positive_M"].append(tp_M)
+        m["false_positive_M"].append(fp_M)
+        m["true_negative_M"].append(tn_M)
+        m["false_negative_M"].append(fn_M)
+        m["true_positive_F"].append(tp_F)
+        m["false_positive_F"].append(fp_F)
+        m["true_negative_F"].append(tn_F)
+        m["false_negative_F"].append(fn_F)
+        
+        # Classification metrics
+        m["accuracy_M"].append(accuracy_M)
+        m["accuracy_F"].append(accuracy_F)
+        m["precision_M"].append(precision_M)
+        m["precision_F"].append(precision_F)
+        m["recall_M"].append(recall_M)
+        m["recall_F"].append(recall_F)
+        
+        # Hawkes events
+        m["hawkes_events_M"].append(hawkes_events_M)
+        m["hawkes_events_F"].append(hawkes_events_F)
+        
+        # Legacy metrics (for backwards compatibility)
+        m["total_profit"].append(profit_episode)
         m["cumulative_time"].append(self.cumulative_time)
+        m["approval_rate_M"].append(approval_rate_M_cumulative)
+        m["approval_rate_F"].append(approval_rate_F_cumulative)
+        m["success_prob_M"].append(success_prob_M_cumulative)
+        m["success_prob_F"].append(success_prob_F_cumulative)
 
     def get_episode_metrics_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(self.episode_metrics)
@@ -1352,6 +1609,14 @@ class PePGAgentV2:
             "initial_mu_F": self.initial_mu_F,
             "cumulative_time": self.cumulative_time,
             "total_episodes_completed": self.total_episodes_completed,
+            # Cumulative tracking variables
+            "cumulative_loans_M": self.cumulative_loans_M,
+            "cumulative_loans_F": self.cumulative_loans_F,
+            "cumulative_applications_M": self.cumulative_applications_M,
+            "cumulative_applications_F": self.cumulative_applications_F,
+            "cumulative_defaults_M": self.cumulative_defaults_M,
+            "cumulative_defaults_F": self.cumulative_defaults_F,
+            "cumulative_profit": self.cumulative_profit,
             # Replay buffer
             "replay_buffer_data": list(self.replay_buffer.buffer),
         }
@@ -1407,6 +1672,22 @@ class PePGAgentV2:
             self.cumulative_time = checkpoint["cumulative_time"]
         if "total_episodes_completed" in checkpoint:
             self.total_episodes_completed = checkpoint["total_episodes_completed"]
+        
+        # Load cumulative tracking variables
+        if "cumulative_loans_M" in checkpoint:
+            self.cumulative_loans_M = checkpoint["cumulative_loans_M"]
+        if "cumulative_loans_F" in checkpoint:
+            self.cumulative_loans_F = checkpoint["cumulative_loans_F"]
+        if "cumulative_applications_M" in checkpoint:
+            self.cumulative_applications_M = checkpoint["cumulative_applications_M"]
+        if "cumulative_applications_F" in checkpoint:
+            self.cumulative_applications_F = checkpoint["cumulative_applications_F"]
+        if "cumulative_defaults_M" in checkpoint:
+            self.cumulative_defaults_M = checkpoint["cumulative_defaults_M"]
+        if "cumulative_defaults_F" in checkpoint:
+            self.cumulative_defaults_F = checkpoint["cumulative_defaults_F"]
+        if "cumulative_profit" in checkpoint:
+            self.cumulative_profit = checkpoint["cumulative_profit"]
 
         if "replay_buffer_data" in checkpoint:
             self.replay_buffer.buffer = deque(
@@ -1962,9 +2243,9 @@ def _plot_pepg_v2_results(agent, reward_function, constraint_type, seed, save_di
     ax.plot(
         episodes, metrics["standard_grad_norm"], "b-", label="Standard PG", alpha=0.7
     )
-    # ax.plot(episodes, metrics.get("hawkes_grad_norm", [0]*len(episodes)), "g-", label="Hawkes", alpha=0.7)
-    # ax.plot(episodes, metrics.get("wealth_grad_norm", [0]*len(episodes)), "r-", label="Wealth", alpha=0.7)
-    # ax.plot(episodes, metrics.get("reward_grad_norm", [0]*len(episodes)), "m-", label="Reward", alpha=0.7)
+    ax.plot(episodes, metrics.get("hawkes_grad_norm", [0]*len(episodes)), "g-", label="Hawkes", alpha=0.7)
+    ax.plot(episodes, metrics.get("wealth_grad_norm", [0]*len(episodes)), "r-", label="Wealth", alpha=0.7)
+    ax.plot(episodes, metrics.get("reward_grad_norm", [0]*len(episodes)), "m-", label="Reward", alpha=0.7)
     ax.set_xlabel("Episode")
     ax.set_ylabel("Gradient Norm")
     ax.set_title("PePG Gradient Decomposition")
