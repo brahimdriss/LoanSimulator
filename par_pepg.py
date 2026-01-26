@@ -537,6 +537,22 @@ class PePGAgentV2:
             "num_approvals_B": [],
         }
 
+        # Loss tracking for visualization
+        self.loss_history = {
+            "policy_loss": [],
+            "lambda_loss": [],
+            "total_loss": [],
+            "advantage_mean": [],
+            "advantage_std": [],
+            "log_prob_mean": [],
+            "entropy": [],
+            "value_baseline": [],
+            "constraint_wealth": [],
+            "constraint_approval": [],
+            "reward_component": [],
+            "transition_component": [],
+        }
+
         # Track initial wealth for R_g calculation
         self.initial_mu_M = None
         self.initial_mu_F = None
@@ -702,19 +718,33 @@ class PePGAgentV2:
 
         return grad_matrix
 
-    def _compute_standard_gradient(self, decisions: List[dict]) -> torch.Tensor:
+    def _compute_standard_gradient(self, decisions: List[dict]) -> Tuple[torch.Tensor, dict]:
         """
         Compute Term 1: Standard policy gradient A(s,a) · ∇θ log πθ(a|s)
+        
+        Returns:
+            gradient: The computed gradient tensor
+            loss_info: Dictionary with loss components for tracking
         """
+        num_params = sum(p.numel() for p in self.policy_net.parameters())
+        
         if not decisions:
-            return torch.zeros(
-                sum(p.numel() for p in self.policy_net.parameters()), device=self.device
-            )
+            return torch.zeros(num_params, device=self.device), {
+                "policy_loss": 0.0,
+                "advantage_mean": 0.0,
+                "advantage_std": 0.0,
+                "log_prob_mean": 0.0,
+                "entropy": 0.0,
+                "value_baseline": 0.0,
+                "reward_component": 0.0,
+                "transition_component": 0.0,
+            }
 
         # Extract data
         states = np.array([d["state"] for d in decisions])
         actions = np.array([d["approval_prob"] for d in decisions])
         rewards = np.array([d.get("reward", 0.0) for d in decisions])
+        rewards = rewards/(np.linalg.norm(rewards))
         transitions = np.log(np.array([d.get("p_theta") for d in decisions]))
         
         # Compute returns (G_t = Σ γ^k r_{t+k})
@@ -728,6 +758,10 @@ class PePGAgentV2:
         # Advantage = return - baseline
         baseline = np.mean(returns)
         advantages = returns - baseline
+
+        # Store pre-normalization statistics
+        advantage_mean_raw = np.mean(advantages)
+        advantage_std_raw = np.std(advantages)
 
         # Normalize advantages
         if len(advantages) > 1 and np.std(advantages) > 1e-8:
@@ -748,10 +782,21 @@ class PePGAgentV2:
 
         dist = Beta(alpha.squeeze(-1), beta.squeeze(-1))
         log_probs = dist.log_prob(actions_tensor.clamp(1e-6, 1 - 1e-6))
+        
+        # Compute entropy for monitoring
+        entropy = dist.entropy().mean().item()
 
         # Discounted policy gradient
         discounts = torch.FloatTensor([self.gamma**t for t in range(T)]).to(self.device)
-        policy_loss = -(discounts *(advantages_tensor * log_probs+ advantages_tensor*(torch.FloatTensor(transitions).to(self.device)) + torch.FloatTensor(rewards).to(self.device))).sum()
+        transitions_tensor = torch.FloatTensor(transitions).to(self.device)
+        rewards_tensor = torch.FloatTensor(rewards).to(self.device)
+        
+        # Compute individual loss components
+        pg_component = advantages_tensor * log_probs
+        transition_component = advantages_tensor * transitions_tensor
+        reward_component = rewards_tensor
+        
+        policy_loss = -(discounts * (pg_component + transition_component + reward_component)).sum()
 
         policy_loss.backward()
 
@@ -763,7 +808,19 @@ class PePGAgentV2:
             else:
                 grads.append(torch.zeros(p.numel(), device=self.device))
 
-        return torch.cat(grads)
+        # Compile loss info
+        loss_info = {
+            "policy_loss": policy_loss.item(),
+            "advantage_mean": advantage_mean_raw,
+            "advantage_std": advantage_std_raw,
+            "log_prob_mean": log_probs.mean().item(),
+            "entropy": entropy,
+            "value_baseline": baseline,
+            "reward_component": (discounts * reward_component).sum().item(),
+            "transition_component": (discounts * transition_component).sum().item(),
+        }
+
+        return torch.cat(grads), loss_info
 
     def _compute_full_pepg_gradient(
         self, decisions: List[dict]
@@ -775,7 +832,7 @@ class PePGAgentV2:
 
         Returns:
             total_gradient: Combined gradient tensor
-            grad_info: Dictionary with individual gradient norms
+            grad_info: Dictionary with individual gradient norms and loss info
         """
         num_params = sum(p.numel() for p in self.policy_net.parameters())
 
@@ -783,35 +840,36 @@ class PePGAgentV2:
             return torch.zeros(num_params, device=self.device), {
                 "standard_norm": 0.0,
                 "total_norm": 0.0,
+                "loss_info": {
+                    "policy_loss": 0.0,
+                    "advantage_mean": 0.0,
+                    "advantage_std": 0.0,
+                    "log_prob_mean": 0.0,
+                    "entropy": 0.0,
+                    "value_baseline": 0.0,
+                    "reward_component": 0.0,
+                    "transition_component": 0.0,
+                }
             }
 
         # Precompute gradient matrix for ALL decisions ONCE
         states = np.array([d["state"] for d in decisions])
         actions = np.array([d["approval_prob"] for d in decisions])
-        # grad_matrix = self._compute_all_grad_log_pi_batched(states, actions)
 
         # Term 1: Standard policy gradient (uses its own efficient computation)
-        standard_grad = self._compute_standard_gradient(decisions)
+        standard_grad, loss_info = self._compute_standard_gradient(decisions)
 
-        # Term 2a: Hawkes transition gradient (pass precomputed gradients)
-
-        # Free the gradient matrix memory
-        # del grad_matrix
+        # Free memory
         del states
         del actions
 
         # Combine with weights
-       
-
-        total_grad = (
-            standard_grad
-            # + self.transition_weight * transition_grad
-            # + self.reward_weight * reward_grad
-        )
+        total_grad = standard_grad
 
         grad_info = {
             "standard_norm": standard_grad.norm().item(),
             "total_norm": total_grad.norm().item(),
+            "loss_info": loss_info,
         }
 
         # Clean up intermediate gradients
@@ -975,9 +1033,11 @@ class PePGAgentV2:
         # Compute gradient
         self.optimizer.zero_grad()
 
+        loss_info = {}
         if use_perf_grad and decisions:
             # Full PePG gradient
             total_grad, grad_info = self._compute_full_pepg_gradient(decisions)
+            loss_info = grad_info.get("loss_info", {})
 
             # Record gradient metrics
             self.gradient_metrics["standard_grad_norm"].append(
@@ -986,7 +1046,7 @@ class PePGAgentV2:
             self.gradient_metrics["total_grad_norm"].append(grad_info["total_norm"])
         else:
             # Standard policy gradient only
-            total_grad = self._compute_standard_gradient(decisions)
+            total_grad, loss_info = self._compute_standard_gradient(decisions)
             self.gradient_metrics["standard_grad_norm"].append(total_grad.norm().item())
             self.gradient_metrics["total_grad_norm"].append(total_grad.norm().item())
 
@@ -1016,9 +1076,26 @@ class PePGAgentV2:
             # Optimizer step
             self.optimizer.step()
 
-        # Update learnable lambdas
+        # Update learnable lambdas and get lambda loss
+        lambda_loss = 0.0
+        constraint_wealth = 0.0
+        constraint_approval = 0.0
         if self.learnable_lambdas is not None:
-            self._update_lambdas()
+            lambda_loss, constraint_wealth, constraint_approval = self._update_lambdas_with_loss()
+
+        # Record loss history
+        self.loss_history["policy_loss"].append(loss_info.get("policy_loss", 0.0))
+        self.loss_history["lambda_loss"].append(lambda_loss)
+        self.loss_history["total_loss"].append(loss_info.get("policy_loss", 0.0) + lambda_loss)
+        self.loss_history["advantage_mean"].append(loss_info.get("advantage_mean", 0.0))
+        self.loss_history["advantage_std"].append(loss_info.get("advantage_std", 0.0))
+        self.loss_history["log_prob_mean"].append(loss_info.get("log_prob_mean", 0.0))
+        self.loss_history["entropy"].append(loss_info.get("entropy", 0.0))
+        self.loss_history["value_baseline"].append(loss_info.get("value_baseline", 0.0))
+        self.loss_history["constraint_wealth"].append(constraint_wealth)
+        self.loss_history["constraint_approval"].append(constraint_approval)
+        self.loss_history["reward_component"].append(loss_info.get("reward_component", 0.0))
+        self.loss_history["transition_component"].append(loss_info.get("transition_component", 0.0))
 
         # Record metrics
         episode_reward = sum(episode_data["rewards"])
@@ -1085,6 +1162,41 @@ class PePGAgentV2:
         torch.nn.utils.clip_grad_norm_(self.learnable_lambdas.parameters(), 1.0)
         self.lambda_optimizer.step()
 
+    def _update_lambdas_with_loss(self) -> Tuple[float, float, float]:
+        """Update learnable lambdas and return loss values for tracking."""
+        approval_rate_M = self.env.total_loans_R / max(self.env.total_applications_R, 1)
+        approval_rate_F = self.env.total_loans_B / max(self.env.total_applications_B, 1)
+
+        wealth_gap = abs(self.env.mu_R - self.env.mu_B)
+        rate_gap = abs(approval_rate_M - approval_rate_F)
+
+        self.lambda_optimizer.zero_grad()
+
+        lambda_loss_value = 0.0
+        if self.constraint_type == "wealth":
+            lambda_wealth_tensor = self.learnable_lambdas.lambda_wealth
+            lambda_loss = -(lambda_wealth_tensor * wealth_gap)
+            lambda_loss_value = lambda_loss.item()
+        elif self.constraint_type == "approval_rate":
+            lambda_approval_tensor = self.learnable_lambdas.lambda_approval
+            lambda_loss = -(lambda_approval_tensor * rate_gap)
+            lambda_loss_value = lambda_loss.item()
+        elif self.constraint_type == "both":
+            lambda_wealth_tensor = self.learnable_lambdas.lambda_wealth
+            lambda_approval_tensor = self.learnable_lambdas.lambda_approval
+            lambda_loss = -(
+                lambda_wealth_tensor * wealth_gap + lambda_approval_tensor * rate_gap
+            )
+            lambda_loss_value = lambda_loss.item()
+        else:
+            return 0.0, wealth_gap, rate_gap
+
+        lambda_loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.learnable_lambdas.parameters(), 1.0)
+        self.lambda_optimizer.step()
+
+        return lambda_loss_value, wealth_gap, rate_gap
+
     def _update_episode_metrics(self, episode_data: dict):
         """Update episode-level metrics."""
         self.total_episodes_completed += 1
@@ -1148,6 +1260,10 @@ class PePGAgentV2:
     def get_gradient_metrics_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(self.gradient_metrics)
 
+    def get_loss_history_dataframe(self) -> pd.DataFrame:
+        """Return loss history as a DataFrame."""
+        return pd.DataFrame(self.loss_history)
+
     def train(self, num_episodes: int = 100, use_performative: bool = True):
         """Train the agent for multiple episodes."""
         print(
@@ -1184,10 +1300,11 @@ class PePGAgentV2:
 
                 # Gradient norms
                 std_norm = self.gradient_metrics["standard_grad_norm"][-1]
-                # hawkes_norm = self.gradient_metrics["hawkes_grad_norm"][-1]
-                # wealth_norm = self.gradient_metrics["wealth_grad_norm"][-1]
                 approvals_r = self.gradient_metrics['num_approvals_R'][-1]
                 approvals_b = self.gradient_metrics['num_approvals_B'][-1]
+                
+                # Loss info
+                policy_loss = self.loss_history["policy_loss"][-1] if self.loss_history["policy_loss"] else 0
 
                 in_warmup = episode < self.warmup_episodes
                 mode_str = "WARMUP" if in_warmup else "PePG"
@@ -1195,9 +1312,9 @@ class PePGAgentV2:
                 print(
                     f"  [{mode_str}] Ep {episode}: R={episode_reward:.2f}, "
                     f"Avg={avg_reward:.2f}, ρ={rho:.2f}, "
+                    f"Loss={policy_loss:.4f}, "
                     f"λw={lambda_w:.3f}, "
-                    f"Number of Approvals R = {approvals_r:.3f}, "
-                    f"Number of Approvals B = {approvals_b:.3f}, "
+                    f"Approvals R={approvals_r}, B={approvals_b}"
                 )
 
         print(f"\nTraining complete. Buffer: {len(self.replay_buffer)} episodes")
@@ -1230,6 +1347,7 @@ class PePGAgentV2:
             "lambda_history": self.lambda_history,
             "episode_metrics": self.episode_metrics,
             "gradient_metrics": self.gradient_metrics,
+            "loss_history": self.loss_history,
             "initial_mu_M": self.initial_mu_M,
             "initial_mu_F": self.initial_mu_F,
             "cumulative_time": self.cumulative_time,
@@ -1279,6 +1397,8 @@ class PePGAgentV2:
             self.episode_metrics = checkpoint["episode_metrics"]
         if "gradient_metrics" in checkpoint:
             self.gradient_metrics = checkpoint["gradient_metrics"]
+        if "loss_history" in checkpoint:
+            self.loss_history = checkpoint["loss_history"]
         if "initial_mu_M" in checkpoint:
             self.initial_mu_M = checkpoint["initial_mu_M"]
         if "initial_mu_F" in checkpoint:
@@ -1310,6 +1430,315 @@ class PePGAgentV2:
 
 
 # ============================================================================
+# LOSS PLOTTING FUNCTIONS
+# ============================================================================
+
+
+def plot_loss_propagation(
+    loss_history: dict,
+    reward_function: str = "",
+    constraint_type: str = "",
+    seed: int = 0,
+    save_path: str = None,
+    show: bool = True,
+    figsize: Tuple[int, int] = (20, 16),
+):
+    """
+    Plot comprehensive loss propagation during training.
+    
+    Args:
+        loss_history: Dictionary containing loss tracking data
+        reward_function: Name of reward function used
+        constraint_type: Type of constraint used
+        seed: Random seed
+        save_path: Path to save the figure
+        show: Whether to display the plot
+        figsize: Figure size
+    """
+    fig = plt.figure(figsize=figsize)
+    gs = gridspec.GridSpec(4, 3, figure=fig, hspace=0.3, wspace=0.25)
+    
+    episodes = range(len(loss_history.get("policy_loss", [])))
+    if len(episodes) == 0:
+        print("No loss history to plot")
+        return
+    
+    # Helper for smoothing
+    def smooth(data, window=10):
+        if len(data) < window:
+            return data
+        return np.convolve(data, np.ones(window)/window, mode='valid')
+    
+    # 1. Policy Loss (main loss)
+    ax1 = fig.add_subplot(gs[0, 0])
+    policy_loss = loss_history.get("policy_loss", [])
+    ax1.plot(episodes, policy_loss, 'b-', alpha=0.3, label='Raw')
+    if len(policy_loss) > 10:
+        smoothed = smooth(policy_loss)
+        ax1.plot(range(9, len(episodes)), smoothed, 'b-', linewidth=2, label='Smoothed')
+    ax1.set_xlabel('Episode')
+    ax1.set_ylabel('Policy Loss')
+    ax1.set_title('Policy Loss (Negative Expected Return)')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
+    
+    # 2. Lambda Loss
+    ax2 = fig.add_subplot(gs[0, 1])
+    lambda_loss = loss_history.get("lambda_loss", [])
+    ax2.plot(episodes, lambda_loss, 'r-', alpha=0.3, label='Raw')
+    if len(lambda_loss) > 10:
+        smoothed = smooth(lambda_loss)
+        ax2.plot(range(9, len(episodes)), smoothed, 'r-', linewidth=2, label='Smoothed')
+    ax2.set_xlabel('Episode')
+    ax2.set_ylabel('Lambda Loss')
+    ax2.set_title('Lagrangian Multiplier Loss')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # 3. Total Loss
+    ax3 = fig.add_subplot(gs[0, 2])
+    total_loss = loss_history.get("total_loss", [])
+    ax3.plot(episodes, total_loss, 'purple', alpha=0.3, label='Raw')
+    if len(total_loss) > 10:
+        smoothed = smooth(total_loss)
+        ax3.plot(range(9, len(episodes)), smoothed, 'purple', linewidth=2, label='Smoothed')
+    ax3.set_xlabel('Episode')
+    ax3.set_ylabel('Total Loss')
+    ax3.set_title('Combined Loss (Policy + Lambda)')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # 4. Advantage Statistics
+    ax4 = fig.add_subplot(gs[1, 0])
+    adv_mean = loss_history.get("advantage_mean", [])
+    adv_std = loss_history.get("advantage_std", [])
+    ax4.plot(episodes, adv_mean, 'g-', label='Mean', linewidth=1.5)
+    if adv_std:
+        adv_mean_arr = np.array(adv_mean)
+        adv_std_arr = np.array(adv_std)
+        ax4.fill_between(episodes, adv_mean_arr - adv_std_arr, adv_mean_arr + adv_std_arr,
+                         alpha=0.3, color='g', label='±1 Std')
+    ax4.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+    ax4.set_xlabel('Episode')
+    ax4.set_ylabel('Advantage')
+    ax4.set_title('Advantage Statistics')
+    ax4.legend()
+    ax4.grid(True, alpha=0.3)
+    
+    # 5. Log Probability Mean
+    ax5 = fig.add_subplot(gs[1, 1])
+    log_prob = loss_history.get("log_prob_mean", [])
+    ax5.plot(episodes, log_prob, 'orange', alpha=0.5)
+    if len(log_prob) > 10:
+        smoothed = smooth(log_prob)
+        ax5.plot(range(9, len(episodes)), smoothed, 'darkorange', linewidth=2)
+    ax5.set_xlabel('Episode')
+    ax5.set_ylabel('Mean Log Probability')
+    ax5.set_title('Policy Log Probability')
+    ax5.grid(True, alpha=0.3)
+    
+    # 6. Policy Entropy
+    ax6 = fig.add_subplot(gs[1, 2])
+    entropy = loss_history.get("entropy", [])
+    ax6.plot(episodes, entropy, 'cyan', alpha=0.5)
+    if len(entropy) > 10:
+        smoothed = smooth(entropy)
+        ax6.plot(range(9, len(episodes)), smoothed, 'darkcyan', linewidth=2)
+    ax6.set_xlabel('Episode')
+    ax6.set_ylabel('Entropy')
+    ax6.set_title('Policy Entropy (Exploration)')
+    ax6.grid(True, alpha=0.3)
+    
+    # 7. Value Baseline
+    ax7 = fig.add_subplot(gs[2, 0])
+    baseline = loss_history.get("value_baseline", [])
+    ax7.plot(episodes, baseline, 'brown', alpha=0.5)
+    if len(baseline) > 10:
+        smoothed = smooth(baseline)
+        ax7.plot(range(9, len(episodes)), smoothed, 'saddlebrown', linewidth=2)
+    ax7.set_xlabel('Episode')
+    ax7.set_ylabel('Baseline Value')
+    ax7.set_title('Value Function Baseline (Mean Return)')
+    ax7.grid(True, alpha=0.3)
+    
+    # 8. Constraint Violations
+    ax8 = fig.add_subplot(gs[2, 1])
+    wealth_constraint = loss_history.get("constraint_wealth", [])
+    approval_constraint = loss_history.get("constraint_approval", [])
+    if wealth_constraint:
+        ax8.plot(episodes, wealth_constraint, 'b-', label='Wealth Gap', linewidth=1.5)
+    if approval_constraint:
+        ax8.plot(episodes, approval_constraint, 'r-', label='Approval Gap', linewidth=1.5)
+    ax8.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+    ax8.set_xlabel('Episode')
+    ax8.set_ylabel('Constraint Value')
+    ax8.set_title('Fairness Constraint Violations')
+    ax8.legend()
+    ax8.grid(True, alpha=0.3)
+    
+    # 9. Loss Components Breakdown
+    ax9 = fig.add_subplot(gs[2, 2])
+    reward_comp = loss_history.get("reward_component", [])
+    transition_comp = loss_history.get("transition_component", [])
+    if reward_comp:
+        ax9.plot(episodes, reward_comp, 'g-', label='Reward Component', alpha=0.7)
+    if transition_comp:
+        ax9.plot(episodes, transition_comp, 'm-', label='Transition Component', alpha=0.7)
+    ax9.set_xlabel('Episode')
+    ax9.set_ylabel('Component Value')
+    ax9.set_title('Loss Component Breakdown')
+    ax9.legend()
+    ax9.grid(True, alpha=0.3)
+    
+    # 10. Loss Convergence Analysis (Rolling statistics)
+    ax10 = fig.add_subplot(gs[3, 0])
+    if len(policy_loss) > 20:
+        window = 20
+        rolling_mean = [np.mean(policy_loss[max(0,i-window):i+1]) for i in range(len(policy_loss))]
+        rolling_std = [np.std(policy_loss[max(0,i-window):i+1]) for i in range(len(policy_loss))]
+        ax10.plot(episodes, rolling_mean, 'b-', label='Rolling Mean', linewidth=2)
+        rolling_mean_arr = np.array(rolling_mean)
+        rolling_std_arr = np.array(rolling_std)
+        ax10.fill_between(episodes, rolling_mean_arr - rolling_std_arr, 
+                          rolling_mean_arr + rolling_std_arr, alpha=0.3, color='b')
+    ax10.set_xlabel('Episode')
+    ax10.set_ylabel('Loss')
+    ax10.set_title('Loss Convergence (Rolling Window=20)')
+    ax10.grid(True, alpha=0.3)
+    
+    # 11. Learning Rate Proxy (Loss Change Rate)
+    ax11 = fig.add_subplot(gs[3, 1])
+    if len(policy_loss) > 1:
+        loss_change = np.diff(policy_loss)
+        ax11.plot(range(1, len(episodes)), loss_change, 'purple', alpha=0.3)
+        if len(loss_change) > 10:
+            smoothed = smooth(loss_change)
+            ax11.plot(range(10, len(episodes)), smoothed, 'purple', linewidth=2)
+    ax11.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+    ax11.set_xlabel('Episode')
+    ax11.set_ylabel('Loss Change')
+    ax11.set_title('Loss Change Rate (Gradient Descent Progress)')
+    ax11.grid(True, alpha=0.3)
+    
+    # 12. Combined Summary Plot
+    ax12 = fig.add_subplot(gs[3, 2])
+    # Normalize each metric for comparison
+    def normalize(data):
+        data = np.array(data)
+        if len(data) == 0 or np.std(data) < 1e-8:
+            return data
+        return (data - np.mean(data)) / np.std(data)
+    
+    if policy_loss:
+        ax12.plot(episodes, normalize(policy_loss), 'b-', label='Policy Loss', alpha=0.7)
+    if entropy:
+        ax12.plot(episodes, normalize(entropy), 'c-', label='Entropy', alpha=0.7)
+    if baseline:
+        ax12.plot(episodes, normalize(baseline), 'brown', label='Baseline', alpha=0.7)
+    ax12.set_xlabel('Episode')
+    ax12.set_ylabel('Normalized Value')
+    ax12.set_title('Normalized Metrics Comparison')
+    ax12.legend(fontsize=8)
+    ax12.grid(True, alpha=0.3)
+    
+    plt.suptitle(
+        f'Loss Propagation Analysis: {reward_function} ({constraint_type}) - Seed {seed}',
+        fontsize=14, fontweight='bold', y=1.02
+    )
+    
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Loss plot saved to {save_path}")
+    
+    if show:
+        plt.show()
+    
+    plt.close()
+
+
+def plot_loss_summary(
+    loss_history: dict,
+    save_path: str = None,
+    show: bool = True,
+):
+    """
+    Plot a compact summary of key loss metrics.
+    
+    Args:
+        loss_history: Dictionary containing loss tracking data
+        save_path: Path to save the figure
+        show: Whether to display the plot
+    """
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    
+    episodes = range(len(loss_history.get("policy_loss", [])))
+    if len(episodes) == 0:
+        print("No loss history to plot")
+        return
+    
+    def smooth(data, window=10):
+        if len(data) < window:
+            return data
+        return np.convolve(data, np.ones(window)/window, mode='valid')
+    
+    # 1. Total Loss
+    ax = axes[0, 0]
+    total_loss = loss_history.get("total_loss", [])
+    ax.plot(episodes, total_loss, 'b-', alpha=0.3)
+    if len(total_loss) > 10:
+        smoothed = smooth(total_loss)
+        ax.plot(range(9, len(episodes)), smoothed, 'b-', linewidth=2, label='Smoothed')
+    ax.set_xlabel('Episode')
+    ax.set_ylabel('Total Loss')
+    ax.set_title('Training Loss')
+    ax.grid(True, alpha=0.3)
+    
+    # 2. Advantage Mean
+    ax = axes[0, 1]
+    adv_mean = loss_history.get("advantage_mean", [])
+    ax.plot(episodes, adv_mean, 'g-', linewidth=1.5)
+    ax.axhline(y=0, color='k', linestyle='--', alpha=0.5)
+    ax.set_xlabel('Episode')
+    ax.set_ylabel('Mean Advantage')
+    ax.set_title('Advantage Estimation')
+    ax.grid(True, alpha=0.3)
+    
+    # 3. Entropy
+    ax = axes[1, 0]
+    entropy = loss_history.get("entropy", [])
+    ax.plot(episodes, entropy, 'orange', linewidth=1.5)
+    ax.set_xlabel('Episode')
+    ax.set_ylabel('Entropy')
+    ax.set_title('Policy Entropy')
+    ax.grid(True, alpha=0.3)
+    
+    # 4. Constraints
+    ax = axes[1, 1]
+    wealth = loss_history.get("constraint_wealth", [])
+    approval = loss_history.get("constraint_approval", [])
+    if wealth:
+        ax.plot(episodes, wealth, 'b-', label='Wealth Gap')
+    if approval:
+        ax.plot(episodes, approval, 'r-', label='Approval Gap')
+    ax.set_xlabel('Episode')
+    ax.set_ylabel('Gap')
+    ax.set_title('Fairness Constraints')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Loss summary saved to {save_path}")
+    
+    if show:
+        plt.show()
+    
+    plt.close()
+
+
+# ============================================================================
 # TRAINING FUNCTIONS
 # ============================================================================
 
@@ -1338,6 +1767,8 @@ def run_pepg_v2_experiment(
     episode_metrics_dir: str = "./episode_metrics_pepg_v2",
     plot_episode_metrics_flag: bool = True,
     plot_results: bool = True,
+    plot_loss: bool = True,
+    loss_dir: str = "./loss_plots_pepg_v2",
 ):
     """Run PePG V2 experiment."""
     import os
@@ -1491,6 +1922,27 @@ def run_pepg_v2_experiment(
             agent, reward_function, constraint_type, seed, weights_dir
         )
 
+    # Plot loss propagation
+    if plot_loss:
+        os.makedirs(loss_dir, exist_ok=True)
+        loss_plot_path = f"{loss_dir}/pepg_v2_{reward_function}_{constraint_type}_seed{seed}_loss.png"
+        plot_loss_propagation(
+            agent.loss_history,
+            reward_function=reward_function,
+            constraint_type=constraint_type,
+            seed=seed,
+            save_path=loss_plot_path,
+            show=True,
+        )
+        
+        # Also save a summary plot
+        loss_summary_path = f"{loss_dir}/pepg_v2_{reward_function}_{constraint_type}_seed{seed}_loss_summary.png"
+        plot_loss_summary(
+            agent.loss_history,
+            save_path=loss_summary_path,
+            show=True,
+        )
+
     return agent, env, theta_learner, loader
 
 
@@ -1510,9 +1962,9 @@ def _plot_pepg_v2_results(agent, reward_function, constraint_type, seed, save_di
     ax.plot(
         episodes, metrics["standard_grad_norm"], "b-", label="Standard PG", alpha=0.7
     )
-    ax.plot(episodes, metrics["hawkes_grad_norm"], "g-", label="Hawkes", alpha=0.7)
-    ax.plot(episodes, metrics["wealth_grad_norm"], "r-", label="Wealth", alpha=0.7)
-    ax.plot(episodes, metrics["reward_grad_norm"], "m-", label="Reward", alpha=0.7)
+    # ax.plot(episodes, metrics.get("hawkes_grad_norm", [0]*len(episodes)), "g-", label="Hawkes", alpha=0.7)
+    # ax.plot(episodes, metrics.get("wealth_grad_norm", [0]*len(episodes)), "r-", label="Wealth", alpha=0.7)
+    # ax.plot(episodes, metrics.get("reward_grad_norm", [0]*len(episodes)), "m-", label="Reward", alpha=0.7)
     ax.set_xlabel("Episode")
     ax.set_ylabel("Gradient Norm")
     ax.set_title("PePG Gradient Decomposition")
@@ -1759,6 +2211,13 @@ if __name__ == "__main__":
         "--plot", action="store_true", help="Plot gradient decomposition results"
     )
     parser.add_argument(
+        "--plot-loss", action="store_true", help="Plot loss propagation during training"
+    )
+    parser.add_argument(
+        "--loss-dir", type=str, default="./loss_plots_pepg_v2",
+        help="Directory to save loss plots"
+    )
+    parser.add_argument(
         "--results-dir",
         type=str,
         default="./pepg_v2_results",
@@ -1810,6 +2269,8 @@ if __name__ == "__main__":
                 episode_metrics_dir=args.episode_metrics_dir,
                 plot_episode_metrics_flag=args.plot_episode_metrics,
                 plot_results=args.plot,
+                plot_loss=args.plot_loss,
+                loss_dir=args.loss_dir,
             )
     else:
         start_time = time.time()
