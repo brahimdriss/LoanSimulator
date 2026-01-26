@@ -1571,6 +1571,9 @@ def run_testing(
             f"\n[5] Running {remaining_episodes} Episodes (Episodes {start_episode + 1} to {num_episodes})..."
         )
 
+        def profit_naive(obs):
+            
+
         for episode in range(start_episode, num_episodes):
             obs, _ = env.reset()
             done = False
