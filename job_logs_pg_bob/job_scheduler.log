@@ -16,3 +16,5 @@
 2026-01-27 19:34:06 | START | Job 6/12: rawlsian_maximin_wealth_seed3
 2026-01-27 19:41:43 | DONE  | Job 6/12: rawlsian_maximin_wealth_seed3 (7m 36s)
 2026-01-27 19:41:43 | START | Job 7/12: fairness_lagrangian_wealth_seed1
+2026-01-27 19:49:03 | DONE  | Job 7/12: fairness_lagrangian_wealth_seed1 (7m 19s)
+2026-01-27 19:49:03 | START | Job 8/12: fairness_lagrangian_wealth_seed2
