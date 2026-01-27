@@ -136,3 +136,17 @@ To https://github.com/brahimdriss/LoanSimulator.git
 [2026-01-27 20:24:18] Changes detected, pushing...
 error: cannot pull with rebase: You have unstaged changes.
 error: Please commit or stash them.
+[main 7bb8dec] Sync results (bob)
+ 10 files changed, 849 insertions(+)
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_utilitarian_profit_wealth_seed1_20260127_201609_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_utilitarian_profit_wealth_seed1_20260127_201609_episode_metrics.npy
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_utilitarian_profit_wealth_seed2_20260127_202139_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_utilitarian_profit_wealth_seed2_20260127_202139_episode_metrics.npy
+ create mode 100644 job_logs_pg_bob/utilitarian_profit_wealth_seed2.log
+ create mode 100644 pg_sequential_results_bob/pepg_utilitarian_profit_wealth_seed2.pt
+To https://github.com/brahimdriss/LoanSimulator.git
+   8369379..7bb8dec  main -> main
+[2026-01-27 20:24:18] Push complete
+[2026-01-27 20:34:19] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: Please commit or stash them.
