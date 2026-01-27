@@ -3,6 +3,7 @@
 - Give everyone loan
 - Randomized policy 
 
+# Depends on constraint
 - Be biased against richer
 - Make rich richer
 

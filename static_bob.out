@@ -1,0 +1,36 @@
+2026-01-27 18:53:53 | INFO  | ==================================================
+2026-01-27 18:53:53 | INFO  | Sequential PG Job Scheduler Started
+2026-01-27 18:53:53 | INFO  | Total jobs: 12, Pending: 12, Completed: 0, Failed: 0
+2026-01-27 18:53:53 | INFO  | Episodes per job: 300
+2026-01-27 18:53:53 | INFO  | ==================================================
+2026-01-27 18:53:53 | START | Job 1/12: social_welfare_wealth_seed1
+2026-01-27 19:04:21 | DONE  | Job 1/12: social_welfare_wealth_seed1 (10m 28s)
+2026-01-27 19:04:21 | START | Job 2/12: social_welfare_wealth_seed2
+2026-01-27 19:11:33 | DONE  | Job 2/12: social_welfare_wealth_seed2 (7m 11s)
+2026-01-27 19:11:33 | START | Job 3/12: social_welfare_wealth_seed3
+2026-01-27 19:19:01 | DONE  | Job 3/12: social_welfare_wealth_seed3 (7m 28s)
+2026-01-27 19:19:01 | START | Job 4/12: rawlsian_maximin_wealth_seed1
+2026-01-27 19:26:16 | DONE  | Job 4/12: rawlsian_maximin_wealth_seed1 (7m 14s)
+2026-01-27 19:26:16 | START | Job 5/12: rawlsian_maximin_wealth_seed2
+2026-01-27 19:34:06 | DONE  | Job 5/12: rawlsian_maximin_wealth_seed2 (7m 50s)
+2026-01-27 19:34:06 | START | Job 6/12: rawlsian_maximin_wealth_seed3
+2026-01-27 19:41:43 | DONE  | Job 6/12: rawlsian_maximin_wealth_seed3 (7m 36s)
+2026-01-27 19:41:43 | START | Job 7/12: fairness_lagrangian_wealth_seed1
+2026-01-27 19:49:03 | DONE  | Job 7/12: fairness_lagrangian_wealth_seed1 (7m 19s)
+2026-01-27 19:49:03 | START | Job 8/12: fairness_lagrangian_wealth_seed2
+2026-01-27 19:57:28 | DONE  | Job 8/12: fairness_lagrangian_wealth_seed2 (8m 24s)
+2026-01-27 19:57:28 | START | Job 9/12: fairness_lagrangian_wealth_seed3
+2026-01-27 20:05:51 | DONE  | Job 9/12: fairness_lagrangian_wealth_seed3 (8m 23s)
+2026-01-27 20:05:51 | START | Job 10/12: utilitarian_profit_wealth_seed1
+2026-01-27 20:16:11 | DONE  | Job 10/12: utilitarian_profit_wealth_seed1 (10m 20s)
+2026-01-27 20:16:11 | INFO  | Progress: 10 completed, 0 failed, 2 remaining
+2026-01-27 20:16:11 | START | Job 11/12: utilitarian_profit_wealth_seed2
+2026-01-27 20:26:36 | DONE  | Job 11/12: utilitarian_profit_wealth_seed2 (10m 24s)
+2026-01-27 20:26:36 | START | Job 12/12: utilitarian_profit_wealth_seed3
+2026-01-27 20:37:05 | DONE  | Job 12/12: utilitarian_profit_wealth_seed3 (10m 29s)
+2026-01-27 20:37:05 | INFO  | ==================================================
+2026-01-27 20:37:05 | INFO  | Scheduler Finished
+2026-01-27 20:37:05 | INFO  | Total time: 1h 43m 12s
+2026-01-27 20:37:05 | INFO  | Completed: 12/12
+2026-01-27 20:37:05 | INFO  | Failed: 0
+2026-01-27 20:37:05 | INFO  | ==================================================
