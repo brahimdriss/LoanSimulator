@@ -4,3 +4,7 @@
 2026-01-27 18:53:53 | INFO  | Episodes per job: 300
 2026-01-27 18:53:53 | INFO  | ==================================================
 2026-01-27 18:53:53 | START | Job 1/12: social_welfare_wealth_seed1
+2026-01-27 19:04:21 | DONE  | Job 1/12: social_welfare_wealth_seed1 (10m 28s)
+2026-01-27 19:04:21 | START | Job 2/12: social_welfare_wealth_seed2
+2026-01-27 19:11:33 | DONE  | Job 2/12: social_welfare_wealth_seed2 (7m 11s)
+2026-01-27 19:11:33 | START | Job 3/12: social_welfare_wealth_seed3

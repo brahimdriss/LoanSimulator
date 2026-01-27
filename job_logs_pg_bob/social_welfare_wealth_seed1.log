@@ -118,3 +118,13 @@ Training PePG V2 with social_welfare (wealth constraint)...
   [PePG] Ep 70: R=162851501.39, Avg=115960821.63, ρ=1.12, λw=81.708, Number of Approvals R = 1838.000, Number of Approvals B = 1691.000, 
   [PePG] Ep 80: R=218745253.10, Avg=165848505.00, ρ=1.02, λw=90.301, Number of Approvals R = 1856.000, Number of Approvals B = 1805.000, 
   [PePG] Ep 90: R=287513800.27, Avg=224704341.96, ρ=1.06, λw=99.798, Number of Approvals R = 1897.000, Number of Approvals B = 1888.000, 
+  [PePG] Ep 99: R=354709238.64, Avg=285246316.40, ρ=1.01, λw=109.196, Number of Approvals R = 1933.000, Number of Approvals B = 1914.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_bob/pg_test_v2_social_welfare_wealth_seed1_20260127_190419_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_bob/pg_test_v2_social_welfare_wealth_seed1_20260127_190419_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T19:04:21.662883
+Exit code: 0
+Test Exit code: 0
