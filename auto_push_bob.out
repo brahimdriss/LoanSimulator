@@ -57,3 +57,23 @@ To https://github.com/brahimdriss/LoanSimulator.git
 [2026-01-27 19:34:12] Changes detected, pushing...
 error: cannot pull with rebase: You have unstaged changes.
 error: Please commit or stash them.
+[main dbdd47f] Sync results (bob)
+ 16 files changed, 1626 insertions(+)
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_rawlsian_maximin_wealth_seed1_20260127_192614_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_rawlsian_maximin_wealth_seed1_20260127_192614_episode_metrics.npy
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_rawlsian_maximin_wealth_seed2_20260127_193404_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_rawlsian_maximin_wealth_seed2_20260127_193404_episode_metrics.npy
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_rawlsian_maximin_wealth_seed1_20260127_192420_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_rawlsian_maximin_wealth_seed1_20260127_192420_episode_metrics.npy
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_rawlsian_maximin_wealth_seed2_20260127_193111_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_rawlsian_maximin_wealth_seed2_20260127_193111_episode_metrics.npy
+ create mode 100644 job_logs_pg_bob/rawlsian_maximin_wealth_seed2.log
+ create mode 100644 job_logs_pg_bob/rawlsian_maximin_wealth_seed3.log
+ create mode 100644 pg_sequential_results_bob/pepg_rawlsian_maximin_wealth_seed1.pt
+ create mode 100644 pg_sequential_results_bob/pepg_rawlsian_maximin_wealth_seed2.pt
+To https://github.com/brahimdriss/LoanSimulator.git
+   1511f5e..dbdd47f  main -> main
+[2026-01-27 19:34:12] Push complete
+[2026-01-27 19:44:13] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: Please commit or stash them.
