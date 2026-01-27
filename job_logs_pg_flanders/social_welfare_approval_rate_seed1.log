@@ -44,3 +44,71 @@ Training PePG V2 with social_welfare (approval_rate constraint)...
   [PePG] Ep 0: R=1869.95, Avg=1869.95, ρ=1.07, λw=2.000, Number of Approvals R = 281.000, Number of Approvals B = 238.000, 
   [PePG] Ep 10: R=3888.42, Avg=3888.42, ρ=1.15, λw=2.000, Number of Approvals R = 545.000, Number of Approvals B = 484.000, 
   [PePG] Ep 20: R=3882.20, Avg=3587.69, ρ=1.02, λw=2.000, Number of Approvals R = 513.000, Number of Approvals B = 462.000, 
+  [PePG] Ep 30: R=4205.19, Avg=4116.90, ρ=1.27, λw=2.000, Number of Approvals R = 587.000, Number of Approvals B = 442.000, 
+  [PePG] Ep 40: R=4323.78, Avg=4354.39, ρ=1.23, λw=2.000, Number of Approvals R = 565.000, Number of Approvals B = 461.000, 
+  [PePG] Ep 50: R=5221.80, Avg=4599.22, ρ=1.29, λw=2.000, Number of Approvals R = 687.000, Number of Approvals B = 503.000, 
+  [PePG] Ep 60: R=5371.17, Avg=4870.51, ρ=1.15, λw=2.000, Number of Approvals R = 613.000, Number of Approvals B = 551.000, 
+  [PePG] Ep 70: R=5327.05, Avg=5083.06, ρ=1.26, λw=2.000, Number of Approvals R = 602.000, Number of Approvals B = 472.000, 
+  [PePG] Ep 80: R=5683.96, Avg=5401.74, ρ=1.20, λw=2.000, Number of Approvals R = 632.000, Number of Approvals B = 469.000, 
+  [PePG] Ep 90: R=6146.15, Avg=5791.62, ρ=1.28, λw=2.000, Number of Approvals R = 620.000, Number of Approvals B = 501.000, 
+  [PePG] Ep 100: R=6315.74, Avg=6100.59, ρ=1.60, λw=2.000, Number of Approvals R = 659.000, Number of Approvals B = 437.000, 
+  [PePG] Ep 110: R=7105.28, Avg=6509.88, ρ=1.21, λw=2.000, Number of Approvals R = 624.000, Number of Approvals B = 512.000, 
+  [PePG] Ep 120: R=7844.73, Avg=7059.29, ρ=1.20, λw=2.000, Number of Approvals R = 647.000, Number of Approvals B = 520.000, 
+  [PePG] Ep 130: R=8214.88, Avg=7632.98, ρ=1.25, λw=2.000, Number of Approvals R = 623.000, Number of Approvals B = 485.000, 
+  [PePG] Ep 140: R=9247.52, Avg=8369.79, ρ=1.32, λw=2.000, Number of Approvals R = 662.000, Number of Approvals B = 500.000, 
+  [PePG] Ep 150: R=10153.21, Avg=9167.60, ρ=1.35, λw=2.000, Number of Approvals R = 657.000, Number of Approvals B = 483.000, 
+  [PePG] Ep 160: R=11231.99, Avg=10093.92, ρ=1.36, λw=2.000, Number of Approvals R = 648.000, Number of Approvals B = 516.000, 
+  [PePG] Ep 170: R=12312.44, Avg=11103.53, ρ=1.24, λw=2.000, Number of Approvals R = 657.000, Number of Approvals B = 501.000, 
+  [PePG] Ep 180: R=13258.08, Avg=12116.51, ρ=1.29, λw=2.000, Number of Approvals R = 627.000, Number of Approvals B = 534.000, 
+  [PePG] Ep 190: R=14431.69, Avg=13076.05, ρ=1.27, λw=2.000, Number of Approvals R = 640.000, Number of Approvals B = 502.000, 
+  [PePG] Ep 200: R=15012.03, Avg=14215.59, ρ=1.47, λw=2.000, Number of Approvals R = 644.000, Number of Approvals B = 457.000, 
+  [PePG] Ep 210: R=17036.05, Avg=15769.28, ρ=1.31, λw=2.000, Number of Approvals R = 632.000, Number of Approvals B = 468.000, 
+  [PePG] Ep 220: R=20144.68, Avg=17759.25, ρ=1.42, λw=2.000, Number of Approvals R = 667.000, Number of Approvals B = 480.000, 
+  [PePG] Ep 230: R=24370.38, Avg=20367.97, ρ=1.41, λw=2.000, Number of Approvals R = 686.000, Number of Approvals B = 514.000, 
+  [PePG] Ep 240: R=27032.82, Avg=23328.98, ρ=1.29, λw=2.000, Number of Approvals R = 646.000, Number of Approvals B = 505.000, 
+  [PePG] Ep 250: R=31984.62, Avg=27188.47, ρ=1.42, λw=2.000, Number of Approvals R = 660.000, Number of Approvals B = 476.000, 
+  [PePG] Ep 260: R=40061.23, Avg=32476.77, ρ=1.19, λw=2.000, Number of Approvals R = 657.000, Number of Approvals B = 548.000, 
+  [PePG] Ep 270: R=44215.20, Avg=38369.94, ρ=1.32, λw=2.000, Number of Approvals R = 637.000, Number of Approvals B = 474.000, 
+  [PePG] Ep 280: R=53375.62, Avg=45681.75, ρ=1.06, λw=2.000, Number of Approvals R = 602.000, Number of Approvals B = 498.000, 
+  [PePG] Ep 290: R=71644.84, Avg=56498.43, ρ=1.47, λw=2.000, Number of Approvals R = 689.000, Number of Approvals B = 485.000, 
+  [PePG] Ep 299: R=83778.96, Avg=68167.33, ρ=1.51, λw=2.000, Number of Approvals R = 660.000, Number of Approvals B = 495.000, 
+
+Training complete. Buffer: 0 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $13.138k
+  Approval disparity: -0.0071
+  Total profit: $2219.958k
+  Mean ρ: 1.2749
+  PePG V2 model saved to ./pg_sequential_results_flanders/pepg_social_welfare_approval_rate_seed1.pt
+  Episode metrics saved to ./episode_metrics_pg_train_flanders/pg_train_v2_social_welfare_approval_rate_seed1_20260127_190036_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_train_flanders/pg_train_v2_social_welfare_approval_rate_seed1_20260127_190036_episode_metrics.npy
+Loading PePG V2 agent from ./pg_sequential_results_flanders/pepg_social_welfare_approval_rate_seed1.pt...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'approval_rate' (lr=0.01)
+  Replay buffer capacity: 0 episodes
+  Warmup episodes: 0
+  PePG V2 model loaded from ./pg_sequential_results_flanders/pepg_social_welfare_approval_rate_seed1.pt
+
+[] Testing PePG V2 Agent...
+Training PePG V2 with social_welfare (approval_rate constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=83458.74, Avg=69671.48, ρ=1.18, λw=2.000, Number of Approvals R = 631.000, Number of Approvals B = 487.000, 
+  [PePG] Ep 10: R=129749.71, Avg=91577.91, ρ=1.14, λw=2.000, Number of Approvals R = 764.000, Number of Approvals B = 637.000, 
+  [PePG] Ep 20: R=198771.60, Avg=135679.34, ρ=1.46, λw=2.000, Number of Approvals R = 1002.000, Number of Approvals B = 718.000, 
+  [PePG] Ep 30: R=296551.40, Avg=207541.56, ρ=1.44, λw=2.000, Number of Approvals R = 1288.000, Number of Approvals B = 885.000, 
