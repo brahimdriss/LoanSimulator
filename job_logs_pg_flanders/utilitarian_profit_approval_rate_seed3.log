@@ -68,3 +68,50 @@ Training PePG V2 with utilitarian_profit (approval_rate constraint)...
   [PePG] Ep 250: R=1634.61, Avg=1666.99, ρ=1.24, λw=2.000, Number of Approvals R = 568.000, Number of Approvals B = 494.000, 
   [PePG] Ep 260: R=1594.73, Avg=1690.92, ρ=1.25, λw=2.000, Number of Approvals R = 565.000, Number of Approvals B = 467.000, 
   [PePG] Ep 270: R=1878.20, Avg=1724.96, ρ=1.26, λw=2.000, Number of Approvals R = 645.000, Number of Approvals B = 556.000, 
+  [PePG] Ep 280: R=1614.26, Avg=1742.32, ρ=1.30, λw=2.000, Number of Approvals R = 632.000, Number of Approvals B = 471.000, 
+  [PePG] Ep 290: R=1645.61, Avg=1733.15, ρ=1.38, λw=2.000, Number of Approvals R = 612.000, Number of Approvals B = 483.000, 
+  [PePG] Ep 299: R=1652.38, Avg=1721.23, ρ=1.22, λw=2.000, Number of Approvals R = 611.000, Number of Approvals B = 483.000, 
+
+Training complete. Buffer: 0 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $12.824k
+  Approval disparity: -0.0052
+  Total profit: $1291.028k
+  Mean ρ: 1.2535
+  PePG V2 model saved to ./pg_sequential_results_flanders/pepg_utilitarian_profit_approval_rate_seed3.pt
+  Episode metrics saved to ./episode_metrics_pg_train_flanders/pg_train_v2_utilitarian_profit_approval_rate_seed3_20260127_222300_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_train_flanders/pg_train_v2_utilitarian_profit_approval_rate_seed3_20260127_222300_episode_metrics.npy
+Loading PePG V2 agent from ./pg_sequential_results_flanders/pepg_utilitarian_profit_approval_rate_seed3.pt...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Replay buffer capacity: 0 episodes
+  Warmup episodes: 0
+  PePG V2 model loaded from ./pg_sequential_results_flanders/pepg_utilitarian_profit_approval_rate_seed3.pt
+
+[] Testing PePG V2 Agent...
+Training PePG V2 with utilitarian_profit (approval_rate constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=1813.35, Avg=1731.18, ρ=1.17, λw=2.000, Number of Approvals R = 618.000, Number of Approvals B = 538.000, 
+  [PePG] Ep 10: R=2253.67, Avg=1841.22, ρ=1.34, λw=2.000, Number of Approvals R = 799.000, Number of Approvals B = 628.000, 
+  [PePG] Ep 20: R=2488.65, Avg=2169.54, ρ=1.39, λw=2.000, Number of Approvals R = 927.000, Number of Approvals B = 706.000, 
+  [PePG] Ep 30: R=3286.10, Avg=2691.02, ρ=1.22, λw=2.000, Number of Approvals R = 1167.000, Number of Approvals B = 905.000, 
+  [PePG] Ep 40: R=3939.11, Avg=3359.99, ρ=1.25, λw=2.000, Number of Approvals R = 1452.000, Number of Approvals B = 1128.000, 
+  [PePG] Ep 50: R=4860.77, Avg=4106.37, ρ=1.18, λw=2.000, Number of Approvals R = 1670.000, Number of Approvals B = 1407.000, 
+  [PePG] Ep 60: R=5326.57, Avg=4830.45, ρ=1.10, λw=2.000, Number of Approvals R = 1833.000, Number of Approvals B = 1633.000, 
+  [PePG] Ep 70: R=5795.23, Avg=5425.61, ρ=0.99, λw=2.000, Number of Approvals R = 1917.000, Number of Approvals B = 1817.000, 
+  [PePG] Ep 80: R=5939.44, Avg=5817.05, ρ=1.01, λw=2.000, Number of Approvals R = 1942.000, Number of Approvals B = 1925.000, 
