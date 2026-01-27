@@ -2326,6 +2326,19 @@ if __name__ == "__main__":
             agent, env, theta, loader = load_pepg_v2_agent(
                 weights_path=args.load, data_filepath=args.data, seed=args.seed
             )
+            
+            print(f"\n[] Testing PePG V2 Agent...")
+            agent.train(num_episodes=args.episodes, use_performative=True)
+
+            os.makedirs(args.episode_metrics_dir, exist_ok=True)
+            save_episode_metrics(
+                agent.episode_metrics,
+                f"pg_test_v2_{args.reward}",
+                args.constraint,
+                args.seed,
+                save_dir=args.episode_metrics_dir,
+                format="both",
+            )
         else:
             agent, env, theta, loader = run_pepg_v2_experiment(
                 data_filepath=args.data,
