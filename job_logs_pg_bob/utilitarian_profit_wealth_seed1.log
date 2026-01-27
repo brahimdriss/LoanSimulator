@@ -114,3 +114,15 @@ Training PePG V2 with utilitarian_profit (wealth constraint)...
   [PePG] Ep 50: R=4643.61, Avg=3923.41, ρ=1.40, λw=2.000, Number of Approvals R = 1627.000, Number of Approvals B = 1200.000, 
   [PePG] Ep 60: R=5276.48, Avg=4670.40, ρ=1.17, λw=2.000, Number of Approvals R = 1762.000, Number of Approvals B = 1555.000, 
   [PePG] Ep 70: R=5883.23, Avg=5351.91, ρ=1.01, λw=2.000, Number of Approvals R = 1882.000, Number of Approvals B = 1763.000, 
+  [PePG] Ep 80: R=6057.11, Avg=5808.15, ρ=1.02, λw=2.000, Number of Approvals R = 1930.000, Number of Approvals B = 1870.000, 
+  [PePG] Ep 90: R=6088.49, Avg=6067.31, ρ=1.01, λw=2.000, Number of Approvals R = 1961.000, Number of Approvals B = 1916.000, 
+  [PePG] Ep 99: R=6419.21, Avg=6185.36, ρ=1.00, λw=2.000, Number of Approvals R = 1941.000, Number of Approvals B = 1945.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_bob/pg_test_v2_utilitarian_profit_wealth_seed1_20260127_201609_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_bob/pg_test_v2_utilitarian_profit_wealth_seed1_20260127_201609_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T20:16:11.569460
+Exit code: 0
+Test Exit code: 0
