@@ -71,3 +71,60 @@ Training PePG V2 with fairness_lagrangian (wealth constraint)...
   [PePG] Ep 270: R=-394726.32, Avg=-376036.92, ρ=1.17, λw=30.059, Number of Approvals R = 281.000, Number of Approvals B = 241.000, 
   [PePG] Ep 280: R=-469724.04, Avg=-416603.20, ρ=1.15, λw=33.220, Number of Approvals R = 312.000, Number of Approvals B = 250.000, 
   [PePG] Ep 290: R=-500851.12, Avg=-457747.43, ρ=1.23, λw=36.714, Number of Approvals R = 317.000, Number of Approvals B = 222.000, 
+  [PePG] Ep 299: R=-567600.43, Avg=-502236.11, ρ=0.97, λw=40.171, Number of Approvals R = 278.000, Number of Approvals B = 283.000, 
+
+Training complete. Buffer: 0 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $12.507k
+  Approval disparity: 0.0062
+  Total profit: $775.854k
+  Mean ρ: 1.2598
+  PePG V2 model saved to ./pg_sequential_results_bob/pepg_fairness_lagrangian_wealth_seed2.pt
+  Episode metrics saved to ./episode_metrics_pg_train_bob/pg_train_v2_fairness_lagrangian_wealth_seed2_20260127_195418_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_train_bob/pg_train_v2_fairness_lagrangian_wealth_seed2_20260127_195418_episode_metrics.npy
+Loading PePG V2 agent from ./pg_sequential_results_bob/pepg_fairness_lagrangian_wealth_seed2.pt...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'wealth' (lr=0.01)
+  Replay buffer capacity: 0 episodes
+  Warmup episodes: 0
+  PePG V2 model loaded from ./pg_sequential_results_bob/pepg_fairness_lagrangian_wealth_seed2.pt
+
+[] Testing PePG V2 Agent...
+Training PePG V2 with fairness_lagrangian (wealth constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=-550047.77, Avg=-506252.30, ρ=1.17, λw=40.575, Number of Approvals R = 271.000, Number of Approvals B = 246.000, 
+  [PePG] Ep 10: R=-754392.16, Avg=-605364.13, ρ=1.11, λw=44.842, Number of Approvals R = 321.000, Number of Approvals B = 269.000, 
+  [PePG] Ep 20: R=-1103143.38, Avg=-804280.27, ρ=1.57, λw=49.558, Number of Approvals R = 402.000, Number of Approvals B = 282.000, 
+  [PePG] Ep 30: R=-1514017.25, Avg=-1145603.08, ρ=1.16, λw=54.770, Number of Approvals R = 390.000, Number of Approvals B = 326.000, 
+  [PePG] Ep 40: R=-2139587.24, Avg=-1615646.19, ρ=1.33, λw=60.530, Number of Approvals R = 468.000, Number of Approvals B = 332.000, 
+  [PePG] Ep 50: R=-3028908.51, Avg=-2274130.72, ρ=1.20, λw=66.897, Number of Approvals R = 487.000, Number of Approvals B = 386.000, 
+  [PePG] Ep 60: R=-4544024.35, Avg=-3240344.66, ρ=1.26, λw=73.932, Number of Approvals R = 640.000, Number of Approvals B = 439.000, 
+  [PePG] Ep 70: R=-6224377.03, Avg=-4611793.79, ρ=1.41, λw=81.708, Number of Approvals R = 629.000, Number of Approvals B = 460.000, 
+  [PePG] Ep 80: R=-8738167.23, Avg=-6482517.81, ρ=1.42, λw=90.301, Number of Approvals R = 776.000, Number of Approvals B = 496.000, 
+  [PePG] Ep 90: R=-12271916.16, Avg=-8979785.20, ρ=1.29, λw=99.798, Number of Approvals R = 812.000, Number of Approvals B = 629.000, 
+  [PePG] Ep 99: R=-15231920.65, Avg=-11899097.66, ρ=1.28, λw=109.196, Number of Approvals R = 848.000, Number of Approvals B = 632.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_bob/pg_test_v2_fairness_lagrangian_wealth_seed2_20260127_195725_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_bob/pg_test_v2_fairness_lagrangian_wealth_seed2_20260127_195725_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T19:57:28.056459
+Exit code: 0
+Test Exit code: 0
