@@ -473,3 +473,20 @@ To https://github.com/brahimdriss/LoanSimulator.git
 [2026-01-27 23:52:26] Changes detected, pushing...
 error: cannot pull with rebase: You have unstaged changes.
 error: please commit or stash them.
+[main 8d7ed1b] Sync results (flanders)
+ 10 files changed, 18 insertions(+), 5 deletions(-)
+ create mode 100644 plots_servers/aggregated_results_approval_rate.csv
+ delete mode 100644 plots_servers/aggregated_results_summary.csv
+ create mode 100644 plots_servers/aggregated_results_wealth.csv
+ rewrite plots_servers/plot_2_approval_rate_wealth_inequality_ratio.png (94%)
+ rewrite plots_servers/plot_2_wealth_wealth_inequality_ratio.png (93%)
+ rewrite plots_servers/plot_3_approval_rate_profit_accuracy_precision.png (96%)
+ rewrite plots_servers/plot_3_wealth_profit_accuracy_precision.png (96%)
+ rewrite plots_servers/plot_4_approval_rate_longterm_social_welfare.png (95%)
+ rewrite plots_servers/plot_4_wealth_longterm_social_welfare.png (95%)
+To https://github.com/brahimdriss/LoanSimulator.git
+   5d7f28e..8d7ed1b  main -> main
+[2026-01-27 23:52:26] Push complete
+[2026-01-28 00:02:28] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: please commit or stash them.
