@@ -1,0 +1,5 @@
+Starting auto-push script for machine 'flanders' (every 10 minutes)
+Press Ctrl+C to stop
+[2026-01-27 18:52:08] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: please commit or stash them.
