@@ -262,29 +262,43 @@ Examples:
     )
 
     parser.add_argument(
+        "--machine",
+        type=str,
+        required=True,
+        help="Name of the machine running this scheduler (used to separate results, logs, and progress)",
+    )
+    parser.add_argument(
         "--results-dir",
         type=str,
-        default="./pg_sequential_results",
-        help="Directory for training results (default: ./pg_sequential_results)",
+        default=None,
+        help="Directory for training results (default: ./pg_sequential_results_<machine>)",
     )
 
     parser.add_argument(
         "--logs-dir",
         type=str,
-        default="./job_logs_pg",
-        help="Directory for job logs (default: ./job_logs_pg)",
+        default=None,
+        help="Directory for job logs (default: ./job_logs_pg_<machine>)",
     )
     parser.add_argument(
         "--progress-file",
         type=str,
-        default="./job_progress_pg.json",
-        help="Progress tracking file (default: ./job_progress_pg.json)",
+        default=None,
+        help="Progress tracking file (default: ./job_progress_pg_<machine>.json)",
     )
     parser.add_argument(
         "--dry-run", action="store_true", help="Print jobs without executing"
     )
 
     args = parser.parse_args()
+
+    # Apply machine-name defaults
+    if args.results_dir is None:
+        args.results_dir = f"./pg_sequential_results_{args.machine}"
+    if args.logs_dir is None:
+        args.logs_dir = f"./job_logs_pg_{args.machine}"
+    if args.progress_file is None:
+        args.progress_file = f"./job_progress_pg_{args.machine}.json"
 
     # Create directories
     os.makedirs(args.results_dir, exist_ok=True)
