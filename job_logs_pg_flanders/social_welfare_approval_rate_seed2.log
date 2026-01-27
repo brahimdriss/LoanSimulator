@@ -114,3 +114,17 @@ Training PePG V2 with social_welfare (approval_rate constraint)...
   [PePG] Ep 30: R=176485.24, Avg=125816.27, ρ=1.43, λw=2.000, Number of Approvals R = 1187.000, Number of Approvals B = 811.000, 
   [PePG] Ep 40: R=266688.60, Avg=190395.43, ρ=1.32, λw=2.000, Number of Approvals R = 1462.000, Number of Approvals B = 1059.000, 
   [PePG] Ep 50: R=394597.14, Avg=283598.09, ρ=1.23, λw=2.000, Number of Approvals R = 1685.000, Number of Approvals B = 1385.000, 
+  [PePG] Ep 60: R=536528.83, Avg=408333.46, ρ=1.07, λw=2.000, Number of Approvals R = 1860.000, Number of Approvals B = 1630.000, 
+  [PePG] Ep 70: R=661202.10, Avg=543241.88, ρ=1.11, λw=2.000, Number of Approvals R = 1863.000, Number of Approvals B = 1761.000, 
+  [PePG] Ep 80: R=777482.28, Avg=667679.89, ρ=0.94, λw=2.000, Number of Approvals R = 1786.000, Number of Approvals B = 1739.000, 
+  [PePG] Ep 90: R=973482.40, Avg=799210.54, ρ=0.99, λw=2.000, Number of Approvals R = 1805.000, Number of Approvals B = 1811.000, 
+  [PePG] Ep 99: R=1231268.82, Avg=980781.21, ρ=1.00, λw=2.000, Number of Approvals R = 1927.000, Number of Approvals B = 1926.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_social_welfare_approval_rate_seed2_20260127_192728_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_social_welfare_approval_rate_seed2_20260127_192728_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T19:27:30.038985
+Exit code: 0
+Test Exit code: 0
