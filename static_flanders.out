@@ -18,3 +18,5 @@
 2026-01-27 20:41:16 | START | Job 7/12: fairness_lagrangian_approval_rate_seed1
 2026-01-27 21:00:33 | DONE  | Job 7/12: fairness_lagrangian_approval_rate_seed1 (19m 16s)
 2026-01-27 21:00:33 | START | Job 8/12: fairness_lagrangian_approval_rate_seed2
+2026-01-27 21:19:37 | DONE  | Job 8/12: fairness_lagrangian_approval_rate_seed2 (19m 3s)
+2026-01-27 21:19:37 | START | Job 9/12: fairness_lagrangian_approval_rate_seed3
