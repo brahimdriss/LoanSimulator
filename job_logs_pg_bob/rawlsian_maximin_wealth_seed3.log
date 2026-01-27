@@ -1,0 +1,12 @@
+Job: rawlsian_maximin_wealth_seed3
+Command: uv run python -u par_static.py --seeds 1 --seed 3 --reward rawlsian_maximin --constraint wealth --episodes 300 --workers 1 --weights-dir ./pg_sequential_results_bob --episode-metrics-dir ./episode_metrics_pg_train_bob
+Started: 2026-01-27T19:34:06.974875
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: RAWLSIAN_MAXIMIN
+  Constraint: WEALTH
+  Seed: 3
+  Warmup: 0 episodes
+================================================================================
