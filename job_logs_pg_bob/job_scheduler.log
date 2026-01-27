@@ -1,0 +1,6 @@
+2026-01-27 18:53:53 | INFO  | ==================================================
+2026-01-27 18:53:53 | INFO  | Sequential PG Job Scheduler Started
+2026-01-27 18:53:53 | INFO  | Total jobs: 12, Pending: 12, Completed: 0, Failed: 0
+2026-01-27 18:53:53 | INFO  | Episodes per job: 300
+2026-01-27 18:53:53 | INFO  | ==================================================
+2026-01-27 18:53:53 | START | Job 1/12: social_welfare_wealth_seed1

@@ -1,0 +1,18 @@
+Job: social_welfare_wealth_seed1
+Command: uv run python -u par_static.py --seeds 1 --seed 1 --reward social_welfare --constraint wealth --episodes 300 --workers 1 --weights-dir ./pg_sequential_results_bob --episode-metrics-dir ./episode_metrics_pg_train_bob
+Started: 2026-01-27T18:53:53.306876
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: SOCIAL_WELFARE
+  Constraint: WEALTH
+  Seed: 1
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA L40S
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
