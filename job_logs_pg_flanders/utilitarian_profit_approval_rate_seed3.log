@@ -115,3 +115,14 @@ Training PePG V2 with utilitarian_profit (approval_rate constraint)...
   [PePG] Ep 60: R=5326.57, Avg=4830.45, ρ=1.10, λw=2.000, Number of Approvals R = 1833.000, Number of Approvals B = 1633.000, 
   [PePG] Ep 70: R=5795.23, Avg=5425.61, ρ=0.99, λw=2.000, Number of Approvals R = 1917.000, Number of Approvals B = 1817.000, 
   [PePG] Ep 80: R=5939.44, Avg=5817.05, ρ=1.01, λw=2.000, Number of Approvals R = 1942.000, Number of Approvals B = 1925.000, 
+  [PePG] Ep 90: R=6140.09, Avg=6029.29, ρ=1.01, λw=2.000, Number of Approvals R = 1957.000, Number of Approvals B = 1951.000, 
+  [PePG] Ep 99: R=6217.93, Avg=6120.67, ρ=1.03, λw=2.000, Number of Approvals R = 1973.000, Number of Approvals B = 1952.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_utilitarian_profit_approval_rate_seed3_20260127_223351_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_utilitarian_profit_approval_rate_seed3_20260127_223351_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T22:33:54.152966
+Exit code: 0
+Test Exit code: 0
