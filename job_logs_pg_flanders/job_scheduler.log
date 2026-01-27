@@ -14,3 +14,5 @@
 2026-01-27 20:04:23 | START | Job 5/12: rawlsian_maximin_approval_rate_seed2
 2026-01-27 20:21:45 | DONE  | Job 5/12: rawlsian_maximin_approval_rate_seed2 (17m 21s)
 2026-01-27 20:21:45 | START | Job 6/12: rawlsian_maximin_approval_rate_seed3
+2026-01-27 20:41:16 | DONE  | Job 6/12: rawlsian_maximin_approval_rate_seed3 (19m 31s)
+2026-01-27 20:41:16 | START | Job 7/12: fairness_lagrangian_approval_rate_seed1
