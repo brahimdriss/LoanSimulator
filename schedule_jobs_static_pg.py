@@ -23,23 +23,16 @@ from typing import Dict, List
 #     'constraints': ['approval_rate', 'wealth', 'both'],
 #     'seeds': range(1, 6)
 # }
-# JOB_MATRIX = {
-#     "rewards": [
-#         "social_welfare",
-#         "rawlsian_maximin",
-#         "fairness_lagrangian",
-#         "utilitarian_profit",
-#     ],
-#     "constraints": ["wealth"],
-#     "seeds": range(1, 6),
-# }
 
 JOB_MATRIX = {
     "rewards": [
+        "social_welfare",
         "rawlsian_maximin",
+        "fairness_lagrangian",
+        "utilitarian_profit",
     ],
-    "constraints": ["wealth"],
-    "seeds": range(1, 2),
+    "constraints": ["approval_rate"],
+    "seeds": range(1, 4),
 }
 
 # "constraints": ["approval_rate", "wealth", "both"],
@@ -256,13 +249,13 @@ Examples:
     parser.add_argument(
         "--episodes",
         type=int,
-        default=20,
+        default=300,
         help="Number of training episodes per job (default: 200)",
     )
     parser.add_argument(
         "--test-episodes",
         type=int,
-        default=10,
+        default=100,
         help="Number of testing episodes per job (default: 100)",
     )
 
