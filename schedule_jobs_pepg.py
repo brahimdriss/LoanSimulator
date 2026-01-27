@@ -30,7 +30,11 @@ JOB_MATRIX = {
         "fairness_lagrangian",
         "utilitarian_profit",
     ],
+<<<<<<< HEAD
+    "constraints": ["approval_rate"],
+=======
     "constraints": ["wealth"],
+>>>>>>> 82c6d04f9c50547bb771e017b1a81f6b3cfe6b6e
     "seeds": range(2, 6),
 }
 # "constraints": ["approval_rate", "wealth", "both"],
@@ -111,7 +115,7 @@ def run_job(
     """
     job_id = get_job_id(reward, constraint, seed)
     log_file = os.path.join(logs_dir, f"{job_id}.log")
-    
+
     # Build command using uv
     cmd = [
         "uv",
