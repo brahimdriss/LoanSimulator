@@ -36,7 +36,7 @@ from typing import Dict, List
 
 JOB_MATRIX = {
     "rewards": [
-        "social_welfare",
+        "rawlsian_maximin",
     ],
     "constraints": ["wealth"],
     "seeds": range(1, 2),
@@ -260,9 +260,6 @@ Examples:
         default=10,
         help="Number of testing episodes per job (default: 100)",
     )
-
-
-
 
     parser.add_argument(
         "--results-dir",
