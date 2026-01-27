@@ -112,6 +112,7 @@ def run_job(
     test_episodes: int,
     results_dir: str,
     logs_dir: str,
+    machine: str = "",
 ) -> bool:
     """
     Run a single training job.
@@ -142,6 +143,8 @@ def run_job(
         "1",
         "--weights-dir",
         results_dir,
+        "--episode-metrics-dir",
+        f"./episode_metrics_pg_train_{machine}",
     ]
 
     # Save model
@@ -173,6 +176,8 @@ def run_job(
         results_dir+"_test",
         "--load",
         weights_path,
+        "--episode-metrics-dir",
+        f"./episode_metrics_pg_test_{machine}",
     ]
 
     try:
@@ -391,6 +396,7 @@ Examples:
             test_episodes=args.test_episodes,
             results_dir=args.results_dir,
             logs_dir=args.logs_dir,
+            machine=args.machine,
         )
 
         job_duration = (datetime.now() - job_start).total_seconds()
