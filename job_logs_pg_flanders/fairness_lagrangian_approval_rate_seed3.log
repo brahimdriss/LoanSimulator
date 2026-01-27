@@ -113,3 +113,18 @@ Training PePG V2 with fairness_lagrangian (approval_rate constraint)...
   [PePG] Ep 20: R=-5789.93, Avg=-6674.15, ρ=1.33, λw=2.000, Number of Approvals R = 670.000, Number of Approvals B = 538.000, 
   [PePG] Ep 30: R=-8644.69, Avg=-8412.61, ρ=1.47, λw=2.000, Number of Approvals R = 894.000, Number of Approvals B = 611.000, 
   [PePG] Ep 40: R=-10639.13, Avg=-10379.62, ρ=1.30, λw=2.000, Number of Approvals R = 1019.000, Number of Approvals B = 768.000, 
+  [PePG] Ep 50: R=-17900.65, Avg=-13084.09, ρ=1.31, λw=2.000, Number of Approvals R = 1229.000, Number of Approvals B = 907.000, 
+  [PePG] Ep 60: R=-25152.66, Avg=-15788.90, ρ=1.11, λw=2.000, Number of Approvals R = 1334.000, Number of Approvals B = 1147.000, 
+  [PePG] Ep 70: R=-15025.64, Avg=-18778.85, ρ=1.14, λw=2.000, Number of Approvals R = 1571.000, Number of Approvals B = 1309.000, 
+  [PePG] Ep 80: R=-34099.21, Avg=-28161.81, ρ=1.07, λw=2.000, Number of Approvals R = 1510.000, Number of Approvals B = 1430.000, 
+  [PePG] Ep 90: R=-49540.78, Avg=-32216.07, ρ=1.00, λw=2.000, Number of Approvals R = 1546.000, Number of Approvals B = 1527.000, 
+  [PePG] Ep 99: R=-35297.96, Avg=-31505.70, ρ=0.98, λw=2.000, Number of Approvals R = 1491.000, Number of Approvals B = 1460.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_fairness_lagrangian_approval_rate_seed3_20260127_213741_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_fairness_lagrangian_approval_rate_seed3_20260127_213741_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T21:37:43.076261
+Exit code: 0
+Test Exit code: 0
