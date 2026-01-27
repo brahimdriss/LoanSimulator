@@ -26,3 +26,20 @@ To https://github.com/brahimdriss/LoanSimulator.git
 [2026-01-27 19:14:09] Changes detected, pushing...
 error: cannot pull with rebase: You have unstaged changes.
 error: Please commit or stash them.
+[main e4cc7ea] Sync results (bob)
+ 13 files changed, 1320 insertions(+)
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_social_welfare_wealth_seed1_20260127_190419_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_social_welfare_wealth_seed1_20260127_190419_episode_metrics.npy
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_social_welfare_wealth_seed2_20260127_191131_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_social_welfare_wealth_seed2_20260127_191131_episode_metrics.npy
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_social_welfare_wealth_seed2_20260127_190930_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_social_welfare_wealth_seed2_20260127_190930_episode_metrics.npy
+ create mode 100644 job_logs_pg_bob/social_welfare_wealth_seed2.log
+ create mode 100644 job_logs_pg_bob/social_welfare_wealth_seed3.log
+ create mode 100644 pg_sequential_results_bob/pepg_social_welfare_wealth_seed2.pt
+To https://github.com/brahimdriss/LoanSimulator.git
+   a808f48..e4cc7ea  main -> main
+[2026-01-27 19:14:09] Push complete
+[2026-01-27 19:24:10] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: Please commit or stash them.
