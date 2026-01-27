@@ -8,45 +8,48 @@ from adult_income_training import (
 )
 
 
-def plot_profit(profits_dict, save_path="profit_per_episode.png"):
-    plt.figure(figsize=(10, 6))
-    for name, profits in profits_dict.items():
-        plt.plot(profits, label=name)
-    plt.xlabel("Episode")
-    plt.ylabel("Total Profit")
-    plt.title("Profit per Episode")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
-    plt.close()
+def plot_all_metrics(results, save_path="policy_comparison.png"):
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    names = list(results.keys())
+    colors = {name: plt.cm.tab10(i) for i, name in enumerate(names)}
 
+    ax = axes[0, 0]
+    for name, data in results.items():
+        cumulative_profit = np.cumsum(data["profits"])
+        ax.plot(cumulative_profit, label=name, color=colors[name])
+    ax.set_xlabel("Episode")
+    ax.set_ylabel("Cumulative Profit")
+    ax.set_title("Cumulative Profit")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
 
-def plot_wealth_gap(wealth_gaps_dict, save_path="wealth_gap.png"):
-    plt.figure(figsize=(10, 6))
-    for name, gaps in wealth_gaps_dict.items():
-        plt.plot(gaps, label=name)
-    plt.xlabel("Episode")
-    plt.ylabel("Wealth Gap (M - F)")
-    plt.title("Wealth Gap per Episode")
-    plt.axhline(y=0, color="black", linestyle="--", alpha=0.5)
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=150)
-    plt.close()
+    ax = axes[0, 1]
+    for name, data in results.items():
+        ax.plot(data["wealth_gaps"], label=name, color=colors[name])
+    ax.set_xlabel("Episode")
+    ax.set_ylabel("Wealth Gap (M - F)")
+    ax.set_title("Wealth Gap Trajectory")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
 
+    ax = axes[1, 0]
+    final_gaps = [results[n]["wealth_gaps"][-1] for n in names]
+    ax.bar(names, final_gaps, color=[colors[n] for n in names])
+    ax.set_ylabel("Final Wealth Gap (M - F)")
+    ax.set_title("Final Wealth Gap")
+    ax.axhline(y=0, color="black", linestyle="--", alpha=0.5)
+    ax.tick_params(axis="x", rotation=15)
 
-def plot_approval_rate_diff(approval_diffs_dict, save_path="approval_rate_diff.png"):
-    plt.figure(figsize=(10, 6))
-    for name, diffs in approval_diffs_dict.items():
-        plt.plot(diffs, label=name)
-    plt.xlabel("Episode")
-    plt.ylabel("Approval Rate Difference (M - F)")
-    plt.title("Approval Rate Difference per Episode")
-    plt.axhline(y=0, color="black", linestyle="--", alpha=0.5)
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+    ax = axes[1, 1]
+    for name, data in results.items():
+        ax.plot(data["approval_diffs"], label=name, color=colors[name])
+    ax.set_xlabel("Episode")
+    ax.set_ylabel("Approval Rate Difference (M - F)")
+    ax.set_title("Approval Rate Difference Trajectory")
+    ax.axhline(y=0, color="black", linestyle="--", alpha=0.5)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
     plt.tight_layout()
     plt.savefig(save_path, dpi=150)
     plt.close()
@@ -98,8 +101,8 @@ def run_policy(env, policy, num_episodes=200):
     wealth_gaps = []
     approval_diffs = []
 
-    for ep in range(num_episodes):
-        obs, _ = env.reset()
+    obs, _ = env.reset()
+    for ep in range(num_episodes):        
         done = False
         while not done:
             action = policy(obs)
@@ -126,21 +129,17 @@ if __name__ == "__main__":
         "wealth_threshold": wealth_threshold_policy,
     }
 
-    all_profits = {}
-    all_wealth_gaps = {}
-    all_approval_diffs = {}
-
+    results = {}
     env = create_env(seed=42)
 
     for name, policy in policies.items():
         print(f"\nRunning policy: {name}")
         profits, wealth_gaps, approval_diffs = run_policy(env, policy, num_episodes=200)
-        all_profits[name] = profits
-        all_wealth_gaps[name] = wealth_gaps
-        all_approval_diffs[name] = approval_diffs
+        results[name] = {
+            "profits": profits,
+            "wealth_gaps": wealth_gaps,
+            "approval_diffs": approval_diffs,
+        }
 
-    plot_profit(all_profits)
-    plot_wealth_gap(all_wealth_gaps)
-    plot_approval_rate_diff(all_approval_diffs)
-
-    print("\nPlots saved: profit_per_episode.png, wealth_gap.png, approval_rate_diff.png")
+    plot_all_metrics(results)
+    print("\nPlot saved: policy_comparison.png")
