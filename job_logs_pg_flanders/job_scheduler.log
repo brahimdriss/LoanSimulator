@@ -4,3 +4,5 @@
 2026-01-27 18:51:12 | INFO  | Episodes per job: 300
 2026-01-27 18:51:12 | INFO  | ==================================================
 2026-01-27 18:51:12 | START | Job 1/12: social_welfare_approval_rate_seed1
+2026-01-27 19:08:01 | DONE  | Job 1/12: social_welfare_approval_rate_seed1 (16m 48s)
+2026-01-27 19:08:01 | START | Job 2/12: social_welfare_approval_rate_seed2

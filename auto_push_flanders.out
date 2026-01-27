@@ -16,3 +16,20 @@ To https://github.com/brahimdriss/LoanSimulator.git
 [2026-01-27 19:02:09] Changes detected, pushing...
 error: cannot pull with rebase: You have unstaged changes.
 error: please commit or stash them.
+[main f315f0f] Sync results (flanders)
+ 5 files changed, 382 insertions(+)
+ create mode 100644 episode_metrics_pg_train_flanders/pg_train_v2_social_welfare_approval_rate_seed1_20260127_190036_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_train_flanders/pg_train_v2_social_welfare_approval_rate_seed1_20260127_190036_episode_metrics.npy
+ create mode 100644 pg_sequential_results_flanders/pepg_social_welfare_approval_rate_seed1.pt
+To https://github.com/brahimdriss/LoanSimulator.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/brahimdriss/LoanSimulator.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-01-27 19:02:09] Push complete
+[2026-01-27 19:12:09] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: please commit or stash them.

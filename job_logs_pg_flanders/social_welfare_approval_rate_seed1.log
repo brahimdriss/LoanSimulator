@@ -112,3 +112,19 @@ Training PePG V2 with social_welfare (approval_rate constraint)...
   [PePG] Ep 10: R=129749.71, Avg=91577.91, ρ=1.14, λw=2.000, Number of Approvals R = 764.000, Number of Approvals B = 637.000, 
   [PePG] Ep 20: R=198771.60, Avg=135679.34, ρ=1.46, λw=2.000, Number of Approvals R = 1002.000, Number of Approvals B = 718.000, 
   [PePG] Ep 30: R=296551.40, Avg=207541.56, ρ=1.44, λw=2.000, Number of Approvals R = 1288.000, Number of Approvals B = 885.000, 
+  [PePG] Ep 40: R=424639.01, Avg=308317.12, ρ=1.31, λw=2.000, Number of Approvals R = 1469.000, Number of Approvals B = 1147.000, 
+  [PePG] Ep 50: R=608418.99, Avg=446939.43, ρ=1.18, λw=2.000, Number of Approvals R = 1692.000, Number of Approvals B = 1484.000, 
+  [PePG] Ep 60: R=797028.94, Avg=620421.77, ρ=1.22, λw=2.000, Number of Approvals R = 1877.000, Number of Approvals B = 1615.000, 
+  [PePG] Ep 70: R=1028790.53, Avg=820508.52, ρ=1.03, λw=2.000, Number of Approvals R = 1936.000, Number of Approvals B = 1836.000, 
+  [PePG] Ep 80: R=1266106.77, Avg=1040445.21, ρ=0.94, λw=2.000, Number of Approvals R = 1941.000, Number of Approvals B = 1924.000, 
+  [PePG] Ep 90: R=1570438.68, Avg=1290041.71, ρ=1.00, λw=2.000, Number of Approvals R = 1947.000, Number of Approvals B = 1950.000, 
+  [PePG] Ep 99: R=1873992.69, Avg=1558979.84, ρ=1.01, λw=2.000, Number of Approvals R = 1964.000, Number of Approvals B = 1959.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_social_welfare_approval_rate_seed1_20260127_190800_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_social_welfare_approval_rate_seed1_20260127_190800_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T19:08:01.292767
+Exit code: 0
+Test Exit code: 0
