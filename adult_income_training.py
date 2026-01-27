@@ -2845,7 +2845,7 @@ if __name__ == "__main__":
     # Episode metrics options
     parser.add_argument(
         "--save-episode-metrics",
-        action="store_true",
+        action="store_false",
         help="Save episode-level metrics (ρ, R_M, R_F)",
     )
     parser.add_argument(
