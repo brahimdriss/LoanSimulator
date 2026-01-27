@@ -809,16 +809,7 @@ class PePGAgentV2:
         num_params = sum(p.numel() for p in self.policy_net.parameters())
         
         if not decisions:
-            return torch.zeros(num_params, device=self.device), {
-                "policy_loss": 0.0,
-                "advantage_mean": 0.0,
-                "advantage_std": 0.0,
-                "log_prob_mean": 0.0,
-                "entropy": 0.0,
-                "value_baseline": 0.0,
-                "reward_component": 0.0,
-                "transition_component": 0.0,
-            }
+            return torch.zeros(num_params, device=self.device)
 
         # Extract data
         states = np.array([d["state"] for d in decisions])
@@ -913,11 +904,9 @@ class PePGAgentV2:
         # Combine with weights
        
 
-        total_grad = (
-            standard_grad
+        total_grad = standard_grad
             # + self.transition_weight * transition_grad
             # + self.reward_weight * reward_grad
-        )
 
         grad_info = {
             "standard_norm": standard_grad.norm().item(),
