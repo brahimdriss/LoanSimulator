@@ -110,3 +110,21 @@ Training PePG V2 with fairness_lagrangian (approval_rate constraint)...
   Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
   [PePG] Ep 0: R=-483.65, Avg=-237.57, ρ=1.26, λw=2.000, Number of Approvals R = 620.000, Number of Approvals B = 500.000, 
   [PePG] Ep 10: R=-124.76, Avg=-496.91, ρ=1.20, λw=2.000, Number of Approvals R = 769.000, Number of Approvals B = 617.000, 
+  [PePG] Ep 20: R=-1720.48, Avg=-1101.67, ρ=1.25, λw=2.000, Number of Approvals R = 927.000, Number of Approvals B = 681.000, 
+  [PePG] Ep 30: R=-5062.07, Avg=-2932.50, ρ=1.37, λw=2.000, Number of Approvals R = 1199.000, Number of Approvals B = 904.000, 
+  [PePG] Ep 40: R=-5265.28, Avg=-3750.87, ρ=1.32, λw=2.000, Number of Approvals R = 1481.000, Number of Approvals B = 1084.000, 
+  [PePG] Ep 50: R=-2307.83, Avg=-3501.09, ρ=1.24, λw=2.000, Number of Approvals R = 1684.000, Number of Approvals B = 1364.000, 
+  [PePG] Ep 60: R=-4310.55, Avg=-4709.29, ρ=1.11, λw=2.000, Number of Approvals R = 1810.000, Number of Approvals B = 1588.000, 
+  [PePG] Ep 70: R=-4141.38, Avg=-7929.32, ρ=1.06, λw=2.000, Number of Approvals R = 1852.000, Number of Approvals B = 1754.000, 
+  [PePG] Ep 80: R=-7965.83, Avg=-11133.89, ρ=0.96, λw=2.000, Number of Approvals R = 1872.000, Number of Approvals B = 1848.000, 
+  [PePG] Ep 90: R=-12648.96, Avg=-12313.55, ρ=0.96, λw=2.000, Number of Approvals R = 1862.000, Number of Approvals B = 1869.000, 
+  [PePG] Ep 99: R=-20277.54, Avg=-13736.44, ρ=1.03, λw=2.000, Number of Approvals R = 1854.000, Number of Approvals B = 1853.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_fairness_lagrangian_approval_rate_seed1_20260127_210032_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_flanders/pg_test_v2_fairness_lagrangian_approval_rate_seed1_20260127_210032_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T21:00:33.200406
+Exit code: 0
+Test Exit code: 0
