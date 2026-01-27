@@ -105,3 +105,20 @@ To https://github.com/brahimdriss/LoanSimulator.git
 [2026-01-27 20:04:16] Changes detected, pushing...
 error: cannot pull with rebase: You have unstaged changes.
 error: Please commit or stash them.
+[main bf3a6fa] Sync results (bob)
+ 13 files changed, 1194 insertions(+)
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_fairness_lagrangian_wealth_seed2_20260127_195725_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_test_bob/pg_test_v2_fairness_lagrangian_wealth_seed2_20260127_195725_episode_metrics.npy
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_fairness_lagrangian_wealth_seed2_20260127_195418_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_fairness_lagrangian_wealth_seed2_20260127_195418_episode_metrics.npy
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_fairness_lagrangian_wealth_seed3_20260127_200240_episode_metrics.csv
+ create mode 100644 episode_metrics_pg_train_bob/pg_train_v2_fairness_lagrangian_wealth_seed3_20260127_200240_episode_metrics.npy
+ create mode 100644 job_logs_pg_bob/fairness_lagrangian_wealth_seed3.log
+ create mode 100644 pg_sequential_results_bob/pepg_fairness_lagrangian_wealth_seed2.pt
+ create mode 100644 pg_sequential_results_bob/pepg_fairness_lagrangian_wealth_seed3.pt
+To https://github.com/brahimdriss/LoanSimulator.git
+   fd56d1b..bf3a6fa  main -> main
+[2026-01-27 20:04:16] Push complete
+[2026-01-27 20:14:17] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: Please commit or stash them.

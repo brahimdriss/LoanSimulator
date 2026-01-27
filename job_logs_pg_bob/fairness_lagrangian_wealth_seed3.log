@@ -114,3 +114,17 @@ Training PePG V2 with fairness_lagrangian (wealth constraint)...
   [PePG] Ep 30: R=-1500453.01, Avg=-1114491.48, ρ=1.29, λw=54.770, Number of Approvals R = 432.000, Number of Approvals B = 321.000, 
   [PePG] Ep 40: R=-2119133.75, Avg=-1585938.16, ρ=1.32, λw=60.530, Number of Approvals R = 428.000, Number of Approvals B = 349.000, 
   [PePG] Ep 50: R=-3052242.99, Avg=-2259404.41, ρ=1.19, λw=66.897, Number of Approvals R = 524.000, Number of Approvals B = 392.000, 
+  [PePG] Ep 60: R=-4437610.40, Avg=-3204997.06, ρ=1.26, λw=73.932, Number of Approvals R = 593.000, Number of Approvals B = 419.000, 
+  [PePG] Ep 70: R=-6233033.64, Avg=-4578728.59, ρ=1.37, λw=81.708, Number of Approvals R = 643.000, Number of Approvals B = 468.000, 
+  [PePG] Ep 80: R=-8690292.70, Avg=-6450956.25, ρ=1.27, λw=90.301, Number of Approvals R = 685.000, Number of Approvals B = 550.000, 
+  [PePG] Ep 90: R=-11576496.39, Avg=-8980674.33, ρ=1.28, λw=99.798, Number of Approvals R = 731.000, Number of Approvals B = 574.000, 
+  [PePG] Ep 99: R=-15253908.02, Avg=-11766974.70, ρ=1.12, λw=109.196, Number of Approvals R = 811.000, Number of Approvals B = 681.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_bob/pg_test_v2_fairness_lagrangian_wealth_seed3_20260127_200549_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_bob/pg_test_v2_fairness_lagrangian_wealth_seed3_20260127_200549_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T20:05:51.266861
+Exit code: 0
+Test Exit code: 0
