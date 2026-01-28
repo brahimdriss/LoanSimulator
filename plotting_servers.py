@@ -1143,7 +1143,7 @@ def print_aggregated_by_reward(aggregated: Dict):
     return all_table_data
 
 
-def main(directory_paths: List[str], output_dir: str, use_log_scale: bool = False, zoom: bool = False):
+def main(directory_paths: List[str], output_dir: str, use_log_scale: bool = False, zoom: bool = False, test: bool = False):
     """Main function to generate all plots from multiple server directories."""
     setup_plot_style()
 
@@ -1167,6 +1167,7 @@ def main(directory_paths: List[str], output_dir: str, use_log_scale: bool = Fals
     print(f"Output directory: {output_dir}")
     print(f"Log scale: {'Enabled' if use_log_scale else 'Disabled'}")
     print(f"Zoom mode: {'Enabled' if zoom else 'Disabled'}")
+    print(f"Test mode: {'Enabled (last 100 episodes)' if test else 'Disabled'}")
     print("-" * 50)
 
     # Load results from all directories
@@ -1176,6 +1177,17 @@ def main(directory_paths: List[str], output_dir: str, use_log_scale: bool = Fals
         print("No results found! Check if files match the expected pattern:")
         print("  pg_test_v2_{reward}_{constraint}_seed{N}_{timestamp}_episode_metrics.csv")
         return
+
+    # Trim to last 100 episodes if --test is set
+    if test:
+        n_tail = 100
+        print(f"\n[Test mode] Trimming all data to last {n_tail} episodes")
+        for reward in results:
+            for constraint in results[reward]:
+                for seed in results[reward][constraint]:
+                    df = results[reward][constraint][seed]
+                    if len(df) > n_tail:
+                        results[reward][constraint][seed] = df.tail(n_tail).reset_index(drop=True)
 
     # Aggregate across seeds
     print("\n" + "="*80)
@@ -1232,10 +1244,11 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python plotting_servers.py episode_metrics_pg_test_bob episode_metrics_pg_test_flanders
+    python plotting_servers.py episode_metrics_pg_test_bob episode_metrics_pg_test_flanders episode_metrics_pg_test_desktop
     python plotting_servers.py episode_metrics_pg_test_* --log-scale
     python plotting_servers.py episode_metrics_pg_test_* --zoom
-    python plotting_servers.py episode_metrics_pg_test_bob episode_metrics_pg_test_flanders -o plots_output
+    python plotting_servers.py episode_metrics_pg_test_* --test
+    python plotting_servers.py episode_metrics_pg_test_bob episode_metrics_pg_test_flanders episode_metrics_pg_test_desktop -o plots_output
 
 Expected file format in each server directory:
     pg_test_v2_{reward}_{constraint}_seed{N}_{timestamp}_episode_metrics.csv
@@ -1246,6 +1259,7 @@ Constraints: approval_rate, wealth, both
 Visualization options:
     --log-scale : Use symmetric log scale (good for data spanning orders of magnitude)
     --zoom      : Auto-zoom y-axis to data range (good for small differences)
+    --test      : Only plot the last 100 episodes (quick sanity check)
 
 Output (12 plots total - 4 per constraint):
     For each constraint:
@@ -1276,7 +1290,7 @@ Output (12 plots total - 4 per constraint):
         "directories",
         type=str,
         nargs='+',
-        help="Paths to server result directories (e.g. episode_metrics_pg_test_bob episode_metrics_pg_test_flanders)"
+        help="Paths to server result directories (e.g. episode_metrics_pg_test_bob episode_metrics_pg_test_flanders episode_metrics_pg_test_desktop)"
     )
     parser.add_argument(
         "-o", "--output-dir",
@@ -1296,6 +1310,12 @@ Output (12 plots total - 4 per constraint):
         dest="zoom",
         help="Zoom y-axis to data range for better visualization of small differences"
     )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        dest="test",
+        help="Only plot the last 100 episodes (quick sanity check)"
+    )
 
     args = parser.parse_args()
-    main(args.directories, args.output_dir, args.log_scale, args.zoom)
+    main(args.directories, args.output_dir, args.log_scale, args.zoom, args.test)
