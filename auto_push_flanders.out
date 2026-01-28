@@ -1068,3 +1068,35 @@ To https://github.com/brahimdriss/LoanSimulator.git
 [2026-01-28 11:13:19] Changes detected, pushing...
 error: cannot pull with rebase: You have unstaged changes.
 error: please commit or stash them.
+[main 0288833] Sync results (flanders)
+ 27 files changed, 31 insertions(+), 8 deletions(-)
+ create mode 100644 plots_servers/aggregated_results_both.csv
+ rewrite plots_servers/plot_1_approval_rate_approval_wealth_disparity.png (96%)
+ create mode 100644 plots_servers/plot_1_both_approval_wealth_disparity.png
+ rewrite plots_servers/plot_1_wealth_approval_wealth_disparity.png (96%)
+ rewrite plots_servers/plot_2_approval_rate_wealth_inequality_ratio.png (95%)
+ create mode 100644 plots_servers/plot_2_both_wealth_inequality_ratio.png
+ rewrite plots_servers/plot_2_wealth_wealth_inequality_ratio.png (96%)
+ rewrite plots_servers/plot_3_approval_rate_profit_accuracy_precision.png (96%)
+ create mode 100644 plots_servers/plot_3_both_profit_accuracy_precision.png
+ rewrite plots_servers/plot_3_wealth_profit_accuracy_precision.png (97%)
+ rewrite plots_servers/plot_4_approval_rate_longterm_social_welfare.png (95%)
+ create mode 100644 plots_servers/plot_4_both_longterm_social_welfare.png
+ rewrite plots_servers/plot_4_wealth_longterm_social_welfare.png (96%)
+ create mode 100644 plots_servers_old/aggregated_results_approval_rate.csv
+ create mode 100644 plots_servers_old/aggregated_results_wealth.csv
+ copy {plots_servers => plots_servers_old}/plot_1_approval_rate_approval_wealth_disparity.png (100%)
+ copy {plots_servers => plots_servers_old}/plot_1_wealth_approval_wealth_disparity.png (100%)
+ copy {plots_servers => plots_servers_old}/plot_2_approval_rate_wealth_inequality_ratio.png (100%)
+ copy {plots_servers => plots_servers_old}/plot_2_wealth_wealth_inequality_ratio.png (100%)
+ copy {plots_servers => plots_servers_old}/plot_3_approval_rate_profit_accuracy_precision.png (100%)
+ copy {plots_servers => plots_servers_old}/plot_3_wealth_profit_accuracy_precision.png (100%)
+ copy {plots_servers => plots_servers_old}/plot_4_approval_rate_longterm_social_welfare.png (100%)
+ copy {plots_servers => plots_servers_old}/plot_4_wealth_longterm_social_welfare.png (100%)
+ create mode 100644 static_plots_test.zip
+To https://github.com/brahimdriss/LoanSimulator.git
+   02b583b..0288833  main -> main
+[2026-01-28 11:13:19] Push complete
+[2026-01-28 11:23:22] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: please commit or stash them.
