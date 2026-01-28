@@ -31,7 +31,7 @@ JOB_MATRIX = {
         "fairness_lagrangian",
         "utilitarian_profit",
     ],
-    "constraints": ["wealth"],
+    "constraints": ["both"],
     "seeds": range(1, 4),
 }
 

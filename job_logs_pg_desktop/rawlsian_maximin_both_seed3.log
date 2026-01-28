@@ -1,0 +1,130 @@
+Job: rawlsian_maximin_both_seed3
+Command: uv run python -u par_static.py --seeds 1 --seed 3 --reward rawlsian_maximin --constraint both --episodes 300 --workers 1 --weights-dir ./pg_sequential_results_desktop --episode-metrics-dir ./episode_metrics_pg_train_desktop
+Started: 2026-01-27T19:26:33.390836
+================================================================================
+
+================================================================================
+PERFORMATIVE POLICY GRADIENT V2 (Explicit Hawkes) EXPERIMENT
+  Reward: RAWLSIAN_MAXIMIN
+  Constraint: BOTH
+  Seed: 3
+  Warmup: 0 episodes
+================================================================================
+
+CUDA Available: NVIDIA RTX 4000 Ada Generation
+
+[STEP 1] Loading Adult Income Data...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+
+[STEP 2] Learning θ Parameters...
+
+[STEP 3] Creating Environment...
+
+[STEP 4] Creating PePG V2 Agent...
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'both' (lr=0.01)
+  Replay buffer capacity: 0 episodes
+  Warmup episodes: 0
+
+[STEP 5] Training PePG V2 Agent...
+Training PePG V2 with rawlsian_maximin (both constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=113801.76, Avg=113801.76, ρ=1.46, λw=2.020, Number of Approvals R = 310.000, Number of Approvals B = 244.000, 
+  [PePG] Ep 10: R=131216.63, Avg=131216.63, ρ=1.15, λw=2.233, Number of Approvals R = 374.000, Number of Approvals B = 306.000, 
+  [PePG] Ep 20: R=126651.41, Avg=122673.65, ρ=1.47, λw=2.467, Number of Approvals R = 217.000, Number of Approvals B = 173.000, 
+  [PePG] Ep 30: R=145289.77, Avg=132730.75, ρ=0.98, λw=2.727, Number of Approvals R = 149.000, Number of Approvals B = 131.000, 
+  [PePG] Ep 40: R=161603.79, Avg=145719.87, ρ=1.28, λw=3.014, Number of Approvals R = 195.000, Number of Approvals B = 145.000, 
+  [PePG] Ep 50: R=173002.22, Avg=159346.11, ρ=1.18, λw=3.331, Number of Approvals R = 132.000, Number of Approvals B = 101.000, 
+  [PePG] Ep 60: R=190243.66, Avg=172494.65, ρ=0.96, λw=3.681, Number of Approvals R = 105.000, Number of Approvals B = 79.000, 
+  [PePG] Ep 70: R=213829.30, Avg=191265.84, ρ=1.21, λw=4.068, Number of Approvals R = 119.000, Number of Approvals B = 85.000, 
+  [PePG] Ep 80: R=229944.52, Avg=212867.74, ρ=1.31, λw=4.496, Number of Approvals R = 107.000, Number of Approvals B = 94.000, 
+  [PePG] Ep 90: R=259801.61, Avg=233426.26, ρ=1.32, λw=4.969, Number of Approvals R = 115.000, Number of Approvals B = 99.000, 
+  [PePG] Ep 100: R=287539.92, Avg=258124.35, ρ=1.21, λw=5.491, Number of Approvals R = 118.000, Number of Approvals B = 106.000, 
+  [PePG] Ep 110: R=305559.78, Avg=284265.42, ρ=1.55, λw=6.069, Number of Approvals R = 126.000, Number of Approvals B = 96.000, 
+  [PePG] Ep 120: R=349129.29, Avg=313272.13, ρ=1.54, λw=6.707, Number of Approvals R = 118.000, Number of Approvals B = 95.000, 
+  [PePG] Ep 130: R=372434.09, Avg=351227.68, ρ=1.19, λw=7.412, Number of Approvals R = 134.000, Number of Approvals B = 116.000, 
+  [PePG] Ep 140: R=413932.54, Avg=387185.88, ρ=1.76, λw=8.192, Number of Approvals R = 126.000, Number of Approvals B = 76.000, 
+  [PePG] Ep 150: R=480575.19, Avg=424396.83, ρ=1.51, λw=9.053, Number of Approvals R = 102.000, Number of Approvals B = 76.000, 
+  [PePG] Ep 160: R=516712.72, Avg=473220.67, ρ=1.28, λw=10.006, Number of Approvals R = 87.000, Number of Approvals B = 66.000, 
+  [PePG] Ep 170: R=561246.24, Avg=518747.52, ρ=1.31, λw=11.058, Number of Approvals R = 116.000, Number of Approvals B = 85.000, 
+  [PePG] Ep 180: R=577714.06, Avg=571566.21, ρ=1.13, λw=12.221, Number of Approvals R = 132.000, Number of Approvals B = 95.000, 
+  [PePG] Ep 190: R=741373.95, Avg=639059.95, ρ=1.31, λw=13.506, Number of Approvals R = 149.000, Number of Approvals B = 108.000, 
+  [PePG] Ep 200: R=789174.93, Avg=706046.22, ρ=1.03, λw=14.927, Number of Approvals R = 158.000, Number of Approvals B = 111.000, 
+  [PePG] Ep 210: R=852269.69, Avg=784265.62, ρ=1.04, λw=16.497, Number of Approvals R = 169.000, Number of Approvals B = 117.000, 
+  [PePG] Ep 220: R=973218.36, Avg=868503.24, ρ=1.41, λw=18.231, Number of Approvals R = 184.000, Number of Approvals B = 149.000, 
+  [PePG] Ep 230: R=1100177.37, Avg=960417.63, ρ=0.85, λw=20.149, Number of Approvals R = 204.000, Number of Approvals B = 185.000, 
+  [PePG] Ep 240: R=1119961.18, Avg=1069262.43, ρ=1.07, λw=22.268, Number of Approvals R = 203.000, Number of Approvals B = 157.000, 
+  [PePG] Ep 250: R=1283077.10, Avg=1174819.20, ρ=1.28, λw=24.610, Number of Approvals R = 225.000, Number of Approvals B = 181.000, 
+  [PePG] Ep 260: R=1398431.18, Avg=1299578.82, ρ=1.27, λw=27.198, Number of Approvals R = 235.000, Number of Approvals B = 179.000, 
+  [PePG] Ep 270: R=1620274.68, Avg=1469089.46, ρ=1.55, λw=30.059, Number of Approvals R = 327.000, Number of Approvals B = 239.000, 
+  [PePG] Ep 280: R=1807766.05, Avg=1644640.25, ρ=1.41, λw=33.220, Number of Approvals R = 338.000, Number of Approvals B = 270.000, 
+  [PePG] Ep 290: R=2083814.64, Avg=1826675.92, ρ=1.23, λw=36.714, Number of Approvals R = 404.000, Number of Approvals B = 342.000, 
+  [PePG] Ep 299: R=2243854.06, Avg=1991921.56, ρ=1.14, λw=40.171, Number of Approvals R = 377.000, Number of Approvals B = 327.000, 
+
+Training complete. Buffer: 0 episodes
+
+============================================================
+TRAINING COMPLETE
+============================================================
+  Final wealth gap: $12.643k
+  Approval disparity: -0.0308
+  Total profit: $1669.161k
+  Mean ρ: 1.2728
+  PePG V2 model saved to ./pg_sequential_results_desktop/pepg_rawlsian_maximin_both_seed3.pt
+  Episode metrics saved to ./episode_metrics_pg_train_desktop/pg_train_v2_rawlsian_maximin_both_seed3_20260127_192931_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_train_desktop/pg_train_v2_rawlsian_maximin_both_seed3_20260127_192931_episode_metrics.npy
+Loading PePG V2 agent from ./pg_sequential_results_desktop/pepg_rawlsian_maximin_both_seed3.pt...
+Downloading Adult Income dataset...
+  Trying UCI Repository...
+  ✓ Downloaded 20,000 records from UCI repository
+Preprocessing Adult Income data...
+
+  Deriving creditworthiness using income prediction model...
+
+Male applicants: 13519
+Female applicants: 6481
+Male high-income rate: 0.312
+Female high-income rate: 0.116
+  Using device: cuda
+  Mixed precision (AMP): Enabled
+  Learnable lambdas enabled for 'both' (lr=0.01)
+  Replay buffer capacity: 0 episodes
+  Warmup episodes: 0
+  PePG V2 model loaded from ./pg_sequential_results_desktop/pepg_rawlsian_maximin_both_seed3.pt
+
+[] Testing PePG V2 Agent...
+Training PePG V2 with rawlsian_maximin (both constraint)...
+  Warmup episodes: 0
+  Gradient weights: hawkes=1.0, wealth=1.0, transition=1.0, reward=1.0
+  [PePG] Ep 0: R=2309890.23, Avg=2017027.76, ρ=1.08, λw=40.575, Number of Approvals R = 377.000, Number of Approvals B = 323.000, 
+  [PePG] Ep 10: R=3326103.77, Avg=2418834.35, ρ=0.89, λw=44.842, Number of Approvals R = 438.000, Number of Approvals B = 338.000, 
+  [PePG] Ep 20: R=4444908.80, Avg=3317944.28, ρ=1.40, λw=49.558, Number of Approvals R = 442.000, Number of Approvals B = 344.000, 
+  [PePG] Ep 30: R=6401274.03, Avg=4725744.98, ρ=1.18, λw=54.770, Number of Approvals R = 501.000, Number of Approvals B = 362.000, 
+  [PePG] Ep 40: R=8906421.45, Avg=6719352.63, ρ=1.38, λw=60.531, Number of Approvals R = 526.000, Number of Approvals B = 351.000, 
+  [PePG] Ep 50: R=11587383.12, Avg=9146224.42, ρ=1.47, λw=66.897, Number of Approvals R = 424.000, Number of Approvals B = 279.000, 
+  [PePG] Ep 60: R=14859509.49, Avg=11876710.68, ρ=1.47, λw=73.932, Number of Approvals R = 398.000, Number of Approvals B = 290.000, 
+  [PePG] Ep 70: R=18761772.82, Avg=15179858.88, ρ=1.48, λw=81.708, Number of Approvals R = 371.000, Number of Approvals B = 310.000, 
+  [PePG] Ep 80: R=23554835.60, Avg=19225743.59, ρ=1.37, λw=90.301, Number of Approvals R = 448.000, Number of Approvals B = 326.000, 
+  [PePG] Ep 90: R=29240506.81, Avg=24307647.59, ρ=1.42, λw=99.798, Number of Approvals R = 363.000, Number of Approvals B = 301.000, 
+  [PePG] Ep 99: R=36708601.26, Avg=29656314.01, ρ=1.62, λw=109.197, Number of Approvals R = 391.000, Number of Approvals B = 285.000, 
+
+Training complete. Buffer: 0 episodes
+  Episode metrics saved to ./episode_metrics_pg_test_desktop/pg_test_v2_rawlsian_maximin_both_seed3_20260127_193115_episode_metrics.csv
+  Episode metrics saved to ./episode_metrics_pg_test_desktop/pg_test_v2_rawlsian_maximin_both_seed3_20260127_193115_episode_metrics.npy
+
+================================================================================
+Finished: 2026-01-27T19:31:16.178454
+Exit code: 0
+Test Exit code: 0
