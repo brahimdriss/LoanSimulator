@@ -7300,3 +7300,11 @@ To https://github.com/brahimdriss/LoanSimulator.git
 [2026-02-02 20:44:05] Changes detected, pushing...
 error: cannot pull with rebase: You have unstaged changes.
 error: please commit or stash them.
+[main e2b9e7b] Sync results (flanders)
+ 1 file changed, 8 insertions(+)
+To https://github.com/brahimdriss/LoanSimulator.git
+   b2b5c35..e2b9e7b  main -> main
+[2026-02-02 20:44:05] Push complete
+[2026-02-02 20:54:06] Changes detected, pushing...
+error: cannot pull with rebase: You have unstaged changes.
+error: please commit or stash them.
