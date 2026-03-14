@@ -1,0 +1,10 @@
+.venv/
+*.pyc
+*.pkl
+# *.csv
+# *.pt
+# *.log
+auto_push.log
+*.json
+
+stable/
