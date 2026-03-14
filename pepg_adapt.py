@@ -308,10 +308,16 @@ def _train_worker(cfg):
             reward_weight=cfg.get("reward_weight", 1.0),
         )
 
-        agent.train(num_episodes=cfg["train_episodes"], use_performative=True)
-
         weights_path = cfg["weights_path"]
         os.makedirs(os.path.dirname(weights_path), exist_ok=True)
+
+        # Skip if already trained (e.g. partial restart)
+        if os.path.exists(weights_path):
+            print(f"  [{run_id:3d}/{total}] TRAIN SKIP (weights exist)  seed={seed}  {reward}/{constraint}")
+            return {"success": True, "seed": seed, "reward": reward,
+                    "constraint": constraint, "weights_path": weights_path}
+
+        agent.train(num_episodes=cfg["train_episodes"], use_performative=True)
         agent.save_model(weights_path)
 
         print(
