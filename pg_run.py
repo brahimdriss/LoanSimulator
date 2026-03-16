@@ -597,6 +597,8 @@ def main():
                         help="Entropy bonus coefficient (default: 0.01)")
     parser.add_argument("--buffer-capacity", type=int, default=50,
                         help="PePG replay buffer capacity in episodes (default: 50)")
+    parser.add_argument("--skip-train", action="store_true",
+                        help="Skip Phase 1 — use existing weights in --weights-dir")
 
     # Combo filter (optional)
     parser.add_argument(
@@ -664,45 +666,64 @@ def main():
     # ------------------------------------------------------------------
     # Phase 1: Training
     # ------------------------------------------------------------------
-    print(f"\n[1/3] Training {len(seeds) * len(combos)} runs in parallel…")
+    if not args.skip_train:
+        print(f"\n[1/3] Training {len(seeds) * len(combos)} runs in parallel…")
 
-    train_configs = []
-    for seed in seeds:
-        for reward, constraint in combos:
-            weights_path = os.path.join(
-                args.weights_dir,
-                f"{reward}__{constraint}__seed{seed}.pt",
-            )
-            cfg = {
-                "seed":            seed,
-                "reward_function": reward,
-                "constraint_type": constraint,
-                "data_filepath":   args.data,
-                "train_episodes":  args.train_episodes,
-                "warmup_episodes": args.warmup,
-                "N_male":          args.N_male,
-                "N_female":        args.N_female,
-                "T":               args.T,
-                "dt":              args.dt,
-                "lr":              args.lr,
-                "hidden_dim":      args.hidden_dim,
-                "lambda_wealth":   args.lambda_wealth,
-                "lambda_approval": args.lambda_approval,
-                "lambda_lr":       args.lambda_lr,
-                "entropy_coef":    args.entropy_coef,
-                "buffer_capacity": args.buffer_capacity,
-                "credit_threshold": args.credit_threshold,
-                "weights_path":    weights_path,
-                "run_id":          len(train_configs) + 1,
-                "total_runs":      len(seeds) * len(combos),
-            }
-            train_configs.append(cfg)
+        train_configs = []
+        for seed in seeds:
+            for reward, constraint in combos:
+                weights_path = os.path.join(
+                    args.weights_dir,
+                    f"{reward}__{constraint}__seed{seed}.pt",
+                )
+                cfg = {
+                    "seed":            seed,
+                    "reward_function": reward,
+                    "constraint_type": constraint,
+                    "data_filepath":   args.data,
+                    "train_episodes":  args.train_episodes,
+                    "warmup_episodes": args.warmup,
+                    "N_male":          args.N_male,
+                    "N_female":        args.N_female,
+                    "T":               args.T,
+                    "dt":              args.dt,
+                    "lr":              args.lr,
+                    "hidden_dim":      args.hidden_dim,
+                    "lambda_wealth":   args.lambda_wealth,
+                    "lambda_approval": args.lambda_approval,
+                    "lambda_lr":       args.lambda_lr,
+                    "entropy_coef":    args.entropy_coef,
+                    "buffer_capacity": args.buffer_capacity,
+                    "credit_threshold": args.credit_threshold,
+                    "weights_path":    weights_path,
+                    "run_id":          len(train_configs) + 1,
+                    "total_runs":      len(seeds) * len(combos),
+                }
+                train_configs.append(cfg)
 
-    with mp.Pool(processes=args.workers) as pool:
-        train_results = pool.map(_train_worker, train_configs)
+        with mp.Pool(processes=args.workers) as pool:
+            train_results = pool.map(_train_worker, train_configs)
 
-    n_ok = sum(1 for r in train_results if r["success"])
-    print(f"\n  Training done: {n_ok}/{len(train_configs)} successful")
+        n_ok = sum(1 for r in train_results if r["success"])
+        print(f"\n  Training done: {n_ok}/{len(train_configs)} successful")
+    else:
+        print(f"\n[1/3] --skip-train: using existing weights in {args.weights_dir}")
+        train_results = []
+        for seed in seeds:
+            for reward, constraint in combos:
+                wp = os.path.join(args.weights_dir, f"{reward}__{constraint}__seed{seed}.pt")
+                exists = os.path.exists(wp)
+                if not exists:
+                    print(f"  MISSING: {wp}")
+                train_results.append({
+                    "success":      exists,
+                    "seed":         seed,
+                    "reward":       reward,
+                    "constraint":   constraint,
+                    "weights_path": wp,
+                })
+        n_ok = sum(1 for r in train_results if r["success"])
+        print(f"  Found {n_ok}/{len(train_results)} weight files")
 
     # ------------------------------------------------------------------
     # Phase 2: Testing
