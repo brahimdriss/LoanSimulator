@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Performative PePG pre-train → Performative deploy on TestingIncomeEnvironment.
+Performative PePG train → Performative deploy on TestingIncomeEnvironment.
 
-Phase 1: Train PePGAgentV2 on IncomeEnvironment with use_performative=True.
+Phase 1: Train PePGAgentV2 on TestingIncomeEnvironment (state preserved, performative).
          (Performative gradients — explicit Hawkes + wealth terms.)
 Phase 2: Load weights, continue performative training on TestingIncomeEnvironment.
          (State preserved across episodes — true performative deployment.)
@@ -32,8 +32,6 @@ import numpy as np
 import pandas as pd
 import torch
 
-from loan_simulator.data_loader import AdultIncomeDataLoader
-from loan_simulator.environment import IncomeEnvironment
 from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
@@ -253,7 +251,7 @@ def print_summary_table(aggregated, n_seeds):
 
 
 # ---------------------------------------------------------------------------
-# Phase 1 worker — IncomeEnvironment (performative gradient, resetting env)
+# Phase 1 worker — TestingIncomeEnvironment (performative, state preserved)
 # ---------------------------------------------------------------------------
 
 def _train_worker(cfg):
@@ -268,17 +266,31 @@ def _train_worker(cfg):
         random.seed(seed)
         torch.manual_seed(seed)
 
-        loader = AdultIncomeDataLoader(filepath=cfg["data_filepath"], sample_size=20000)
+        loader = TestingAdultIncomeDataLoader(
+            filepath=cfg["data_filepath"],
+            sample_size=20000,
+            credit_threshold=cfg.get("credit_threshold", 0.5),
+        )
         loader.load_data()
         loader.preprocess()
 
-        theta = TransitionParameterLearner(default_rate_min=0.02, default_rate_max=0.15)
+        theta = TransitionParameterLearner(default_rate_min=0.14, default_rate_max=0.16)
         theta.fit(loader.data)
 
-        env = IncomeEnvironment(
+        # Skip if weights already exist (allows partial restart)
+        weights_path = cfg["weights_path"]
+        os.makedirs(os.path.dirname(weights_path), exist_ok=True)
+        if os.path.exists(weights_path):
+            print(f"  [{run_id:3d}/{total}] TRAIN SKIP (weights exist)  seed={seed}  {reward}/{constraint}")
+            return {"success": True, "seed": seed, "reward": reward,
+                    "constraint": constraint, "weights_path": weights_path}
+
+        env = TestingIncomeEnvironment(
             theta_params=theta,
             initial_wealth_male=loader.male_data["X"].values,
             initial_wealth_female=loader.female_data["X"].values,
+            ground_truth_male=loader.male_data["ground_truth_approval"].values,
+            ground_truth_female=loader.female_data["ground_truth_approval"].values,
             N_male=cfg["N_male"],
             N_female=cfg["N_female"],
             T=cfg["T"],
@@ -307,15 +319,6 @@ def _train_worker(cfg):
             transition_weight=cfg.get("transition_weight", 1.0),
             reward_weight=cfg.get("reward_weight", 1.0),
         )
-
-        weights_path = cfg["weights_path"]
-        os.makedirs(os.path.dirname(weights_path), exist_ok=True)
-
-        # Skip if already trained (e.g. partial restart)
-        if os.path.exists(weights_path):
-            print(f"  [{run_id:3d}/{total}] TRAIN SKIP (weights exist)  seed={seed}  {reward}/{constraint}")
-            return {"success": True, "seed": seed, "reward": reward,
-                    "constraint": constraint, "weights_path": weights_path}
 
         agent.train(num_episodes=cfg["train_episodes"], use_performative=True)
         agent.save_model(weights_path)

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Policy gradient training + testing on the performative environment.
+Policy gradient performative training + frozen deployment on TestingIncomeEnvironment.
 
-Trains PG agents for all valid (reward_function, constraint_type) combos
-across multiple seeds, then tests trained weights on TestingIncomeEnvironment.
+Trains PG agents on TestingIncomeEnvironment (performative, state preserved across
+episodes) for all valid (reward_function, constraint_type) combos across multiple
+seeds, then deploys trained weights frozen (no gradient updates) on the same env.
 
 Valid combos (14 of 16 — skips undefined cells):
   Skip: (utilitarian_profit, social), (social_welfare, dm)
@@ -35,7 +36,6 @@ from loan_simulator.data_loader import AdultIncomeDataLoader
 from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
-from loan_simulator.environment import IncomeEnvironment
 from loan_simulator.agent import PolicyGradientAgent
 from run_multi_seed import (
     add_derived_columns,
@@ -156,8 +156,10 @@ def _train_worker(cfg):
         random.seed(seed)
         torch.manual_seed(seed)
 
-        loader = AdultIncomeDataLoader(
-            filepath=cfg["data_filepath"], sample_size=20000
+        loader = TestingAdultIncomeDataLoader(
+            filepath=cfg["data_filepath"],
+            sample_size=20000,
+            credit_threshold=cfg.get("credit_threshold", 0.5),
         )
         loader.load_data()
         loader.preprocess()
@@ -168,10 +170,25 @@ def _train_worker(cfg):
         )
         theta.fit(loader.data)
 
-        env = IncomeEnvironment(
+        # Skip if weights already exist (allows partial restart)
+        weights_path = cfg.get("weights_path")
+        if weights_path and os.path.exists(weights_path):
+            print(
+                f"  [{run_id:3d}/{total}] TRAIN SKIP (weights exist)  "
+                f"seed={seed}  {reward}/{constraint}"
+            )
+            return {
+                "success": True, "seed": seed, "reward": reward,
+                "constraint": constraint, "weights_path": weights_path,
+                "train_df": None,
+            }
+
+        env = TestingIncomeEnvironment(
             theta_params=theta,
             initial_wealth_male=loader.male_data["X"].values,
             initial_wealth_female=loader.female_data["X"].values,
+            ground_truth_male=loader.male_data["ground_truth_approval"].values,
+            ground_truth_female=loader.female_data["ground_truth_approval"].values,
             N_male=cfg["N_male"],
             N_female=cfg["N_female"],
             T=cfg["T"],
@@ -676,6 +693,7 @@ def main():
                 "lambda_approval": args.lambda_approval,
                 "lambda_lr":       args.lambda_lr,
                 "entropy_coef":    args.entropy_coef,
+                "credit_threshold": args.credit_threshold,
                 "weights_path":    weights_path,
                 "run_id":          len(train_configs) + 1,
                 "total_runs":      len(seeds) * len(combos),
