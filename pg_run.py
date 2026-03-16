@@ -32,11 +32,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Beta
 
-from loan_simulator.data_loader import AdultIncomeDataLoader
 from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
-from loan_simulator.agent import PolicyGradientAgent
+from loan_simulator.pepg import PePGAgentV2
 from run_multi_seed import (
     add_derived_columns,
     aggregate_across_seeds,
@@ -196,7 +195,7 @@ def _train_worker(cfg):
             seed=seed,
         )
 
-        agent = PolicyGradientAgent(
+        agent = PePGAgentV2(
             env,
             hidden_dim=cfg.get("hidden_dim", 128),
             lr=cfg.get("lr", 1e-3),
@@ -205,19 +204,15 @@ def _train_worker(cfg):
             lambda_wealth=cfg.get("lambda_wealth", 0.5 if constraint == "two_sided" else 2.0),
             lambda_approval=cfg.get("lambda_approval", 2.0),
             lambda_lr=cfg.get("lambda_lr", 1e-2),
-            entropy_coef=cfg.get("entropy_coef", 0.01),
+            buffer_capacity=cfg.get("buffer_capacity", 50),
+            warmup_episodes=cfg.get("warmup_episodes", 0),
+            alpha_R=env.alpha_R,
+            alpha_B=env.alpha_B,
+            beta_R=env.beta_R,
+            beta_B=env.beta_B,
         )
 
-        # Warmup: random actions, no gradient
-        for _ in range(cfg.get("warmup_episodes", 0)):
-            obs, _ = env.reset()
-            done = False
-            while not done:
-                action = env.action_space.sample()
-                obs, _, term, trunc, _ = env.step(action)
-                done = term or trunc
-
-        agent.train(num_episodes=cfg["train_episodes"])
+        agent.train(num_episodes=cfg["train_episodes"], use_performative=True)
 
         weights_path = cfg.get("weights_path")
         if weights_path:
@@ -600,6 +595,8 @@ def main():
     parser.add_argument("--lambda-lr",      type=float, default=1e-2)
     parser.add_argument("--entropy-coef",   type=float, default=0.01,
                         help="Entropy bonus coefficient (default: 0.01)")
+    parser.add_argument("--buffer-capacity", type=int, default=50,
+                        help="PePG replay buffer capacity in episodes (default: 50)")
 
     # Combo filter (optional)
     parser.add_argument(
@@ -693,6 +690,7 @@ def main():
                 "lambda_approval": args.lambda_approval,
                 "lambda_lr":       args.lambda_lr,
                 "entropy_coef":    args.entropy_coef,
+                "buffer_capacity": args.buffer_capacity,
                 "credit_threshold": args.credit_threshold,
                 "weights_path":    weights_path,
                 "run_id":          len(train_configs) + 1,
