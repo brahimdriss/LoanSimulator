@@ -53,24 +53,27 @@ from pg_run import (
 # ---------------------------------------------------------------------------
 
 PEPG_COMBOS = [
-    ("utilitarian_profit",  "wealth"),
-    ("utilitarian_profit",  "approval_rate"),
-    ("utilitarian_profit",  "both"),
-    ("social_welfare",      "wealth"),
-    ("social_welfare",      "approval_rate"),
-    ("social_welfare",      "both"),
-    ("rawlsian_maximin",    "wealth"),
-    ("rawlsian_maximin",    "approval_rate"),
-    ("rawlsian_maximin",    "both"),
-    ("fairness_lagrangian", "wealth"),
-    ("fairness_lagrangian", "approval_rate"),
-    ("fairness_lagrangian", "both"),
+    ("utilitarian_profit",  "predictive"),
+    ("utilitarian_profit",  "dm"),
+    ("utilitarian_profit",  "two_sided"),
+    ("social_welfare",      "predictive"),
+    ("social_welfare",      "social"),
+    ("social_welfare",      "two_sided"),
+    ("rawlsian_maximin",    "predictive"),
+    ("rawlsian_maximin",    "social"),
+    ("rawlsian_maximin",    "dm"),
+    ("rawlsian_maximin",    "two_sided"),
+    ("fairness_lagrangian", "predictive"),
+    ("fairness_lagrangian", "social"),
+    ("fairness_lagrangian", "dm"),
+    ("fairness_lagrangian", "two_sided"),
 ]
 
 PEPG_CONSTRAINT_LABELS = {
-    "wealth":        "Wealth",
-    "approval_rate": "Approval Rate",
-    "both":          "Both",
+    "predictive": "Predictive",
+    "social":     "Social",
+    "dm":         "DM",
+    "two_sided":  "Two-Sided",
 }
 
 
@@ -81,7 +84,9 @@ def _pepg_combo_label(reward, constraint):
 def _default_lambdas(reward, constraint):
     if reward == "utilitarian_profit":
         return 0.0, 0.0
-    lw = 5.0 if reward == "rawlsian_maximin" else 2.0
+    lw = 0.5 if constraint == "two_sided" else (
+        5.0 if reward == "rawlsian_maximin" else 2.0
+    )
     la = 5.0 if reward == "rawlsian_maximin" else 2.0
     return lw, la
 
@@ -445,7 +450,7 @@ def main():
                         choices=["all", "utilitarian_profit", "social_welfare",
                                  "rawlsian_maximin", "fairness_lagrangian"])
     parser.add_argument("--constraint", type=str, default="all",
-                        choices=["all", "wealth", "approval_rate", "both"])
+                        choices=["all", "predictive", "social", "dm", "two_sided"])
 
     # Training (performative env — IncomeEnvironment with PePG gradients)
     parser.add_argument("--train-episodes",  type=int,   default=500)
@@ -708,7 +713,7 @@ def main():
 
     if not args.no_plots:
         print("  Generating plots…")
-        for ct in ["wealth", "approval_rate", "both"]:
+        for ct in ["predictive", "social", "dm", "two_sided"]:
             _plot_comparison(aggregated,     args.results_dir, timestamp, n_complete, ct)
             _plot_wealth(aggregated,         args.results_dir, timestamp, n_complete, ct)
             _plot_social_welfare(aggregated, args.results_dir, timestamp, n_complete, ct)
