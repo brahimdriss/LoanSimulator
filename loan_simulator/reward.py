@@ -51,14 +51,16 @@ class RewardFunction:
     @staticmethod
     def _group_profit_rates(env):
         """
-        r_t^perf,R and r_t^perf,B: expected per-loan profit rate for each group,
-        estimated from running default statistics.
-            r_g = interest_rate * (1 - rho_g) - rho_g
+        r_t^perf,R and r_t^perf,B: expected profit for each group,
+        estimated from running default statistics and mean loan amount.
+            r_g = mean_loan_g * ((1 - rho_g) * interest_rate - 2 * rho_g)
         """
         rho_R = env.total_defaults_R / max(env.total_loans_R, 1)
         rho_B = env.total_defaults_B / max(env.total_loans_B, 1)
-        r_R = env.interest_rate * (1 - rho_R) - rho_R
-        r_B = env.interest_rate * (1 - rho_B) - rho_B
+        mean_loan_R = float(np.mean(env.theta_params.individual_loan_amounts["male"]))
+        mean_loan_B = float(np.mean(env.theta_params.individual_loan_amounts["female"]))
+        r_R = mean_loan_R * ((1 - rho_R) * env.interest_rate - 2 * rho_R)
+        r_B = mean_loan_B * ((1 - rho_B) * env.interest_rate - 2 * rho_B)
         return r_R, r_B
 
     # ------------------------------------------------------------------

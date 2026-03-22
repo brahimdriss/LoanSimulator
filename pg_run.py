@@ -22,6 +22,7 @@ import argparse
 import multiprocessing as mp
 import os
 import random
+from collections import defaultdict
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -176,11 +177,16 @@ def _train_worker(cfg):
                 f"  [{run_id:3d}/{total}] TRAIN SKIP (weights exist)  "
                 f"seed={seed}  {reward}/{constraint}"
             )
-            return {
-                "success": True, "seed": seed, "reward": reward,
-                "constraint": constraint, "weights_path": weights_path,
-                "train_df": None,
-            }
+            train_df = None
+            tmp = cfg.get("train_metrics_path")
+            if tmp and os.path.exists(tmp):
+                try:
+                    train_df = pd.read_csv(tmp)
+                except Exception:
+                    pass
+            return {"success": True, "seed": seed, "reward": reward,
+                    "constraint": constraint, "weights_path": weights_path,
+                    "train_df": train_df}
 
         env = TestingIncomeEnvironment(
             theta_params=theta,
@@ -214,12 +220,16 @@ def _train_worker(cfg):
 
         agent.train(num_episodes=cfg["train_episodes"], use_performative=True)
 
+        train_df = agent.get_episode_metrics_dataframe()
+        train_metrics_path = cfg.get("train_metrics_path")
+        if train_metrics_path:
+            train_df.to_csv(train_metrics_path, index=False)
+
         weights_path = cfg.get("weights_path")
         if weights_path:
             os.makedirs(os.path.dirname(weights_path), exist_ok=True)
             agent.save_model(weights_path)
 
-        train_df = agent.get_episode_metrics_dataframe()
         print(
             f"  [{run_id:3d}/{total}] TRAIN OK  "
             f"seed={seed}  {reward}/{constraint}  "
@@ -349,7 +359,18 @@ def _iter_combos(aggregated, constraint_filter=None):
         yield reward, constraint, mdf, sdf
 
 
-def plot_comparison_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filter=None):
+def _build_combined_df(train_df, test_df):
+    """Concatenate train and test episode metrics, relabeling test episode numbers."""
+    n_train = len(train_df)
+    train_adj = train_df.copy()
+    train_adj["phase"] = "train"
+    test_adj = test_df.copy()
+    test_adj["episode"] = test_df["episode"] + n_train
+    test_adj["phase"] = "test"
+    return pd.concat([train_adj, test_adj], ignore_index=True)
+
+
+def plot_comparison_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filter=None, prefix="", boundary_episode=None):
     setup_plot_style()
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     ctitle = CONSTRAINT_LABELS[constraint_filter] if constraint_filter else "All Constraints"
@@ -380,6 +401,10 @@ def plot_comparison_agg(aggregated, results_dir, timestamp, n_seeds, constraint_
     for ax in axes.flat:
         ax.axhline(0, color="k", linewidth=0.8, ls="-")
 
+    if boundary_episode is not None:
+        for ax in axes.flat:
+            ax.axvline(boundary_episode, color="gray", ls="--", lw=1.0, alpha=0.6, label="Train/Test")
+
     axes[0, 0].set_ylabel("μ_M − μ_F  ($k)");   axes[0, 0].set_title("(a) Wealth Gap")
     axes[0, 1].set_ylabel("Approval M − F");     axes[0, 1].set_title("(b) Approval Rate Disparity")
     axes[1, 0].set_ylabel("Episode profit ($k)"); axes[1, 0].set_title("(c) Episode Profit")
@@ -389,10 +414,10 @@ def plot_comparison_agg(aggregated, results_dir, timestamp, n_seeds, constraint_
     _finish_axes(axes.flat)
     plt.tight_layout()
     suffix = f"_{constraint_filter}" if constraint_filter else ""
-    _save(fig, os.path.join(results_dir, f"pg_comparison{suffix}_{timestamp}.png"))
+    _save(fig, os.path.join(results_dir, f"{prefix}pg_comparison{suffix}_{timestamp}.png"))
 
 
-def plot_wealth_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filter=None):
+def plot_wealth_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filter=None, prefix="", boundary_episode=None):
     setup_plot_style()
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
     ctitle = CONSTRAINT_LABELS[constraint_filter] if constraint_filter else "All Constraints"
@@ -417,6 +442,10 @@ def plot_wealth_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filt
     axes[1, 1].axhline(1, color="k", linewidth=0.8, ls="-", label="ρ = 1 (equal growth)")
     axes[1, 1].set_ylim(-5, 10)
 
+    if boundary_episode is not None:
+        for ax in axes.flat:
+            ax.axvline(boundary_episode, color="gray", ls="--", lw=1.0, alpha=0.6, label="Train/Test")
+
     axes[0, 0].set_ylabel("Mean wealth ($k)");      axes[0, 0].set_title("(a) μ_M — Male Mean Wealth")
     axes[0, 1].set_ylabel("Mean wealth ($k)");      axes[0, 1].set_title("(b) μ_F — Female Mean Wealth")
     axes[1, 0].set_ylabel("Cumulative profit ($k)"); axes[1, 0].set_title("(c) Cumulative Bank Profit")
@@ -425,10 +454,10 @@ def plot_wealth_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filt
     _finish_axes(axes.flat)
     plt.tight_layout()
     suffix = f"_{constraint_filter}" if constraint_filter else ""
-    _save(fig, os.path.join(results_dir, f"pg_metric_trajectories{suffix}_{timestamp}.png"))
+    _save(fig, os.path.join(results_dir, f"{prefix}pg_metric_trajectories{suffix}_{timestamp}.png"))
 
 
-def plot_social_welfare_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filter=None):
+def plot_social_welfare_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filter=None, prefix="", boundary_episode=None):
     setup_plot_style()
     fig, axes = plt.subplots(1, 3, figsize=(14, 4.5))
     ctitle = CONSTRAINT_LABELS[constraint_filter] if constraint_filter else "All Constraints"
@@ -476,6 +505,10 @@ def plot_social_welfare_agg(aggregated, results_dir, timestamp, n_seeds, constra
         ax.axhline(0, color="k", linewidth=0.8, ls="-")
         ax.set_ylim(ylim)
 
+    if boundary_episode is not None:
+        for ax in axes:
+            ax.axvline(boundary_episode, color="gray", ls="--", lw=1.0, alpha=0.6, label="Train/Test")
+
     axes[0].set_ylabel(r"$R_M$  (welfare / episode)")
     axes[1].set_ylabel(r"$R_F$  (welfare / episode)")
     axes[2].set_ylabel(r"$\bar{R}$  (welfare / episode)")
@@ -486,10 +519,10 @@ def plot_social_welfare_agg(aggregated, results_dir, timestamp, n_seeds, constra
     _finish_axes(axes)
     plt.tight_layout()
     suffix = f"_{constraint_filter}" if constraint_filter else ""
-    _save(fig, os.path.join(results_dir, f"pg_social_welfare{suffix}_{timestamp}.png"))
+    _save(fig, os.path.join(results_dir, f"{prefix}pg_social_welfare{suffix}_{timestamp}.png"))
 
 
-def plot_inequality_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filter=None):
+def plot_inequality_agg(aggregated, results_dir, timestamp, n_seeds, constraint_filter=None, prefix="", boundary_episode=None):
     setup_plot_style()
     fig, axes = plt.subplots(1, 3, figsize=(14, 4.5))
     ctitle = CONSTRAINT_LABELS[constraint_filter] if constraint_filter else "All Constraints"
@@ -514,6 +547,10 @@ def plot_inequality_agg(aggregated, results_dir, timestamp, n_seeds, constraint_
     axes[1].axhline(0, color="k", linewidth=0.8, ls="-")
     axes[2].axhline(1, color="red", linewidth=1.0, ls="--", alpha=0.7, label="ρ = 1 (equal growth)")
 
+    if boundary_episode is not None:
+        for ax in axes:
+            ax.axvline(boundary_episode, color="gray", ls="--", lw=1.0, alpha=0.6, label="Train/Test")
+
     axes[0].set_ylabel("μ_M − μ_F  ($k)")
     axes[1].set_ylabel("Approval rate  M − F")
     axes[2].set_ylabel(r"$\rho(t)$")
@@ -524,7 +561,7 @@ def plot_inequality_agg(aggregated, results_dir, timestamp, n_seeds, constraint_
     _finish_axes(axes)
     plt.tight_layout()
     suffix = f"_{constraint_filter}" if constraint_filter else ""
-    _save(fig, os.path.join(results_dir, f"pg_inequality{suffix}_{timestamp}.png"))
+    _save(fig, os.path.join(results_dir, f"{prefix}pg_inequality{suffix}_{timestamp}.png"))
 
 
 def print_summary_table(aggregated, n_seeds):
@@ -696,6 +733,10 @@ def main():
                     "buffer_capacity": args.buffer_capacity,
                     "credit_threshold": args.credit_threshold,
                     "weights_path":    weights_path,
+                    "train_metrics_path": os.path.join(
+                        args.weights_dir,
+                        f"train_metrics_{reward}__{constraint}__seed{seed}.csv"
+                    ),
                     "run_id":          len(train_configs) + 1,
                     "total_runs":      len(seeds) * len(combos),
                 }
@@ -706,6 +747,12 @@ def main():
 
         n_ok = sum(1 for r in train_results if r["success"])
         print(f"\n  Training done: {n_ok}/{len(train_configs)} successful")
+
+        seed_to_train = defaultdict(dict)
+        for tr in train_results:
+            if tr["success"] and tr.get("train_df") is not None:
+                key = _combo_key(tr["reward"], tr["constraint"])
+                seed_to_train[tr["seed"]][key] = add_derived_columns(tr["train_df"])
     else:
         print(f"\n[1/3] --skip-train: using existing weights in {args.weights_dir}")
         train_results = []
@@ -724,6 +771,20 @@ def main():
                 })
         n_ok = sum(1 for r in train_results if r["success"])
         print(f"  Found {n_ok}/{len(train_results)} weight files")
+
+        seed_to_train = defaultdict(dict)
+        for seed in seeds:
+            for reward, constraint in combos:
+                tmp = os.path.join(
+                    args.weights_dir,
+                    f"train_metrics_{reward}__{constraint}__seed{seed}.csv"
+                )
+                if os.path.exists(tmp):
+                    try:
+                        key = _combo_key(reward, constraint)
+                        seed_to_train[seed][key] = add_derived_columns(pd.read_csv(tmp))
+                    except Exception:
+                        pass
 
     # ------------------------------------------------------------------
     # Phase 2: Testing
@@ -779,7 +840,6 @@ def main():
 
     # Organise test results: seed_results[i] = dict[combo_key -> df]
     # We'll build per-seed dicts
-    from collections import defaultdict
     seed_to_results = defaultdict(dict)
     for i, raw in enumerate(test_results_raw):
         if raw is None:
@@ -837,6 +897,50 @@ def main():
             plot_wealth_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
             plot_social_welfare_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
             plot_inequality_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
+
+    # --- Training plots ---
+    train_seed_results = [
+        seed_to_train[s]
+        for s in seeds
+        if expected_keys.issubset(seed_to_train[s].keys())
+    ]
+    if train_seed_results:
+        n_train_complete = len(train_seed_results)
+        print(f"  Generating training plots ({n_train_complete} seeds)…")
+        train_aggregated = aggregate_across_seeds(train_seed_results)
+        for key, (mdf, sdf) in train_aggregated.items():
+            mdf.to_csv(os.path.join(args.results_dir, f"train_mean_{key}_{timestamp}.csv"), index=False)
+            sdf.to_csv(os.path.join(args.results_dir, f"train_std_{key}_{timestamp}.csv"), index=False)
+        if not args.no_plots:
+            for ct in ["predictive", "social", "dm", "two_sided"]:
+                plot_comparison_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
+                plot_wealth_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
+                plot_social_welfare_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
+                plot_inequality_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
+
+    # --- Combined plots ---
+    combined_seed_results = []
+    for s in seeds:
+        td = seed_to_train.get(s, {})
+        xd = seed_to_results.get(s, {})
+        if not (expected_keys.issubset(td.keys()) and expected_keys.issubset(xd.keys())):
+            continue
+        combined_seed_results.append(
+            {key: _build_combined_df(td[key], xd[key]) for key in expected_keys}
+        )
+    if combined_seed_results:
+        n_combined = len(combined_seed_results)
+        print(f"  Generating combined (train+test) plots ({n_combined} seeds)…")
+        combined_aggregated = aggregate_across_seeds(combined_seed_results)
+        for key, (mdf, sdf) in combined_aggregated.items():
+            mdf.to_csv(os.path.join(args.results_dir, f"combined_mean_{key}_{timestamp}.csv"), index=False)
+            sdf.to_csv(os.path.join(args.results_dir, f"combined_std_{key}_{timestamp}.csv"), index=False)
+        if not args.no_plots:
+            for ct in ["predictive", "social", "dm", "two_sided"]:
+                plot_comparison_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
+                plot_wealth_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
+                plot_social_welfare_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
+                plot_inequality_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
 
     print("\nDone.")
 

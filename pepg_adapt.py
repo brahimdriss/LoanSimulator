@@ -45,6 +45,11 @@ from pg_run import (
     _band,
     _finish_axes,
     _save,
+    _build_combined_df,
+    plot_comparison_agg,
+    plot_wealth_agg,
+    plot_social_welfare_agg,
+    plot_inequality_agg,
 )
 
 
@@ -287,8 +292,16 @@ def _train_worker(cfg):
         os.makedirs(os.path.dirname(weights_path), exist_ok=True)
         if os.path.exists(weights_path):
             print(f"  [{run_id:3d}/{total}] TRAIN SKIP (weights exist)  seed={seed}  {reward}/{constraint}")
+            train_df = None
+            tmp = cfg.get("train_metrics_path")
+            if tmp and os.path.exists(tmp):
+                try:
+                    train_df = pd.read_csv(tmp)
+                except Exception:
+                    pass
             return {"success": True, "seed": seed, "reward": reward,
-                    "constraint": constraint, "weights_path": weights_path}
+                    "constraint": constraint, "weights_path": weights_path,
+                    "train_df": train_df}
 
         env = TestingIncomeEnvironment(
             theta_params=theta,
@@ -326,6 +339,12 @@ def _train_worker(cfg):
         )
 
         agent.train(num_episodes=cfg["train_episodes"], use_performative=True)
+
+        train_df = agent.get_episode_metrics_dataframe()
+        train_metrics_path = cfg.get("train_metrics_path")
+        if train_metrics_path:
+            train_df.to_csv(train_metrics_path, index=False)
+
         agent.save_model(weights_path)
 
         print(
@@ -333,13 +352,15 @@ def _train_worker(cfg):
             f"seed={seed}  {reward}/{constraint}  eps={cfg['train_episodes']}"
         )
         return {"success": True, "seed": seed, "reward": reward,
-                "constraint": constraint, "weights_path": weights_path}
+                "constraint": constraint, "weights_path": weights_path,
+                "train_df": train_df}
 
     except Exception as exc:
         import traceback
         print(f"  [{run_id}/{total}] TRAIN FAIL  seed={seed}  {reward}/{constraint}: {exc}")
         traceback.print_exc()
-        return {"success": False, "seed": seed, "reward": reward, "constraint": constraint}
+        return {"success": False, "seed": seed, "reward": reward, "constraint": constraint,
+                "train_df": None}
 
 
 # ---------------------------------------------------------------------------
@@ -541,6 +562,10 @@ def main():
                         args.weights_dir,
                         f"pepg_{reward}__{constraint}__seed{seed}.pt"
                     ),
+                    "train_metrics_path": os.path.join(
+                        args.weights_dir,
+                        f"train_metrics_{reward}__{constraint}__seed{seed}.csv"
+                    ),
                     "train_episodes":   args.train_episodes,
                     "warmup_episodes":  args.warmup,
                     "N_male":           args.N_male,
@@ -565,6 +590,12 @@ def main():
 
         n_ok = sum(1 for r in train_results if r["success"])
         print(f"\n  Training done: {n_ok}/{len(train_configs)} successful")
+
+        seed_to_train = defaultdict(dict)
+        for tr in train_results:
+            if tr["success"] and tr.get("train_df") is not None:
+                key = _combo_key(tr["reward"], tr["constraint"])
+                seed_to_train[tr["seed"]][key] = add_derived_columns(tr["train_df"])
     else:
         print(f"\n[1/3] --skip-train: using existing weights in {args.weights_dir}")
         train_results = []
@@ -586,6 +617,20 @@ def main():
                 })
         n_ok = sum(1 for r in train_results if r["success"])
         print(f"  Found {n_ok}/{len(train_results)} weight files")
+
+        seed_to_train = defaultdict(dict)
+        for seed in seeds:
+            for reward, constraint in combos:
+                tmp = os.path.join(
+                    args.weights_dir,
+                    f"train_metrics_{reward}__{constraint}__seed{seed}.csv"
+                )
+                if os.path.exists(tmp):
+                    try:
+                        key = _combo_key(reward, constraint)
+                        seed_to_train[seed][key] = add_derived_columns(pd.read_csv(tmp))
+                    except Exception:
+                        pass
 
     # ------------------------------------------------------------------
     # Phase 2: Deploy — continued performative training on TestingIncomeEnvironment
@@ -718,6 +763,50 @@ def main():
             _plot_wealth(aggregated,         args.results_dir, timestamp, n_complete, ct)
             _plot_social_welfare(aggregated, args.results_dir, timestamp, n_complete, ct)
             _plot_inequality(aggregated,     args.results_dir, timestamp, n_complete, ct)
+
+    # --- Training plots ---
+    train_seed_results = [
+        seed_to_train[s]
+        for s in seeds
+        if expected_keys.issubset(seed_to_train[s].keys())
+    ]
+    if train_seed_results:
+        n_train_complete = len(train_seed_results)
+        print(f"  Generating training plots ({n_train_complete} seeds)…")
+        train_aggregated = aggregate_across_seeds(train_seed_results)
+        for key, (mdf, sdf) in train_aggregated.items():
+            mdf.to_csv(os.path.join(args.results_dir, f"train_mean_{key}_{timestamp}.csv"), index=False)
+            sdf.to_csv(os.path.join(args.results_dir, f"train_std_{key}_{timestamp}.csv"), index=False)
+        if not args.no_plots:
+            for ct in ["predictive", "social", "dm", "two_sided"]:
+                plot_comparison_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
+                plot_wealth_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
+                plot_social_welfare_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
+                plot_inequality_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
+
+    # --- Combined plots ---
+    combined_seed_results = []
+    for s in seeds:
+        td = seed_to_train.get(s, {})
+        xd = seed_to_results.get(s, {})
+        if not (expected_keys.issubset(td.keys()) and expected_keys.issubset(xd.keys())):
+            continue
+        combined_seed_results.append(
+            {key: _build_combined_df(td[key], xd[key]) for key in expected_keys}
+        )
+    if combined_seed_results:
+        n_combined = len(combined_seed_results)
+        print(f"  Generating combined (train+test) plots ({n_combined} seeds)…")
+        combined_aggregated = aggregate_across_seeds(combined_seed_results)
+        for key, (mdf, sdf) in combined_aggregated.items():
+            mdf.to_csv(os.path.join(args.results_dir, f"combined_mean_{key}_{timestamp}.csv"), index=False)
+            sdf.to_csv(os.path.join(args.results_dir, f"combined_std_{key}_{timestamp}.csv"), index=False)
+        if not args.no_plots:
+            for ct in ["predictive", "social", "dm", "two_sided"]:
+                plot_comparison_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
+                plot_wealth_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
+                plot_social_welfare_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
+                plot_inequality_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
 
     print("\nDone.")
 
