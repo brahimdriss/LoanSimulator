@@ -91,10 +91,11 @@ class PolicyGradientAgent:
         self.policy_net = self._build_network(12, hidden_dim).to(self.device)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
 
-        # Learnable lambdas for all modes (except utilitarian_profit)
+        # Learnable lambdas for all modes except utilitarian_profit,
+        # UNLESS constraint is two_sided (learnable alpha blend).
         self.learnable_lambdas = None
         self.lambda_optimizer = None
-        if reward_function != "utilitarian_profit":
+        if reward_function != "utilitarian_profit" or constraint_type == "two_sided":
             self.learnable_lambdas = LearnableLambdas(
                 constraint_type=constraint_type,
                 init_lambda_wealth=lambda_wealth,
@@ -198,7 +199,7 @@ class PolicyGradientAgent:
         lambda_w, lambda_a = self._get_current_lambdas()
 
         while not done:
-            obs_tensor = torch.FloatTensor(obs).to(self.device)
+            obs_tensor = torch.from_numpy(obs).float().to(self.device)
             states.append(obs_tensor)
 
             with torch.amp.autocast("cuda", enabled=self.use_amp):
@@ -214,7 +215,7 @@ class PolicyGradientAgent:
             entropies.append(entropy)
 
             next_obs, _, terminated, truncated, info = self.env.step(
-                action.cpu().numpy()
+                action.detach().cpu().numpy()
             )
             done = terminated or truncated
 

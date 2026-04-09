@@ -153,8 +153,8 @@ def pepg_train_worker(config):
         # Save model
         agent.save_model(weights_path)
 
-        # Save lambda trajectories
-        if config["reward_function"] != "utilitarian_profit":
+        # Save lambda trajectories (also for utilitarian+two_sided which has learnable alpha)
+        if config["reward_function"] != "utilitarian_profit" or config["constraint_type"] == "two_sided":
             save_lambda_history(
                 agent.lambda_history,
                 f"pepg_v2_{config['reward_function']}",
@@ -473,10 +473,11 @@ class PePGAgentV2:
         self.policy_net = self._build_policy_network(12, hidden_dim).to(self.device)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
 
-        # Learnable lambdas
+        # Learnable lambdas for all modes except utilitarian_profit,
+        # UNLESS constraint is two_sided (learnable alpha blend).
         self.learnable_lambdas = None
         self.lambda_optimizer = None
-        if reward_function != "utilitarian_profit":
+        if reward_function != "utilitarian_profit" or constraint_type == "two_sided":
             self.learnable_lambdas = LearnableLambdas(
                 constraint_type=constraint_type,
                 init_lambda_wealth=lambda_wealth,
@@ -1402,10 +1403,10 @@ class PePGAgentV2:
 
         self.lambda_optimizer.zero_grad()
 
-        if self.constraint_type == "wealth":
+        if self.constraint_type in ["wealth", "social", "two_sided"]:
             lambda_wealth_tensor = self.learnable_lambdas.lambda_wealth
             lambda_loss = -(lambda_wealth_tensor * wealth_gap)
-        elif self.constraint_type == "approval_rate":
+        elif self.constraint_type in ["approval_rate", "predictive"]:
             lambda_approval_tensor = self.learnable_lambdas.lambda_approval
             lambda_loss = -(lambda_approval_tensor * rate_gap)
         elif self.constraint_type == "both":
@@ -1414,6 +1415,14 @@ class PePGAgentV2:
             lambda_loss = -(
                 lambda_wealth_tensor * wealth_gap + lambda_approval_tensor * rate_gap
             )
+        elif self.constraint_type == "dm":
+            rho_R = self.env.total_defaults_R / max(self.env.total_loans_R, 1)
+            rho_B = self.env.total_defaults_B / max(self.env.total_loans_B, 1)
+            r_R = self.env.interest_rate * (1 - rho_R) - rho_R
+            r_B = self.env.interest_rate * (1 - rho_B) - rho_B
+            profit_rate_gap = abs(r_R - r_B)
+            lambda_wealth_tensor = self.learnable_lambdas.lambda_wealth
+            lambda_loss = -(lambda_wealth_tensor * profit_rate_gap)
         else:
             return
 

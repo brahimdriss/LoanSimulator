@@ -88,7 +88,9 @@ def _pepg_combo_label(reward, constraint):
 
 def _default_lambdas(reward, constraint):
     if reward == "utilitarian_profit":
-        return 0.0, 0.0
+        # two_sided gets a learnable alpha initialised at 0.5; others have no penalty
+        lw = 0.5 if constraint == "two_sided" else 0.0
+        return lw, 0.0
     lw = 0.5 if constraint == "two_sided" else (
         5.0 if reward == "rawlsian_maximin" else 2.0
     )

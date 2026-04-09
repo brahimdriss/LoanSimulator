@@ -321,7 +321,7 @@ class PePGAgentV2:
 
     def get_action(self, obs: np.ndarray) -> Tuple[float, float]:
         """Get action from policy."""
-        obs_tensor = torch.FloatTensor(obs).unsqueeze(0).to(self.device)
+        obs_tensor = torch.from_numpy(obs).float().unsqueeze(0).to(self.device)
 
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=self.use_amp):
@@ -643,7 +643,7 @@ class PePGAgentV2:
             states.append(obs.copy())
 
             # Get action from policy
-            obs_tensor = torch.FloatTensor(obs).to(self.device)
+            obs_tensor = torch.from_numpy(obs).float().to(self.device)
 
             with torch.cuda.amp.autocast(enabled=self.use_amp):
                 alpha, beta = self.policy_net(obs_tensor.unsqueeze(0))
@@ -652,8 +652,8 @@ class PePGAgentV2:
             action = dist.sample()
             log_prob = dist.log_prob(action)
 
-            action_np = action.cpu().numpy()
-            approval_prob = float(action_np[0].item())
+            action_np = action.detach().cpu().numpy()
+            approval_prob = float(action_np[0])
             actions.append(approval_prob)
             log_probs.append(log_prob.cpu().item())
 

@@ -1,4 +1,5 @@
 import pickle
+from collections import deque
 from typing import Optional
 
 import gymnasium as gym
@@ -171,8 +172,8 @@ class TestingIncomeEnvironment(gym.Env):
         self.mu_M_0 = self.mu_M
         self.mu_F_0 = self.mu_F
 
-        self.event_times_R = []
-        self.event_times_B = []
+        self.event_times_R = deque()
+        self.event_times_B = deque()
 
         self.total_defaults_M = 0
         self.total_defaults_F = 0
@@ -190,7 +191,7 @@ class TestingIncomeEnvironment(gym.Env):
         self.time_index = 0
         self.global_timestep = 0
 
-        self.pending_applications = []
+        self.pending_applications = deque()
         self.current_applicant = None
         self.timestep_data = None
         self.timestep_profit = 0.0
@@ -246,7 +247,7 @@ class TestingIncomeEnvironment(gym.Env):
         self.time_steps = np.arange(start_time, start_time + self.T, self.dt)
         self.time_index = 0
 
-        self.pending_applications = []
+        self.pending_applications = deque()
         self.current_applicant = None
         self.timestep_data = None
         self.timestep_profit = 0.0
@@ -372,13 +373,16 @@ class TestingIncomeEnvironment(gym.Env):
     # ------------------------------------------------------------------
 
     def _prune_hawkes_events(self, t: float) -> None:
-        """Drop events whose excitation has decayed below 1e-6 (negligible)."""
+        """Drop events whose excitation has decayed below 1e-6 (negligible).
+        Events are appended in time order so pruning from the left is O(k)
+        where k = number of expired events (usually 0 or very small).
+        """
         cutoff_R = t - self._hawkes_cutoff_R
         cutoff_B = t - self._hawkes_cutoff_B
-        if self.event_times_R:
-            self.event_times_R = [e for e in self.event_times_R if e > cutoff_R]
-        if self.event_times_B:
-            self.event_times_B = [e for e in self.event_times_B if e > cutoff_B]
+        while self.event_times_R and self.event_times_R[0] <= cutoff_R:
+            self.event_times_R.popleft()
+        while self.event_times_B and self.event_times_B[0] <= cutoff_B:
+            self.event_times_B.popleft()
 
     def _f_networth_to_rate(self, mu: float) -> float:
         mu = mu * 5.0
@@ -388,22 +392,17 @@ class TestingIncomeEnvironment(gym.Env):
         base_rate = self._f_networth_to_rate(self.mu_M)
         if not self.event_times_R:
             return base_rate
-        event_array = np.array(self.event_times_R)
-        ages = t - event_array[event_array < t]
-        if len(ages) == 0:
-            return base_rate
-        excitation = np.sum(self.alpha_R * np.exp(-self.beta_R * ages))
+        # After pruning, all events in deque are <= t; ages are all >= 0
+        ages = t - np.fromiter(self.event_times_R, dtype=np.float64, count=len(self.event_times_R))
+        excitation = self.alpha_R * np.sum(np.exp(-self.beta_R * ages))
         return base_rate + excitation
 
     def _compute_lambda_B(self, t: float) -> float:
         base_rate = self._f_networth_to_rate(self.mu_F)
         if not self.event_times_B:
             return base_rate
-        event_array = np.array(self.event_times_B)
-        ages = t - event_array[event_array < t]
-        if len(ages) == 0:
-            return base_rate
-        excitation = np.sum(self.alpha_B * np.exp(-self.beta_B * ages))
+        ages = t - np.fromiter(self.event_times_B, dtype=np.float64, count=len(self.event_times_B))
+        excitation = self.alpha_B * np.sum(np.exp(-self.beta_B * ages))
         return base_rate + excitation
 
     # ------------------------------------------------------------------
@@ -653,7 +652,7 @@ class TestingIncomeEnvironment(gym.Env):
                         self.episode_profit += profit
 
         if self.pending_applications:
-            self.current_applicant = self.pending_applications.pop(0)
+            self.current_applicant = self.pending_applications.popleft()
         else:
             self.current_applicant = None
 
@@ -672,7 +671,7 @@ class TestingIncomeEnvironment(gym.Env):
 
                 self._prune_hawkes_events(self.current_time)
                 timestep_info = self._generate_timestep_applications()
-                self.pending_applications = timestep_info["applications"].copy()
+                self.pending_applications = deque(timestep_info["applications"])
 
                 self.timestep_data = {
                     "apply_select_M": timestep_info["apply_select_M"].copy(),
@@ -688,7 +687,7 @@ class TestingIncomeEnvironment(gym.Env):
                 }
 
                 if self.pending_applications:
-                    self.current_applicant = self.pending_applications.pop(0)
+                    self.current_applicant = self.pending_applications.popleft()
 
         terminated = (
             self.time_index >= len(self.time_steps) and self.current_applicant is None

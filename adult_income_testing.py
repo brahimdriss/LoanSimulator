@@ -113,6 +113,7 @@ class AdultIncomeDataLoader:
                     "capital-loss": "capital_loss",
                     "hours-per-week": "hours_per_week",
                     "native-country": "native_country",
+                    "gender": "sex",
                 }
                 self.data = self.data.rename(columns=column_mapping)
 
