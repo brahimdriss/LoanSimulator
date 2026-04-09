@@ -565,6 +565,8 @@ class TestingIncomeEnvironment(gym.Env):
             "lambda_B": lambda_B,
             "n_arrivals_M": n_M,
             "n_arrivals_F": n_F,
+            "p_theta_R": float(app_probs_M.mean()),
+            "p_theta_B": float(app_probs_F.mean()),
         }
 
     # ------------------------------------------------------------------
@@ -680,6 +682,8 @@ class TestingIncomeEnvironment(gym.Env):
                     "lambda_B": timestep_info["lambda_B"],
                     "n_arrivals_M": timestep_info["n_arrivals_M"],
                     "n_arrivals_F": timestep_info["n_arrivals_F"],
+                    "p_theta_R": timestep_info["p_theta_R"],
+                    "p_theta_B": timestep_info["p_theta_B"],
                     "approvals_M": 0,
                     "approvals_F": 0,
                     "defaults_M": 0,
@@ -695,12 +699,16 @@ class TestingIncomeEnvironment(gym.Env):
         truncated = False
 
         obs = self._get_observation()
+        p_theta_R = self.timestep_data["p_theta_R"] if self.timestep_data else 0.0
+        p_theta_B = self.timestep_data["p_theta_B"] if self.timestep_data else 0.0
         info = {
             "time": self.current_time,
             "mu_M": self.mu_M,
             "mu_F": self.mu_F,
             "wealth_gap": self.mu_M - self.mu_F,
             "episode": self.total_episodes,
+            "p_theta_R": p_theta_R,
+            "p_theta_B": p_theta_B,
         }
         return obs, reward, terminated, truncated, info
 

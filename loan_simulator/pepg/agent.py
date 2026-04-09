@@ -324,7 +324,7 @@ class PePGAgentV2:
         obs_tensor = torch.from_numpy(obs).float().unsqueeze(0).to(self.device)
 
         with torch.no_grad():
-            with torch.cuda.amp.autocast(enabled=self.use_amp):
+            with torch.amp.autocast('cuda', enabled=self.use_amp):
                 alpha, beta = self.policy_net(obs_tensor)
 
         dist = Beta(alpha, beta)
@@ -645,7 +645,7 @@ class PePGAgentV2:
             # Get action from policy
             obs_tensor = torch.from_numpy(obs).float().to(self.device)
 
-            with torch.cuda.amp.autocast(enabled=self.use_amp):
+            with torch.amp.autocast('cuda', enabled=self.use_amp):
                 alpha, beta = self.policy_net(obs_tensor.unsqueeze(0))
 
             dist = Beta(alpha, beta)
