@@ -16,15 +16,15 @@ source $SCRATCH/envs/circuit-tracing/bin/activate
 cd ~/projects/def-zhijing/vpalit/LoanSimulator
 
 mkdir -p logs/pepg_adapt
-mkdir -p $SCRATCH/loansim/weights_pepg_adapt
-mkdir -p $SCRATCH/loansim/results_pepg_adapt
+mkdir -p weights_pepg_adapt
+mkdir -p results_pepg_adapt
 
 export PYTHONUNBUFFERED=1
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 python pepg_adapt.py \
-    --data              $SCRATCH/loansim/adult_income.csv \
+    --data              adult.csv \
     --N-male            3000 \
     --N-female          3000 \
     --train-episodes    1000 \
@@ -33,6 +33,6 @@ python pepg_adapt.py \
     --buffer-capacity   50 \
     --seeds             10 \
     --workers           12 \
-    --weights-dir       $SCRATCH/loansim/weights_pepg_adapt \
-    --results-dir       $SCRATCH/loansim/results_pepg_adapt \
+    --weights-dir       weights_pepg_adapt \
+    --results-dir       results_pepg_adapt \
     --save-per-seed-csv
