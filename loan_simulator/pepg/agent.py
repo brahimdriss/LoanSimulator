@@ -61,6 +61,7 @@ class PePGAgentV2:
         reward_weight: float = 1.0,
         hawkes_weight: float = 1.0,
         wealth_weight: float = 1.0,
+        entropy_coef: float = 0.0,
     ):
         """
         Initialize PePG Agent V2.
@@ -83,6 +84,9 @@ class PePGAgentV2:
             reward_weight: Weight for reward gradient
             hawkes_weight: Weight for Hawkes component of transition gradient
             wealth_weight: Weight for wealth component of transition gradient
+            entropy_coef: Entropy regularisation coefficient λ (PePG paper Def. 5).
+                          Shifts reward to soft reward r̃ = r - λ·log π(a|s).
+                          0.0 = unregularised PePG (default).
         """
         self.env = env
         self.reward_func_name = reward_function
@@ -102,6 +106,7 @@ class PePGAgentV2:
         self.reward_weight = reward_weight
         self.hawkes_weight = hawkes_weight
         self.wealth_weight = wealth_weight
+        self.entropy_coef = entropy_coef
 
         # Performative settings
         self.buffer_capacity = buffer_capacity
@@ -511,8 +516,9 @@ class PePGAgentV2:
         dist = Beta(alpha.squeeze(-1), beta.squeeze(-1))
         log_probs = dist.log_prob(actions_tensor.clamp(1e-6, 1 - 1e-6))
 
-        # Compute entropy for monitoring
-        entropy = dist.entropy().mean().item()
+        # Compute entropy for monitoring and regularisation
+        entropy_per_step = dist.entropy().squeeze(-1) if dist.entropy().dim() > 1 else dist.entropy()
+        entropy = entropy_per_step.mean().item()
 
         # Discounted policy gradient
         discounts = torch.FloatTensor([self.gamma**t for t in range(T)]).to(self.device)
@@ -527,6 +533,12 @@ class PePGAgentV2:
         policy_loss = -(
             discounts * (pg_component + transition_component + reward_component)
         ).sum()
+
+        # Entropy regularisation (PePG paper Def. 5, Eq. 7):
+        # soft reward r̃ = r - λ·log π(a|s)  ⟹  maximise entropy ⟹ subtract from loss
+        if self.entropy_coef > 0:
+            entropy_bonus = (discounts * entropy_per_step).sum()
+            policy_loss = policy_loss - self.entropy_coef * entropy_bonus
 
         policy_loss.backward()
 

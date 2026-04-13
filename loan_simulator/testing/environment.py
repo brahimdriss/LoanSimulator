@@ -688,6 +688,8 @@ class TestingIncomeEnvironment(gym.Env):
                     "approvals_F": 0,
                     "defaults_M": 0,
                     "defaults_F": 0,
+                    "p_theta_R": timestep_info["p_theta_R"],
+                    "p_theta_B": timestep_info["p_theta_B"],
                 }
 
                 if self.pending_applications:
@@ -699,16 +701,18 @@ class TestingIncomeEnvironment(gym.Env):
         truncated = False
 
         obs = self._get_observation()
-        p_theta_R = self.timestep_data["p_theta_R"] if self.timestep_data else 0.0
-        p_theta_B = self.timestep_data["p_theta_B"] if self.timestep_data else 0.0
         info = {
             "time": self.current_time,
             "mu_M": self.mu_M,
             "mu_F": self.mu_F,
+            "mu_R": self.mu_M,
+            "mu_B": self.mu_F,
             "wealth_gap": self.mu_M - self.mu_F,
+            "applicant": self.current_applicant,
+            "agent_approval_prob": approval_prob,
+            "p_theta_R": self.timestep_data["p_theta_R"] if self.timestep_data else 0.0,
+            "p_theta_B": self.timestep_data["p_theta_B"] if self.timestep_data else 0.0,
             "episode": self.total_episodes,
-            "p_theta_R": p_theta_R,
-            "p_theta_B": p_theta_B,
         }
         return obs, reward, terminated, truncated, info
 
