@@ -360,16 +360,16 @@ class PePGAgentV2:
         current_time = self.env.current_time
         decay_window = 50.0
 
-        event_times_R = [
+        event_times_R = deque(
             t - current_time
             for t in self.env.event_times_R
             if current_time - t < decay_window
-        ]
-        event_times_B = [
+        )
+        event_times_B = deque(
             t - current_time
             for t in self.env.event_times_B
             if current_time - t < decay_window
-        ]
+        )
 
         # Standard reset
         obs, info = self.env.reset()

@@ -98,7 +98,10 @@ class RewardFunction:
         elif constraint_type == "two_sided":
             alpha       = lambda_wealth
             bank_profit = RewardFunction._calculate_bank_profit(env, action, applicant)
-            return (1 - alpha) * bank_profit + alpha * (env.mu_R + env.mu_B)
+            mean_loan   = float(np.mean(env.theta_params.individual_loan_amounts["male"] +
+                                        env.theta_params.individual_loan_amounts["female"]))
+            wealth_norm = (env.mu_R + env.mu_B) / (mean_loan * 2 + 1e-8)
+            return (1 - alpha) * bank_profit + alpha * wealth_norm
 
         else:
             raise ValueError(f"Unknown constraint_type: {constraint_type!r}")

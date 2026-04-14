@@ -30,7 +30,9 @@ python pg_adapt.py \
     --train-episodes    1000 \
     --deploy-episodes   1000 \
     --warmup            20 \
-    --seeds             5 \
+    --seeds             3 \
+    --reward            utilitarian_profit \
+    --constraint        two_sided \
     --workers           12 \
     --weights-dir       weights_pg_adapt \
     --results-dir       results_pg_adapt \

@@ -811,8 +811,8 @@ class TestingIncomeEnvironment(gym.Env):
         self.episode_actual_approvals_F = checkpoint.get("episode_actual_approvals_F", 0)
         self.episode_true_approvals_M = checkpoint.get("episode_true_approvals_M", 0)
         self.episode_true_approvals_F = checkpoint.get("episode_true_approvals_F", 0)
-        self.event_times_R = checkpoint["event_times_R"]
-        self.event_times_B = checkpoint["event_times_B"]
+        self.event_times_R = deque(checkpoint["event_times_R"])
+        self.event_times_B = deque(checkpoint["event_times_B"])
         self.total_defaults_M = checkpoint["total_defaults_M"]
         self.total_defaults_F = checkpoint["total_defaults_F"]
         self.total_loans_M = checkpoint["total_loans_M"]

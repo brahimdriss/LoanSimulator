@@ -31,7 +31,9 @@ python pepg_adapt.py \
     --deploy-episodes   1000 \
     --warmup            20 \
     --buffer-capacity   50 \
-    --seeds             10 \
+    --seeds             3 \
+    --reward            utilitarian_profit \
+    --constraint        two_sided \
     --workers           12 \
     --weights-dir       weights_pepg_adapt \
     --results-dir       results_pepg_adapt \
