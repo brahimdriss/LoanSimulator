@@ -58,24 +58,19 @@ from pg_run import (
 # ---------------------------------------------------------------------------
 
 PEPG_COMBOS = [
-    ("utilitarian_profit",  "predictive"),
     ("utilitarian_profit",  "dm"),
     ("utilitarian_profit",  "two_sided"),
-    ("social_welfare",      "predictive"),
     ("social_welfare",      "social"),
     ("social_welfare",      "two_sided"),
-    ("rawlsian_maximin",    "predictive"),
     ("rawlsian_maximin",    "social"),
     ("rawlsian_maximin",    "dm"),
     ("rawlsian_maximin",    "two_sided"),
-    ("fairness_lagrangian", "predictive"),
     ("fairness_lagrangian", "social"),
     ("fairness_lagrangian", "dm"),
     ("fairness_lagrangian", "two_sided"),
 ]
 
 PEPG_CONSTRAINT_LABELS = {
-    "predictive": "Predictive",
     "social":     "Social",
     "dm":         "DM",
     "two_sided":  "Two-Sided",
@@ -804,7 +799,7 @@ def main():
             mdf.to_csv(os.path.join(args.results_dir, f"combined_mean_{key}_{timestamp}.csv"), index=False)
             sdf.to_csv(os.path.join(args.results_dir, f"combined_std_{key}_{timestamp}.csv"), index=False)
         if not args.no_plots:
-            for ct in ["predictive", "social", "dm", "two_sided"]:
+            for ct in ["social", "dm", "two_sided"]:
                 plot_comparison_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
                 plot_wealth_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
                 plot_social_welfare_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
