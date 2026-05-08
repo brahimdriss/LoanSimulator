@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Static pre-train → Performative fine-tune (PG adaptation).
 
@@ -6,17 +5,6 @@ Phase 1: Train PG on IncomeEnvironment (static, resets every episode).
 Phase 2: Load weights, continue training on TestingIncomeEnvironment
          (performative, state carries over between episodes). Collect metrics.
 Phase 3: Aggregate mean ± std across seeds, save CSVs, generate plots.
-
-Usage
------
-  python pg_adapt.py \
-      --weights-dir /content/drive/MyDrive/Long-term-Fairness-NeurIPS/weights_adapt \
-      --results-dir /content/drive/MyDrive/Long-term-Fairness-NeurIPS/results_adapt \
-      --seeds 3 --train-episodes 500 --deploy-episodes 500 \
-      --N-male 3000 --N-female 3000
-
-  # Skip training if weights already exist:
-  python pg_adapt.py --skip-train --weights-dir ... --results-dir ...
 """
 
 import argparse
