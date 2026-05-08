@@ -8,3 +8,10 @@ auto_push.log
 *.json
 
 stable/
+
+# Exclude identity-revealing and large output files
+*.sh
+*.out
+*.err
+results_*/
+weights_*/

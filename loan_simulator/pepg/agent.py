@@ -875,15 +875,22 @@ class PePGAgentV2:
 
         self.lambda_optimizer.zero_grad()
 
-        if self.constraint_type == "wealth":
+        if self.constraint_type in ("wealth", "social", "two_sided"):
             lambda_loss = -(self.learnable_lambdas.lambda_wealth * wealth_gap)
-        elif self.constraint_type == "approval_rate":
+        elif self.constraint_type in ("approval_rate", "predictive"):
             lambda_loss = -(self.learnable_lambdas.lambda_approval * rate_gap)
         elif self.constraint_type == "both":
             lambda_loss = -(
                 self.learnable_lambdas.lambda_wealth * wealth_gap
                 + self.learnable_lambdas.lambda_approval * rate_gap
             )
+        elif self.constraint_type == "dm":
+            rho_R = self.env.total_defaults_R / max(self.env.total_loans_R, 1)
+            rho_B = self.env.total_defaults_B / max(self.env.total_loans_B, 1)
+            r_R = self.env.interest_rate * (1 - rho_R) - rho_R
+            r_B = self.env.interest_rate * (1 - rho_B) - rho_B
+            profit_rate_gap = abs(r_R - r_B)
+            lambda_loss = -(self.learnable_lambdas.lambda_wealth * profit_rate_gap)
         else:
             return
 
@@ -901,15 +908,22 @@ class PePGAgentV2:
 
         self.lambda_optimizer.zero_grad()
 
-        if self.constraint_type == "wealth":
+        if self.constraint_type in ("wealth", "social", "two_sided"):
             lambda_loss = -(self.learnable_lambdas.lambda_wealth * wealth_gap)
-        elif self.constraint_type == "approval_rate":
+        elif self.constraint_type in ("approval_rate", "predictive"):
             lambda_loss = -(self.learnable_lambdas.lambda_approval * rate_gap)
         elif self.constraint_type == "both":
             lambda_loss = -(
                 self.learnable_lambdas.lambda_wealth * wealth_gap
                 + self.learnable_lambdas.lambda_approval * rate_gap
             )
+        elif self.constraint_type == "dm":
+            rho_R = self.env.total_defaults_R / max(self.env.total_loans_R, 1)
+            rho_B = self.env.total_defaults_B / max(self.env.total_loans_B, 1)
+            r_R = self.env.interest_rate * (1 - rho_R) - rho_R
+            r_B = self.env.interest_rate * (1 - rho_B) - rho_B
+            profit_rate_gap = abs(r_R - r_B)
+            lambda_loss = -(self.learnable_lambdas.lambda_wealth * profit_rate_gap)
         else:
             return 0.0, wealth_gap, rate_gap
 

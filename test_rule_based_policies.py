@@ -33,7 +33,7 @@ from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
 
-# ---------------------------------------------------------------------------
+# -----------a----------------------------------------------------------------
 # Observation index constants
 # ---------------------------------------------------------------------------
 OBS_X_NORM   = 0   # X / 100  (credit-score proxy)
@@ -600,11 +600,14 @@ def main():
     parser.add_argument("--credit-threshold", type=float, default=0.5,
                         help="Ground-truth creditworthiness threshold (default: 0.5)")
     parser.add_argument("--results-dir", type=str, default="./rule_policy_results")
+    parser.add_argument("--checkpoint-dir", type=str, default=None)
     parser.add_argument("--no-plots", action="store_true")
     args = parser.parse_args()
 
     np.random.seed(args.seed)
     os.makedirs(args.results_dir, exist_ok=True)
+    checkpoint_dir = args.checkpoint_dir or os.path.join(args.results_dir, "checkpoints")
+    os.makedirs(checkpoint_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     print("=" * 70)
@@ -626,7 +629,7 @@ def main():
 
     print("\n[2] Fitting transition parameters...")
     theta_learner = TransitionParameterLearner(
-        default_rate_min=0.02, default_rate_max=0.15
+        default_rate_min=0.14, default_rate_max=0.16
     )
     theta_learner.fit(loader.data)
 
@@ -644,22 +647,49 @@ def main():
     ]
 
     # ------------------------------------------------------------------ #
-    # Run all policies in parallel (one process per policy)
+    # Load existing checkpoint CSVs — skip those policies (pepg_adapt style)
     # ------------------------------------------------------------------ #
-    worker_args = [
-        (policy, loader, theta_learner,
-         args.N_male, args.N_female, args.T, args.dt,
-         args.seed, args.episodes)
-        for policy in policies
-    ]
+    all_metrics    = {}
+    policies_to_run = []
+    n_loaded = 0
 
-    n_workers = min(len(policies), mp.cpu_count())
-    print(f"\n[3] Running {len(policies)} policies in parallel ({n_workers} workers)...")
+    for policy in policies:
+        ckpt_path = os.path.join(checkpoint_dir, f"policy_{policy.name}_seed{args.seed}.csv")
+        if os.path.exists(ckpt_path):
+            try:
+                all_metrics[policy.name] = pd.read_csv(ckpt_path)
+                n_loaded += 1
+                print(f"  Loaded checkpoint: {policy.name}")
+            except Exception:
+                policies_to_run.append(policy)
+        else:
+            policies_to_run.append(policy)
 
-    with mp.Pool(processes=n_workers) as pool:
-        results = pool.map(_policy_worker, worker_args)
+    if n_loaded:
+        print(f"\n  Loaded {n_loaded} checkpoint(s) — skipping those policies.")
 
-    all_metrics = {name: df for name, df in results}
+    # ------------------------------------------------------------------ #
+    # Run remaining policies in parallel (one process per policy)
+    # ------------------------------------------------------------------ #
+    if policies_to_run:
+        worker_args = [
+            (policy, loader, theta_learner,
+             args.N_male, args.N_female, args.T, args.dt,
+             args.seed, args.episodes)
+            for policy in policies_to_run
+        ]
+
+        n_workers = min(len(policies_to_run), mp.cpu_count())
+        print(f"\n[3] Running {len(policies_to_run)} policies in parallel ({n_workers} workers)...")
+
+        with mp.Pool(processes=n_workers) as pool:
+            for name, df in pool.imap_unordered(_policy_worker, worker_args):
+                all_metrics[name] = df
+                ckpt_path = os.path.join(checkpoint_dir, f"policy_{name}_seed{args.seed}.csv")
+                df.to_csv(ckpt_path, index=False)
+                print(f"  Checkpointed: {name}")
+    else:
+        print("\n[3] All policies already checkpointed — skipping to saving.")
 
     # Print summaries in original policy order
     for policy in policies:
