@@ -1,25 +1,4 @@
 #!/usr/bin/env python3
-"""
-Radar plots: spokes = metrics, lines = reward functions.
-One plot per (agent × constraint × ep_range).
-
-Output: 24 figures  (3 agents × 4 constraints × 2 ep-ranges)
-Naming: final_radar_{tag}_{ep_label}__{constraint}.png
-
-Metrics (spokes):
-  - Wealth Gap          (lower = better)
-  - Social Welfare R̄   (higher = better)
-  - Cumulative Profit   (higher = better)
-  - |ρ − 1|            (lower = better, 0 = equal growth)
-
-Normalisation: global-max reference.
-  score = v / global_max              (higher-is-better metrics)
-  score = 1 − v / global_max          (lower-is-better metrics)
-  global_max = max across ALL agents × rewards × constraints × ep_range.
-  This preserves magnitudes: 0.5 always means "half of the best observed value".
-
-Episode values: exact episode 100 (short-term) or 1000 (long-term).
-"""
 
 import glob
 import os

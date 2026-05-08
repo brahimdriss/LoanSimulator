@@ -1,16 +1,3 @@
-"""
-Command-line entry point for PePG V2 (Performative Policy Gradient) experiments.
-
-Single-seed usage:
-    python pepg_main.py --episodes 100 --reward social_welfare --constraint wealth
-
-Multi-seed parallel usage:
-    python pepg_main.py --seeds 5 --seed 1 --episodes 100 --reward all --workers 8
-
-Load a pre-trained agent:
-    python pepg_main.py --load ./weights_pepg_v2/pepg_social_welfare_wealth_seed0.pt
-"""
-
 import multiprocessing as mp
 import os
 import pickle

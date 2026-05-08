@@ -1,22 +1,4 @@
 #!/usr/bin/env python3
-"""
-Policy gradient performative training + frozen deployment on TestingIncomeEnvironment.
-
-Trains PG agents on TestingIncomeEnvironment (performative, state preserved across
-episodes) for all valid (reward_function, constraint_type) combos across multiple
-seeds, then deploys trained weights frozen (no gradient updates) on the same env.
-
-Valid combos (14 of 16 — skips undefined cells):
-  Skip: (utilitarian_profit, social), (social_welfare, dm)
-
-Plots use colour = reward_function, linestyle = constraint_type.
-
-Usage
------
-  python pg_run.py --seeds 3 --train-episodes 100 --test-episodes 50
-  python pg_run.py --seed-list 0 7 42 --train-episodes 200 --test-episodes 100
-  python pg_run.py --reward social_welfare --constraint social --seeds 3
-"""
 
 import argparse
 import multiprocessing as mp

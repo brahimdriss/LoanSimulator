@@ -1,13 +1,3 @@
-"""
-Performative PePG train → Performative deploy on TestingIncomeEnvironment.
-
-Phase 1: Train PePGAgentV2 on TestingIncomeEnvironment (state preserved, performative).
-         (Performative gradients — explicit Hawkes + wealth terms.)
-Phase 2: Load weights, continue performative training on TestingIncomeEnvironment.
-         (State preserved across episodes — true performative deployment.)
-Phase 3: Aggregate mean ± std across seeds, save CSVs, generate plots.
-"""
-
 import argparse
 import multiprocessing as mp
 import os

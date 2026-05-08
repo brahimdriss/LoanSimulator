@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-"""
-post_process_rule_policies.py
-
-Loads per-seed checkpoint CSVs from a rule-based policy run, aggregates mean +- std
-across seeds, saves aggregated CSVs, and generates plots with +- std bands.
-
-Usage:
-    python post_process_rule_policies.py \
-        --results-dir ./rule_policy_results \
-        --seeds 10
-"""
 
 import argparse
 import os

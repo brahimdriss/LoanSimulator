@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""
-Regenerate all PePG adapt plots from existing mean_*.csv / std_*.csv files.
-Picks the latest file for each combo key (by timestamp in filename).
-
-Usage
------
-  python replot_pepg.py
-  python replot_pepg.py --results-dir results_pepg_adapt --output-dir results_pepg_adapt/plots
-"""
 
 import argparse
 import glob

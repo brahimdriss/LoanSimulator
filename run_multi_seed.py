@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""
-Multi-seed scheduler for rule-based policy evaluation.
-
-Runs all rule-based policies across N independent seeds, aggregates
-mean ± std of episode metrics, and produces final plots with shaded
-confidence bands.
-
-Usage
------
-  uv run python run_multi_seed.py --seeds 5 --episodes 200
-  uv run python run_multi_seed.py --seed-list 0 7 42 99 123 --episodes 100
-  uv run python run_multi_seed.py --seeds 10 --episodes 200 --results-dir ./multi_seed_results
-"""
 
 import argparse
 import multiprocessing as mp

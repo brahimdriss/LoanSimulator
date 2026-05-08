@@ -1,19 +1,3 @@
-"""
-Performative Policy Gradient (PePG) Agent for Fair Lending - Version 2
-
-Explicit modeling of performative effects in lending:
-1. Hawkes process: approvals add events → increase future application intensity
-2. Wealth dynamics: approvals (with success) → increase borrower wealth → change μ_g
-3. Reward: bank profit + fairness constraints depend on evolved distributions
-
-Implements Theorem 2:
-∇θV = E[Σt γ^t (A(st,at)·∇θ log πθ(at|st) + ∇θ log P_πθ(st+1|st,at) + ∇θ r_πθ(st,at))]
-
-Key insight: We explicitly track how policy decisions affect:
-- Hawkes intensity: λ_g(t) = base(μ_g) + α Σ exp(-β(t-t_i)) for approved events
-- Wealth distribution: μ_g changes with approved loans that don't default
-"""
-
 import copy
 import gc
 import json

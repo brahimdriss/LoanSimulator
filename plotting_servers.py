@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-Plotting script for fairness experiment results split across multiple servers.
-
-Scans multiple server directories (e.g. episode_metrics_pg_test_bob,
-episode_metrics_pg_test_flanders) and merges their results before plotting.
-
-Usage:
-    python plotting_servers.py episode_metrics_pg_test_bob episode_metrics_pg_test_flanders
-    python plotting_servers.py episode_metrics_pg_test_* --log-scale
-"""
 
 import os
 import glob

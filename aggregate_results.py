@@ -1,22 +1,4 @@
 #!/usr/bin/env python3
-"""
-Aggregate and plot results from one or more completed pepg_adapt / pg_adapt runs.
-
-Usage
------
-  # Single results dir:
-  python aggregate_results.py --results-dirs results_pepg_adapt
-
-  # Merge multiple runs (e.g. different combos run separately):
-  python aggregate_results.py --results-dirs results_pepg_adapt results_pepg_adapt_run2
-
-  # Specify which combos to expect (default: all 14 PEPG combos):
-  python aggregate_results.py --results-dirs results_pepg_adapt \
-      --reward utilitarian_profit --constraint two_sided
-
-  # PG adapt results:
-  python aggregate_results.py --results-dirs results_pg_adapt --mode pg
-"""
 
 import argparse
 import os

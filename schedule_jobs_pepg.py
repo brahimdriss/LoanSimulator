@@ -1,24 +1,4 @@
 #!/usr/bin/env python3
-"""
-Sequential PePG Job Scheduler
-
-Runs training jobs (rewards x constraints x seeds) sequentially on a single GPU.
-Features:
-- Progress tracking with JSON file for resume support
-- Timestamped logging to global log file
-- Individual job logs for debugging
-- Failure handling with continuation to next job
-
-Usage:
-  # Start/resume all jobs
-  uv run python schedule_jobs_pepg.py --episodes 200
-
-  # Check what would run (dry run)
-  uv run python schedule_jobs_pepg.py --dry-run
-
-  # Run in background with nohup
-  nohup uv run python schedule_jobs_pepg.py --episodes 200 > scheduler_output.log 2>&1 &
-"""
 
 import argparse
 import os

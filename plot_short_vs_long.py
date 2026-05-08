@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""
-Generate short-term (ep 1-100) versions of the standard comparison, wealth,
-social-welfare, and inequality plots for pepg_adapt, pg, and static results.
-
-Plots are saved with a "short_term_" prefix in the same results directory,
-using the exact same format as the originals.
-"""
 
 import os
 import glob

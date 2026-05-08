@@ -1,18 +1,4 @@
 #!/usr/bin/env python3
-"""
-Generate plots grouped by reward function, with constraints as the coloured lines.
-Produces both short-term (ep 1-100) and long-term (ep 1-1000) versions.
-
-Saved in the same results directory with prefix:
-  short_term_bycst_   (ep 1-100)
-  long_term_bycst_    (ep 1-1000)
-
-Four plot types per (reward, episode-range, constraint-set):
-  *_comparison_*     2×2: wealth gap, approval disparity, profit, R_g
-  *_wealth_*         2×2: μ_M, μ_F, cumulative profit, ρ
-  *_social_welfare_* 1×3: R_M, R_F, R̄
-  *_inequality_*     1×3: wealth gap, approval disparity, ρ(t)
-"""
 
 import glob
 import os

@@ -1,24 +1,4 @@
 #!/usr/bin/env python3
-"""
-Rule-based policy baselines on the performative testing environment.
-
-Policies (as per document):
-  1. always_approve          Approve all loans              p = 1.0
-  2. always_reject           Reject all loans               p = 0.0
-  3. uniform_acceptance      Randomised                     p ~ U(0, 1)
-  4. oracle                  Ground-truth creditworthiness  p = ground_truth (0 or 1)
-  5. pattern_prediction      Learned credit model score     p = theta_approval_prob
-  6. rich_becomes_richer     Male → approve; Female → uniform
-  7. reverse_rich_becomes_richer  Female → approve; Male → uniform
-
-Each policy runs in its own fresh TestingIncomeEnvironment
-(no wealth reset between episodes — performative setting).
-
-Usage
------
-  uv run python test_rule_based_policies.py --episodes 50
-  uv run python test_rule_based_policies.py --episodes 100 --seed 7 --results-dir ./rule_results
-"""
 
 import argparse
 import multiprocessing as mp

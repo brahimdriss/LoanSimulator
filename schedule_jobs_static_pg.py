@@ -1,14 +1,4 @@
 #!/usr/bin/env python3
-"""
-Sequential PePG Job Scheduler
-
-Runs 60 training jobs (4 rewards x 3 constraints x 5 seeds) sequentially on a single GPU.
-Features:
-- Progress tracking with JSON file for resume support
-- Timestamped logging to global log file
-- Individual job logs for debugging
-- Failure handling with continuation to next job
-"""
 
 import argparse
 import json

@@ -1,24 +1,4 @@
 #!/usr/bin/env python3
-"""
-individual_loan_frequency.py
-
-Tracks which individuals receive loans across performative episodes for PG and PEPG.
-Agents continue fine-tuning on TestingIncomeEnvironment throughout (same as pg_adapt /
-pepg_adapt deploy phase).
-
-Per-individual unique identifier: array index (0 .. N-1) within each gender group.
-
-Saves for each seed / policy / group:
-  results_individual_freq/{policy}/seed{s}/{group}/lorenz/episode_{ep:04d}.csv
-  results_individual_freq/{policy}/seed{s}/{group}/metrics.csv
-  results_individual_freq/{policy}/seed{s}/{group}/final_loan_counts.csv
-
-Generates plots (averaged across seeds):
-  {policy}_{group}_lorenz.png          -- Lorenz curves at ep 100,200,...,1000
-  {policy}_{group}_entropy.png         -- Normalised Shannon entropy over episodes
-  {policy}_{group}_reach_rate.png          -- unique loan recipients per episode / N
-  {policy}_{group}_histogram.png       -- total loans by binned individual index
-"""
 
 import argparse
 import multiprocessing as mp

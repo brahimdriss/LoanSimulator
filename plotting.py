@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""
-Plotting script for fairness experiment results.
-Generates visualizations for approval rate disparity, wealth gap, and inequality ratio.
-
-Usage:
-    python plot_fairness_results.py /path/to/static_sequential_results --log-scale
-    python plot_fairness_results.py /path/to/pepg_sequential_results
-"""
 
 import os
 import glob

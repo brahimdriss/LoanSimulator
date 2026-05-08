@@ -1,20 +1,4 @@
 #!/usr/bin/env python3
-"""
-Test-only script for PG agents.
-
-Skips training entirely — discovers existing weights in --weights-dir and
-runs Phase 2 (testing) + Phase 3 (aggregate + plot + save CSVs).
-
-Weight files must match the naming convention written by pg_run.py:
-    {reward}__{constraint}__seed{seed}.pt
-
-Usage
------
-  python pg_test_only.py \
-      --weights-dir /content/drive/MyDrive/Long-term-Fairness-NeurIPS/weights \
-      --results-dir /content/drive/MyDrive/Long-term-Fairness-NeurIPS/results \
-      --seeds 5 --test-episodes 500 --N-male 3000 --N-female 3000
-"""
 
 import argparse
 import multiprocessing as mp

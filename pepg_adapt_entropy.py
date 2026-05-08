@@ -1,27 +1,4 @@
 #!/usr/bin/env python3
-"""
-Entropy-Regularised PePG train → Performative deploy on TestingIncomeEnvironment.
-
-Implements the entropy-regularised variant of PePG from the paper (Def. 5, Eq. 7):
-  soft reward  r̃ = r − λ·log π(a|s)
-  soft value   Ṽ = E[Σ γ^t r̃]
-
-Phase 1: Train PePGAgentV2 (with entropy regularisation) on TestingIncomeEnvironment.
-Phase 2: Load weights, continue performative training on TestingIncomeEnvironment.
-Phase 3: Aggregate mean ± std across seeds, save CSVs, generate plots.
-
-Usage
------
-  python pepg_adapt_entropy.py \\
-      --entropy-coef 0.01 \\
-      --weights-dir ./weights_pepg_adapt_entropy \\
-      --results-dir ./results_pepg_adapt_entropy \\
-      --seeds 3 --train-episodes 500 --deploy-episodes 500
-
-  # Skip training if weights already exist:
-  python pepg_adapt_entropy.py --skip-train --entropy-coef 0.01 \\
-      --weights-dir ./weights_pepg_adapt_entropy --results-dir ...
-"""
 
 import argparse
 import multiprocessing as mp

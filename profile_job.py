@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""
-Profiling script to diagnose Hawkes runaway and OOM issues.
-
-Tracks per-episode:
-- Number of decisions
-- Number of Hawkes events (approvals)
-- Time per episode
-- GPU memory usage
-- Approval rates
-- Gradient norms
-
-Can detect runaway conditions and stop early.
-"""
 
 import argparse
 import gc

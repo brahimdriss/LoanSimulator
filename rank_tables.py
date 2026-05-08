@@ -1,20 +1,4 @@
 #!/usr/bin/env python3
-"""
-Ranking tables from per-seed checkpoint CSVs.
-
-For each agent (pepg_adapt, static) and each episode range (short=100, long=1000):
-  Table A — rows=constraints,     cols=metrics: best-ranked reward function + mean±std + KW p-value
-  Table B — rows=reward functions, cols=metrics: best-ranked constraint     + mean±std + KW p-value
-
-Metrics:
-  cumulative_profit  → higher is better
-  wealth_gap         → lower  is better
-  R_bar              → higher is better  (computed: (N_M*R_M + N_F*R_F)/(N_M+N_F))
-  rho_episode        → lower  is better
-
-Ranking: pandas.rank() on mean-across-seeds values.
-P-value: scipy.stats.kruskal() across groups (one value per seed = 3 obs/group).
-"""
 
 import glob
 import os

@@ -1,18 +1,3 @@
-"""
-Testing Script for Trained Policy Gradient Agent
-
-This script loads a trained agent and evaluates it on the Income Environment
-WITHOUT resetting between episodes (continuous play). No training occurs.
-
-Metrics Tracked (ALL EPISODE-WISE):
-- Inequality ratio (ρ) = (μ_M,end - μ_M,start) / (μ_F,end - μ_F,start) per episode
-- Approval rates for each group per episode
-- Mean wealth of each group per episode
-- Total loans approved per group per episode
-- Success probabilities per group per episode
-- Actual loan approvals vs True loan approvals (ground truth based on creditworthiness)
-"""
-
 import glob
 import json
 import os

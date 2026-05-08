@@ -1,10 +1,3 @@
-"""
-Shared utilities for sequential job schedulers.
-
-Used by schedule_jobs_pepg.py and schedule_jobs_static.py to avoid
-duplicating progress tracking, logging, and the main scheduling loop.
-"""
-
 import json
 import os
 from datetime import datetime
