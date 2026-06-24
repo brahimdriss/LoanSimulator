@@ -14,4 +14,4 @@ stable/
 *.out
 *.err
 results_*/
-weights_*/
+weights_*/.DS_Store
