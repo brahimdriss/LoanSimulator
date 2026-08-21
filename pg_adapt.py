@@ -96,6 +96,15 @@ def _train_worker(cfg):
         random.seed(seed)
         torch.manual_seed(seed)
 
+        # Skip if weights already exist (allows partial restart / a fast
+        # aggregate-only pass) -- mirrors pepg_adapt.py's _train_worker.
+        weights_path = cfg["weights_path"]
+        os.makedirs(os.path.dirname(weights_path), exist_ok=True)
+        if os.path.exists(weights_path):
+            print(f"  [{run_id:3d}/{total}] TRAIN SKIP (weights exist)  seed={seed}  {reward}/{constraint}")
+            return {"success": True, "seed": seed, "reward": reward,
+                    "constraint": constraint, "weights_path": weights_path}
+
         loader = AdultIncomeDataLoader(
             filepath=cfg["data_filepath"], sample_size=SAMPLE_SIZE
         )
@@ -142,8 +151,6 @@ def _train_worker(cfg):
 
         agent.train(num_episodes=cfg["train_episodes"])
 
-        weights_path = cfg["weights_path"]
-        os.makedirs(os.path.dirname(weights_path), exist_ok=True)
         agent.save_model(weights_path)
 
         print(
