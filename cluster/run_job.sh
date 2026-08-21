@@ -1,17 +1,29 @@
 #!/bin/bash
 # Wrapper executed by HTCondor for the Eutopia experiments.
 #
-#   run_job.sh <pepg|pg>                 -> all seeds in one job, then aggregate
-#   run_job.sh <pepg|pg> <seed>          -> ONE seed only, no plots (array shard)
-#   run_job.sh <pepg|pg> aggregate       -> aggregate + plot from existing checkpoints
-#   run_job.sh shard <index>             -> array shard; maps a flat 0..2N-1
-#                                           index onto (agent, seed)
-#   run_job.sh pair <0|1> <mode>         -> 2-job form; 0=pepg, 1=pg
+#   run_job.sh <pepg|pg>                       -> all seeds in one job, then aggregate
+#   run_job.sh <pepg|pg> <seed>                -> ONE seed, all 10 combos, no plots
+#   run_job.sh <pepg|pg> <seed> <r> <c>        -> ONE (seed, combo) pair only
+#   run_job.sh <pepg|pg> aggregate             -> aggregate + plot from existing checkpoints
+#   run_job.sh shard <index>                   -> array shard; maps a flat 0..2N-1
+#                                                  index onto (agent, seed) -- 10 combos/job
+#   run_job.sh combo <index>                   -> array shard; maps a flat 0..2*10N-1
+#                                                  index onto (agent, seed, reward, constraint)
+#                                                  -- ONE combo/job, no internal worker pool
+#   run_job.sh pair <0|1> <mode>               -> 2-job form; 0=pepg, 1=pg
 #
 # The shard/aggregate split exists because the parallelism in this workload is
 # across independent (seed, combo) runs, not inside any one of them: the policy
 # net is ~18k parameters on batches of ~20, so a single job pinned to one node
-# leaves the cluster idle. Sharding by seed turns ~25h of wall clock into ~2-3h.
+# leaves the cluster idle.
+#
+# `shard` packs all 10 combos of one seed into one job (8-worker internal pool)
+# -- fewer Condor jobs, but the 8 workers contend with each other for the same
+# host's cache/memory bandwidth once all are CPU-active (measured: episode time
+# for a fixed combo drifted 46.6s -> 57.5s purely from sibling-worker load, and
+# combos starting later in the same shard ran ~1.8x slower than the first ones).
+# `combo` avoids that entirely by giving every (seed, combo) pair its own Condor
+# job on its own host -- more jobs, but each one runs in isolation.
 #
 # Sharding is safe because the pipeline checkpoints every (seed, combo) pair to
 # <results>/checkpoints/ and skips pairs it already finds. Shards therefore
@@ -36,6 +48,30 @@ if [ "${1:-}" = "shard" ]; then
   fi
 fi
 
+# --- flat array index -> (agent, seed, reward, constraint) -----------------
+# Same $CHOICE/$INT nesting problem as `shard` -- the arithmetic happens here.
+# Order matches VALID_COMBOS in pg_run.py / COMBOS in verify_run.py (the
+# `predictive` column is on hold, so 10 combos, not 14).
+_COMBOS_R=(utilitarian_profit utilitarian_profit social_welfare social_welfare \
+           rawlsian_maximin rawlsian_maximin rawlsian_maximin \
+           fairness_lagrangian fairness_lagrangian fairness_lagrangian)
+_COMBOS_C=(dm two_sided social two_sided social dm two_sided social dm two_sided)
+
+if [ "${1:-}" = "combo" ]; then
+  _IDX="${2:?usage: run_job.sh combo <array-index>}"
+  _NS="${N_SEEDS:-3}"
+  _NC=${#_COMBOS_R[@]}
+  _PER_AGENT=$(( _NS * _NC ))
+  if [ "$_IDX" -lt "$_PER_AGENT" ]; then
+    _AGENT=pepg; _LOCAL=$_IDX
+  else
+    _AGENT=pg; _LOCAL=$(( _IDX - _PER_AGENT ))
+  fi
+  _SEED=$(( _LOCAL / _NC ))
+  _CI=$(( _LOCAL % _NC ))
+  set -- "$_AGENT" "$_SEED" "${_COMBOS_R[$_CI]}" "${_COMBOS_C[$_CI]}"
+fi
+
 # Two-job forms (all-seeds, aggregate) map index 0 -> pepg, 1 -> pg. Same
 # reason as `shard`: $CHOICE($(Process), pepg, pg) is the very nesting pattern
 # HTCondor rejects, so no submit file uses $CHOICE at all.
@@ -45,8 +81,18 @@ if [ "${1:-}" = "pair" ]; then
   if [ "$_IDX" -eq 0 ]; then set -- pepg "$_MODE"; else set -- pg "$_MODE"; fi
 fi
 
-AGENT="${1:?usage: run_job.sh <pepg|pg> [seed|aggregate]  |  shard <index>  |  pair <0|1> <mode>}"
+AGENT="${1:?usage: run_job.sh <pepg|pg> [seed|aggregate]  |  shard <index>  |  combo <index>  |  pair <0|1> <mode>}"
 MODE="${2:-all}"
+REWARD="${3:-}"
+CONSTRAINT="${4:-}"
+
+# Single-combo jobs run alone in their own process -- no internal pool needed,
+# so default to 1 worker instead of 8. (Still overridable via WORKERS=.)
+if [ -n "$REWARD" ] && [ -n "$CONSTRAINT" ]; then
+  WORKERS_DEFAULT=1
+else
+  WORKERS_DEFAULT=8
+fi
 
 # --- paths ----------------------------------------------------------------
 PROJ="${PROJ:-$HOME/LoanSimulator}"
@@ -93,7 +139,7 @@ COMMON=(
   --N-female       12000
   --T              100
   --dt             0.5
-  --workers        "${WORKERS:-8}"
+  --workers        "${WORKERS:-$WORKERS_DEFAULT}"
   --weights-dir    "$WEIGHTS"
   --results-dir    "$RESULTS"
 )
@@ -114,9 +160,14 @@ if [ "$MODE" = "aggregate" ]; then
 elif [ "$MODE" = "all" ]; then
   MODE_ARGS=( --seeds "$N_SEEDS" )
   LOGNAME="all"
+elif [ -n "$REWARD" ] && [ -n "$CONSTRAINT" ]; then
+  # One (seed, combo) pair -- the isolated `combo` sharding mode.
+  MODE_ARGS=( --seed-list "$MODE" --reward "$REWARD" --constraint "$CONSTRAINT" --no-plots )
+  LOGNAME="seed${MODE}_${REWARD}__${CONSTRAINT}"
 else
-  # One seed. --no-plots because 20 shards each rendering the same figures from
-  # a single seed would be waste; the aggregate pass draws them once.
+  # One seed, all 10 combos. --no-plots because N shards each rendering the
+  # same figures from a single seed would be waste; the aggregate pass draws
+  # them once.
   MODE_ARGS=( --seed-list "$MODE" --no-plots )
   LOGNAME="seed$MODE"
 fi

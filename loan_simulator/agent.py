@@ -236,6 +236,7 @@ class PolicyGradientAgent:
             self.initial_mu_F = mu_F_start
 
         states, actions, log_probs, entropies, rewards = [], [], [], [], []
+        raw_rewards = []  # unnormalized -- for episode_reward/logging only, see below
         cohort_sizes = []  # applicants per timestep, for per-timestep discounting
         done = False
 
@@ -298,6 +299,7 @@ class PolicyGradientAgent:
                     np.sqrt(max(self._rew_ema_var, 1e-8))
                 )
                 rewards.append(reward_norm)
+                raw_rewards.append(reward)
                 self.per_step_rewards.append(reward)
 
             # Cohort boundary: every applicant in this cohort arrived at the
@@ -368,7 +370,12 @@ class PolicyGradientAgent:
         if self.learnable_lambdas is not None:
             self._update_lambdas()
 
-        episode_reward = sum(rewards)
+        # Raw (unnormalized) sum -- comparable across reward types AND across
+        # agents (PePGAgent's episode_reward is likewise raw; see
+        # pepg/agent.py's _collect_episode). The training signal itself still
+        # uses the normalized `rewards`/`returns` computed above -- only what
+        # gets recorded/displayed/plotted changes here.
+        episode_reward = sum(raw_rewards)
         self.episode_rewards.append(episode_reward)
 
         # Track lambda history
