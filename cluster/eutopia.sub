@@ -8,21 +8,23 @@
 # quiet queue -- you're only charged what the next competing bid would pay):
 #   condor_submit_bid 25 eutopia.sub
 #
-# EDIT before submitting: replace <username> below, and make sure
-#   cluster/run_job.sh has PROJ pointing at your copy of the repo.
+# No editing required: $ENV(HOME) is expanded by HTCondor at submit time, so
+# this file works as-is for any user. (Previously it hardcoded a username,
+# which meant every clone needed a sed -- and that local edit then conflicted
+# on the next git pull.) Override the repo location by exporting PROJ.
 
-executable = /home/<username>/LoanSimulator/cluster/run_job.sh
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
 arguments  = $(agent)
 
 # Map the array index to an agent name.
 agent = $CHOICE($(Process), pepg, pg)
 
 # Condor's own logs. $(Process) keeps the two jobs from clobbering each other.
-output = /home/<username>/eutopia_logs/eutopia_$(agent)_$(ClusterId).$(Process).out
-error  = /home/<username>/eutopia_logs/eutopia_$(agent)_$(ClusterId).$(Process).err
-log    = /home/<username>/eutopia_logs/eutopia_$(ClusterId).log
+output = $ENV(HOME)/eutopia_logs/eutopia_$(agent)_$(ClusterId).$(Process).out
+error  = $ENV(HOME)/eutopia_logs/eutopia_$(agent)_$(ClusterId).$(Process).err
+log    = $ENV(HOME)/eutopia_logs/eutopia_$(ClusterId).log
 
-initialdir = /home/<username>/LoanSimulator
+initialdir = $ENV(HOME)/LoanSimulator
 
 # Resources.
 #   The pipeline parallelises over (seed, combo) with a multiprocessing Pool
