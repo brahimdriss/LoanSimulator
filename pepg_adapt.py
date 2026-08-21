@@ -220,6 +220,12 @@ def _plot_social_welfare(aggregated, results_dir, timestamp, n_seeds, constraint
         for mean, std in [(mdf["R_M"], sdf["R_M"]), (mdf["R_F"], sdf["R_F"]), (R_bar_mean, R_bar_std)]:
             y_min = min(y_min, (mean - std).min())
             y_max = max(y_max, (mean + std).max())
+    if not plot_data:
+        # constraint_filter matched no combo (e.g. a stale filter value) --
+        # nothing to plot, and y_min/y_max are still their +-inf sentinels,
+        # which set_ylim() below would reject.
+        plt.close(fig)
+        return
     margin = (y_max - y_min) * 0.05
     ylim = (y_min - margin, y_max + margin)
     for reward, _, mdf, sdf, R_bar_mean, R_bar_std in plot_data:
@@ -842,7 +848,10 @@ def main():
 
     if not args.no_plots:
         print("  Generating plots…")
-        for ct in ["predictive", "social", "dm", "two_sided"]:
+        # "predictive" isn't a combo dimension any more (VALID_COMBOS/
+        # PEPG_COMBOS only cover social/dm/two_sided) -- see the "combined"
+        # loop below, which already excludes it.
+        for ct in ["social", "dm", "two_sided"]:
             _plot_comparison(aggregated,     args.results_dir, timestamp, n_complete, ct)
             _plot_wealth(aggregated,         args.results_dir, timestamp, n_complete, ct)
             _plot_social_welfare(aggregated, args.results_dir, timestamp, n_complete, ct)
@@ -862,7 +871,7 @@ def main():
             mdf.to_csv(os.path.join(args.results_dir, f"train_mean_{key}_{timestamp}.csv"), index=False)
             sdf.to_csv(os.path.join(args.results_dir, f"train_std_{key}_{timestamp}.csv"), index=False)
         if not args.no_plots:
-            for ct in ["predictive", "social", "dm", "two_sided"]:
+            for ct in ["social", "dm", "two_sided"]:
                 plot_comparison_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
                 plot_wealth_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
                 plot_social_welfare_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
