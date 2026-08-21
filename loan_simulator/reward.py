@@ -5,9 +5,12 @@ class RewardFunction:
     """
     Reward functions for RL agent.
 
-    constraint_type maps to the four fairness columns in the paper:
-        'predictive'  — Predictive Fairness    (accuracy / approval-rate metrics)
-        'social'      — Outcome/Social Fairness (mean-wealth metrics)
+    constraint_type maps to the three fairness columns in Table 1 of the
+    paper, plus one extra ('predictive') implemented here but not present
+    in Table 1 -- kept for completeness but not selected by either
+    pg_adapt.py's or pepg_adapt.py's combo lists:
+        'predictive'  — not in Table 1 (accuracy / approval-rate metrics)
+        'social'      — Outcome Fairness        (mean-wealth metrics)
         'dm'          — DM's Fairness           (bank-profit metrics)
         'two_sided'   — α-Two sided Fairness    (blends profit + fairness, α = lambda_wealth)
 
@@ -225,3 +228,191 @@ class RewardFunction:
 
         else:
             raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
+
+
+# ---------------------------------------------------------------------------
+# Batched reward computation, for step_cohort()'s vectorized rollout.
+#
+# Mirrors RewardFunction's 16 formulas exactly (verified line-by-line against
+# the scalar versions above), but takes an explicit snapshot of the env-level
+# scalars instead of reading them live off `env`. This is deliberate, not
+# stylistic: env.mu_R/total_loans_R/etc. mutate as the environment advances
+# to the next timestep, and step_cohort() must compute this cohort's rewards
+# using the state that existed WHEN THIS COHORT ARRIVED (before their own
+# approvals are folded into mu_R) -- otherwise an applicant's reward would
+# depend on other applicants decided in the same batch, which no single-
+# applicant call in the original code ever did. Taking an explicit snapshot
+# makes that timing an explicit argument instead of an implicit ordering
+# dependency on when this function happens to be called relative to env
+# mutation.
+# ---------------------------------------------------------------------------
+
+from dataclasses import dataclass
+
+
+@dataclass
+class RewardSnapshot:
+    """Env-level scalars needed by the batched reward formulas, captured
+    BEFORE the current cohort's approvals are applied to mu_R/mu_B/totals."""
+
+    mu_R: float
+    mu_B: float
+    total_loans_R: int
+    total_applications_R: int
+    total_defaults_R: int
+    total_loans_B: int
+    total_applications_B: int
+    total_defaults_B: int
+    interest_rate: float
+    mean_loan_R: float  # population-wide mean loan amount, group R (fixed)
+    mean_loan_B: float  # population-wide mean loan amount, group B (fixed)
+    N_male: int
+    N_female: int
+
+    @classmethod
+    def from_env(cls, env) -> "RewardSnapshot":
+        return cls(
+            mu_R=float(env.mu_R),
+            mu_B=float(env.mu_B),
+            total_loans_R=env.total_loans_R,
+            total_applications_R=env.total_applications_R,
+            total_defaults_R=env.total_defaults_R,
+            total_loans_B=env.total_loans_B,
+            total_applications_B=env.total_applications_B,
+            total_defaults_B=env.total_defaults_B,
+            interest_rate=float(env.interest_rate),
+            mean_loan_R=float(np.mean(env.theta_params.individual_loan_amounts["male"])),
+            mean_loan_B=float(np.mean(env.theta_params.individual_loan_amounts["female"])),
+            N_male=env.N_male,
+            N_female=env.N_female,
+        )
+
+
+def _bank_profit_batch(a: np.ndarray, d: np.ndarray, l: np.ndarray, interest_rate: float) -> np.ndarray:
+    """Vectorized _calculate_bank_profit."""
+    revenue = (1 - d) * l * interest_rate
+    loss = d * l
+    return a * (revenue - loss)
+
+
+def _accuracy_batch(a: np.ndarray, d: np.ndarray) -> np.ndarray:
+    """Vectorized _calculate_accuracy."""
+    return a * (1 - d) + (1 - a) * d
+
+
+def _group_profit_rates(snap: RewardSnapshot):
+    """Vectorized _group_profit_rates -- scalar pair, unchanged from the
+    original (doesn't depend on the current batch, only running totals)."""
+    rho_R = snap.total_defaults_R / max(snap.total_loans_R, 1)
+    rho_B = snap.total_defaults_B / max(snap.total_loans_B, 1)
+    r_R = snap.mean_loan_R * ((1 - rho_R) * snap.interest_rate - 2 * rho_R)
+    r_B = snap.mean_loan_B * ((1 - rho_B) * snap.interest_rate - 2 * rho_B)
+    return r_R, r_B
+
+
+def compute_batched_rewards(
+    reward_function_name: str,
+    snap: RewardSnapshot,
+    actions: np.ndarray,
+    default_probs: np.ndarray,
+    loan_amounts: np.ndarray,
+    constraint_type: str,
+    lambda_wealth: float,
+    lambda_approval: float,
+) -> np.ndarray:
+    """
+    Batched equivalent of RewardFunction.<name>(env, action, info,
+    constraint_type=..., lambda_wealth=..., lambda_approval=...), called
+    once per applicant. Returns one reward per applicant in the batch
+    (shape matches `actions`).
+
+    TWO KINDS OF TERM, aggregated differently -- this distinction matters
+    and was previously conflated:
+
+      * ACTION-DEPENDENT (bank profit, accuracy): each applicant has their
+        own value, driven by their own action/default_prob/loan_amount.
+        The paper defines these as a SUM over arriving applicants
+        (r_t = sum_i [...] A_t,i l_i, Section 2), so each applicant simply
+        contributes their own term. Left per-applicant.
+
+      * STATE-BASED (mu_R+mu_B, min(mu), approval rates, group profit
+        rates, the Lagrangian penalty): these do not reference any
+        individual's action at all. Table 1 defines them PER TIMESTEP --
+        one value per step, e.g. r_t = mu_blue + mu_red -- NOT once per
+        applicant. Since the caller sums per-applicant rewards over the
+        cohort, these are divided by n so the cohort sum reproduces
+        exactly one copy of the per-timestep value.
+
+    Why this matters: without the /n, a state-based reward gets multiplied
+    by the arrival count, which the formalism never specifies. Once the
+    Lagrangian penalty pushes that value negative, "reward = n_arrivals x
+    (negative)" makes MINIMISING ARRIVALS the dominant gradient -- the
+    policy rejects almost everyone purely to shrink n, an artifact of the
+    aggregation rather than anything in the objective. Verified directly:
+    approval collapsed to ~7% under exactly this mechanism.
+    """
+    a, d, l = actions, default_probs, loan_amounts
+    n = len(a)
+    inv_n = 1.0 / max(n, 1)  # state-based terms -> one copy per TIMESTEP
+    approval_rate_R = snap.total_loans_R / max(snap.total_applications_R, 1)
+    approval_rate_B = snap.total_loans_B / max(snap.total_applications_B, 1)
+
+    if reward_function_name == "utilitarian_profit":
+        if constraint_type == "predictive":
+            return _accuracy_batch(a, d)
+        elif constraint_type == "social":
+            return np.zeros(n)
+        elif constraint_type == "dm":
+            return _bank_profit_batch(a, d, l, snap.interest_rate)
+        elif constraint_type == "two_sided":
+            alpha = lambda_wealth
+            bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
+            mean_loan = snap.mean_loan_R + snap.mean_loan_B
+            wealth_norm = (snap.mu_R + snap.mu_B) / (mean_loan * 2 + 1e-8)
+            return (1 - alpha) * bank_profit + alpha * wealth_norm * inv_n
+        raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
+
+    if reward_function_name == "social_welfare":
+        if constraint_type == "predictive":
+            return np.full(n, (approval_rate_R + approval_rate_B) * inv_n)
+        elif constraint_type == "social":
+            return np.full(n, (snap.mu_R + snap.mu_B) * inv_n)
+        elif constraint_type == "dm":
+            return np.zeros(n)
+        elif constraint_type == "two_sided":
+            bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
+            N = snap.N_male + snap.N_female
+            return (bank_profit + (snap.mu_R + snap.mu_B) * inv_n) / (1 + N)
+        raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
+
+    if reward_function_name == "rawlsian_maximin":
+        if constraint_type == "predictive":
+            return np.full(n, min(approval_rate_R, approval_rate_B) * inv_n)
+        elif constraint_type == "social":
+            return np.full(n, min(snap.mu_R, snap.mu_B) * inv_n)
+        elif constraint_type == "dm":
+            r_R, r_B = _group_profit_rates(snap)
+            return np.full(n, min(r_R, r_B) * inv_n)
+        elif constraint_type == "two_sided":
+            bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
+            alpha = lambda_wealth
+            return (1 - alpha) * bank_profit + alpha * min(snap.mu_R, snap.mu_B) * inv_n
+        raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
+
+    if reward_function_name == "fairness_lagrangian":
+        bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
+        if constraint_type == "predictive":
+            accuracy = _accuracy_batch(a, d)
+            return accuracy - lambda_approval * abs(approval_rate_R - approval_rate_B) * inv_n
+        elif constraint_type == "social":
+            val = snap.mu_R + snap.mu_B - lambda_wealth * abs(snap.mu_R - snap.mu_B)
+            return np.full(n, val * inv_n)
+        elif constraint_type == "dm":
+            r_R, r_B = _group_profit_rates(snap)
+            return bank_profit - lambda_wealth * abs(r_R - r_B) * inv_n
+        elif constraint_type == "two_sided":
+            alpha = lambda_wealth
+            return (1 - alpha) * bank_profit - alpha * abs(snap.mu_R - snap.mu_B) * inv_n
+        raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
+
+    raise ValueError(f"Unknown reward_function_name: {reward_function_name!r}")

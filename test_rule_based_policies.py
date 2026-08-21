@@ -116,16 +116,30 @@ class UniformAcceptancePolicy(RuleBasedPolicy):
 
 class OraclePolicy(RuleBasedPolicy):
     """
-    Oracle: has access to the true binary default_prob (0.0 or 1.0).
-    Approves iff the applicant is a guaranteed non-defaulter (default_prob = 0).
-    This is the theoretical upper bound on bank profit.
+    Oracle: has access to the applicant's true default_prob (now a continuous,
+    creditworthiness-derived probability -- see
+    TransitionParameterLearner.initialize_individual_parameters -- not a
+    pre-realized 0/1 latent outcome). Approves iff expected profit is
+    positive: (1-default_prob)*loan_amount*interest - default_prob*loan_amount > 0,
+    i.e. default_prob < interest/(1+interest). This is the theoretical upper
+    bound on bank profit given perfect knowledge of risk.
+
+    interest_rate defaults to 0.18, matching TestingIncomeEnvironment's own
+    default (used consistently throughout this script) -- reused, not a new
+    invented constant. At interest=0.18 the breakeven default prob is
+    0.1525, which sits inside the deploy band [0.05, 0.25], so this policy
+    is genuinely selective (~51% approved) rather than degenerating into
+    AlwaysApprove or AlwaysReject.
     """
     name = "oracle"
+
+    def __init__(self, interest_rate: float = 0.18):
+        self.breakeven_default_prob = interest_rate / (1 + interest_rate)
 
     def get_action(self, obs, applicant):
         if applicant is None:
             return 0.0
-        return 1.0 if applicant.get("default_prob", 1.0) == 0.0 else 0.0
+        return 1.0 if applicant.get("default_prob", 1.0) < self.breakeven_default_prob else 0.0
 
 
 class PatternPredictionPolicy(RuleBasedPolicy):
@@ -609,7 +623,7 @@ def main():
 
     print("\n[2] Fitting transition parameters...")
     theta_learner = TransitionParameterLearner(
-        default_rate_min=0.14, default_rate_max=0.16
+        default_rate_min=0.05, default_rate_max=0.25
     )
     theta_learner.fit(loader.data)
 

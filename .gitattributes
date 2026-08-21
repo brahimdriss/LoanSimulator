@@ -1,0 +1,5 @@
+# Force LF for files executed on Linux. Checked out on Windows these would
+# otherwise get CRLF (core.autocrlf), and a CRLF shebang makes the cluster
+# fail with a confusing "bad interpreter: /bin/bash^M".
+*.sh   text eol=lf
+*.sub  text eol=lf

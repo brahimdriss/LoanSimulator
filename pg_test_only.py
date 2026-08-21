@@ -224,7 +224,7 @@ def main():
     test_loader.load_data()
     test_loader.preprocess()
     test_theta = TransitionParameterLearner(
-        default_rate_min=0.14, default_rate_max=0.16
+        default_rate_min=0.05, default_rate_max=0.25
     )
     test_theta.fit(test_loader.data)
     _male_X   = test_loader.male_data["X"].values

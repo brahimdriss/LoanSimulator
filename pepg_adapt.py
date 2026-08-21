@@ -9,11 +9,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+from tqdm import tqdm
 
 from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
 from loan_simulator.pepg import PePGAgentV2
+AGENT_TAG = "pepg"
+
 from run_multi_seed import add_derived_columns, aggregate_across_seeds
 from pg_run import (
     REWARD_COLORS,
@@ -60,14 +63,32 @@ def _pepg_combo_label(reward, constraint):
 
 
 def _default_lambdas(reward, constraint):
-    if reward == "utilitarian_profit":
-        # two_sided gets a learnable alpha initialised at 0.5; others have no penalty
-        lw = 0.5 if constraint == "two_sided" else 0.0
-        return lw, 0.0
+    """Initial lambda / alpha per combo.
+
+    MUST stay byte-for-byte equivalent to pg_adapt._default_lambdas: these
+    are the STARTING values of the dual variables, and PG and PePG have to
+    begin from the same point or a cross-agent comparison is confounded by
+    initialisation rather than measuring the learning algorithm. A previous
+    version of this function returned 2.0 for all three fairness_lagrangian
+    combos while pg_adapt returned 10.0 -- a 5x difference in the fairness
+    penalty weight at episode 0. The values below match pg_adapt and also
+    match reward.RewardFunction's own per-reward signature defaults
+    (social_welfare 2.0, rawlsian_maximin 5.0, fairness_lagrangian 10.0).
+
+    two_sided's lw is alpha, a blend weight in (0,1), initialised at 0.5.
+    """
     lw = 0.5 if constraint == "two_sided" else (
-        5.0 if reward == "rawlsian_maximin" else 2.0
+        0.0 if reward == "utilitarian_profit" else
+        2.0 if reward == "social_welfare" else
+        5.0 if reward == "rawlsian_maximin" else
+        10.0  # fairness_lagrangian
     )
-    la = 5.0 if reward == "rawlsian_maximin" else 2.0
+    la = (
+        0.0 if reward == "utilitarian_profit" else
+        2.0 if reward == "social_welfare" else
+        5.0 if reward == "rawlsian_maximin" else
+        10.0
+    )
     return lw, la
 
 
@@ -259,7 +280,7 @@ def _train_worker(cfg):
         loader.load_data()
         loader.preprocess()
 
-        theta = TransitionParameterLearner(default_rate_min=0.14, default_rate_max=0.16)
+        theta = TransitionParameterLearner(default_rate_min=0.05, default_rate_max=0.25)
         theta.fit(loader.data)
 
         # Skip if weights already exist (allows partial restart)
@@ -300,7 +321,8 @@ def _train_worker(cfg):
             constraint_type=constraint,
             lambda_wealth=lw,
             lambda_approval=la,
-            lambda_lr=cfg.get("lambda_lr", 1e-2),
+            lambda_lr=cfg.get("lambda_lr", 1e-3),
+            alpha_lr=cfg.get("alpha_lr", None),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=cfg.get("warmup_episodes", 0),
             alpha_R=env.alpha_R,
@@ -311,9 +333,10 @@ def _train_worker(cfg):
             wealth_weight=cfg.get("wealth_weight", 1.0),
             transition_weight=cfg.get("transition_weight", 1.0),
             reward_weight=cfg.get("reward_weight", 1.0),
+            entropy_coef=cfg.get("entropy_coef", 0.01),
         )
 
-        agent.train(num_episodes=cfg["train_episodes"], use_performative=True)
+        agent.train_reparam(num_episodes=cfg["train_episodes"])
 
         train_df = agent.get_episode_metrics_dataframe()
         train_metrics_path = cfg.get("train_metrics_path")
@@ -377,7 +400,8 @@ def _deploy_worker(cfg):
             constraint_type=constraint,
             lambda_wealth=lw,
             lambda_approval=la,
-            lambda_lr=cfg.get("lambda_lr", 1e-2),
+            lambda_lr=cfg.get("lambda_lr", 1e-3),
+            alpha_lr=cfg.get("alpha_lr", None),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=0,
             alpha_R=env.alpha_R,
@@ -388,6 +412,7 @@ def _deploy_worker(cfg):
             wealth_weight=cfg.get("wealth_weight", 1.0),
             transition_weight=cfg.get("transition_weight", 1.0),
             reward_weight=cfg.get("reward_weight", 1.0),
+            entropy_coef=cfg.get("entropy_coef", 0.01),
         )
 
         # Load pre-trained weights
@@ -402,10 +427,14 @@ def _deploy_worker(cfg):
                 saved["replay_buffer_data"], maxlen=agent.buffer_capacity
             )
 
-        # Continued performative training on the testing environment
+        # Continued performative training on the testing environment.
+        # train_episode_reparam(): the fixed, reparameterized gradient path
+        # (see differentiable_gradient.py) -- not train_episode(), which is
+        # the score-function path with structurally-dead performative terms
+        # for this environment's dynamics.
         deploy_eps = cfg["deploy_episodes"]
         for ep in range(deploy_eps):
-            agent.train_episode(use_performative=True)
+            agent.train_episode_reparam()
             if (ep + 1) % max(1, deploy_eps // 5) == 0 or ep + 1 == deploy_eps:
                 app_M = env.episode_loans_M / max(env.episode_applications_M, 1)
                 app_F = env.episode_loans_F / max(env.episode_applications_F, 1)
@@ -420,6 +449,28 @@ def _deploy_worker(cfg):
         env.finalize_episode_metrics()
         df  = env.get_episode_metrics_dataframe()
         key = _combo_key(reward, constraint)
+
+        # Persist the POST-DEPLOY artefacts. Previously only the train phase
+        # saved weights, so the policy that actually produced every reported
+        # result -- after `deploy_episodes` further updates -- was discarded.
+        deploy_dir = cfg.get("deploy_artifacts_dir")
+        if deploy_dir:
+            os.makedirs(deploy_dir, exist_ok=True)
+            stem = f"{AGENT_TAG}_{reward}__{constraint}__seed{seed}"
+            agent.save_model(os.path.join(deploy_dir, f"{stem}_deployed.pt"))
+            df.to_csv(os.path.join(deploy_dir, f"{stem}_episodes.csv"), index=False)
+            pd.DataFrame({
+                "episode": range(1, len(agent.episode_rewards) + 1),
+                "episode_reward": agent.episode_rewards,
+                "lambda_wealth": agent.lambda_history["wealth"],
+                "lambda_approval": agent.lambda_history["approval"],
+            }).to_csv(os.path.join(deploy_dir, f"{stem}_training_trace.csv"), index=False)
+            np.savez_compressed(
+                os.path.join(deploy_dir, f"{stem}_population.npz"),
+                X_male=env.current_X_male, X_female=env.current_X_female,
+                loan_counts_M=env.loan_counts_M, loan_counts_F=env.loan_counts_F,
+            )
+
         print(f"  [{run_id:3d}/{total}] DEPLOY OK  seed={seed}  {reward}/{constraint}")
         return seed, key, df
 
@@ -440,7 +491,7 @@ def main():
     )
 
     # Seeds / combos
-    parser.add_argument("--seeds",      type=int, default=3)
+    parser.add_argument("--seeds",      type=int, default=5)  # paper: 5 seeds
     parser.add_argument("--seed-list",  type=int, nargs="+", default=None)
     parser.add_argument("--reward",     type=str, default="all",
                         choices=["all", "utilitarian_profit", "social_welfare",
@@ -452,7 +503,16 @@ def main():
     parser.add_argument("--train-episodes",  type=int,   default=500)
     parser.add_argument("--warmup",           type=int,   default=0)
     parser.add_argument("--lr",               type=float, default=1e-3)
-    parser.add_argument("--lambda-lr",        type=float, default=1e-2)
+    parser.add_argument("--lambda-lr",        type=float, default=1e-3)
+    parser.add_argument("--alpha-lr",         type=float, default=None,
+                        help="LR for the two_sided alpha blend weight. "
+                             "Defaults to lambda_lr/4 -- alpha is bounded in (0,1) "
+                             "and takes a normalised signal, so the rate that suits "
+                             "the unbounded lambdas saturates it.")
+    parser.add_argument("--entropy-coef",     type=float, default=0.01,
+                        help="Exploration pressure on the shadow-rollout gradient. "
+                             "Matches pg_adapt.py's default so PG/PePG aren't "
+                             "compared under a hidden asymmetry.")
     parser.add_argument("--buffer-capacity",  type=int,   default=50)
     parser.add_argument("--hawkes-weight",    type=float, default=1.0)
     parser.add_argument("--wealth-weight",    type=float, default=1.0)
@@ -460,15 +520,15 @@ def main():
     parser.add_argument("--reward-weight",    type=float, default=1.0)
 
     # Deployment (TestingIncomeEnvironment)
-    parser.add_argument("--deploy-episodes",  type=int,   default=500)
+    parser.add_argument("--deploy-episodes",  type=int,   default=1000)  # paper: 1000-episode axis
     parser.add_argument("--credit-threshold", type=float, default=0.5)
 
     # Architecture
     parser.add_argument("--hidden-dim", type=int, default=128)
 
     # Environment
-    parser.add_argument("--N-male",   type=int,   default=3000)
-    parser.add_argument("--N-female", type=int,   default=3000)
+    parser.add_argument("--N-male",   type=int,   default=12000)
+    parser.add_argument("--N-female", type=int,   default=12000)
     parser.add_argument("--T",        type=int,   default=100)
     parser.add_argument("--dt",       type=float, default=0.5)
 
@@ -550,6 +610,8 @@ def main():
                     "hidden_dim":       args.hidden_dim,
                     "lr":               args.lr,
                     "lambda_lr":        args.lambda_lr,
+                    "alpha_lr":         args.alpha_lr,
+                    "entropy_coef":     args.entropy_coef,
                     "buffer_capacity":  args.buffer_capacity,
                     "hawkes_weight":    args.hawkes_weight,
                     "wealth_weight":    args.wealth_weight,
@@ -561,7 +623,14 @@ def main():
                 })
 
         with mp.Pool(processes=args.workers) as pool:
-            train_results = pool.map(_train_worker, train_configs)
+            train_results = list(
+                tqdm(
+                    pool.imap(_train_worker, train_configs),
+                    total=len(train_configs),
+                    desc="Phase 1: training",
+                    unit="run",
+                )
+            )
 
         n_ok = sum(1 for r in train_results if r["success"])
         print(f"\n  Training done: {n_ok}/{len(train_configs)} successful")
@@ -620,7 +689,7 @@ def main():
     )
     test_loader.load_data()
     test_loader.preprocess()
-    test_theta = TransitionParameterLearner(default_rate_min=0.14, default_rate_max=0.16)
+    test_theta = TransitionParameterLearner(default_rate_min=0.05, default_rate_max=0.25)
     test_theta.fit(test_loader.data)
     _male_X   = test_loader.male_data["X"].values
     _female_X = test_loader.female_data["X"].values
@@ -670,11 +739,14 @@ def main():
             "hidden_dim":       args.hidden_dim,
             "lr":               args.lr,
             "lambda_lr":        args.lambda_lr,
+            "alpha_lr":         args.alpha_lr,
+            "entropy_coef":     args.entropy_coef,
             "buffer_capacity":  args.buffer_capacity,
             "hawkes_weight":    args.hawkes_weight,
             "wealth_weight":    args.wealth_weight,
             "transition_weight":args.transition_weight,
             "reward_weight":    args.reward_weight,
+            "deploy_artifacts_dir": os.path.join(args.results_dir, "deploy_artifacts"),
             "theta":            test_theta,
             "male_X":           _male_X,
             "female_X":         _female_X,
@@ -689,7 +761,13 @@ def main():
     else:
         print(f"\n  Running {len(deploy_configs)} deploy workers ({n_loaded} already done)…")
         with mp.Pool(processes=args.workers) as pool:
-            for raw in pool.imap_unordered(_deploy_worker, deploy_configs):
+            deploy_iter = tqdm(
+                pool.imap_unordered(_deploy_worker, deploy_configs),
+                total=len(deploy_configs),
+                desc="Phase 2: deploying",
+                unit="run",
+            )
+            for raw in deploy_iter:
                 if raw is None:
                     continue
                 seed, key, df = raw

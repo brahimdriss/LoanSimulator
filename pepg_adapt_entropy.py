@@ -276,7 +276,7 @@ def _train_worker(cfg):
         loader.load_data()
         loader.preprocess()
 
-        theta = TransitionParameterLearner(default_rate_min=0.14, default_rate_max=0.16)
+        theta = TransitionParameterLearner(default_rate_min=0.05, default_rate_max=0.25)
         theta.fit(loader.data)
 
         # Skip if weights already exist (allows partial restart)
@@ -317,7 +317,7 @@ def _train_worker(cfg):
             constraint_type=constraint,
             lambda_wealth=lw,
             lambda_approval=la,
-            lambda_lr=cfg.get("lambda_lr", 1e-2),
+            lambda_lr=cfg.get("lambda_lr", 1e-3),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=cfg.get("warmup_episodes", 0),
             alpha_R=env.alpha_R,
@@ -395,7 +395,7 @@ def _deploy_worker(cfg):
             constraint_type=constraint,
             lambda_wealth=lw,
             lambda_approval=la,
-            lambda_lr=cfg.get("lambda_lr", 1e-2),
+            lambda_lr=cfg.get("lambda_lr", 1e-3),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=0,
             alpha_R=env.alpha_R,
@@ -471,7 +471,7 @@ def main():
     parser.add_argument("--train-episodes",  type=int,   default=500)
     parser.add_argument("--warmup",           type=int,   default=0)
     parser.add_argument("--lr",               type=float, default=1e-3)
-    parser.add_argument("--lambda-lr",        type=float, default=1e-2)
+    parser.add_argument("--lambda-lr",        type=float, default=1e-3)
     parser.add_argument("--buffer-capacity",  type=int,   default=50)
     parser.add_argument("--hawkes-weight",    type=float, default=1.0)
     parser.add_argument("--wealth-weight",    type=float, default=1.0)
@@ -644,7 +644,7 @@ def main():
     )
     test_loader.load_data()
     test_loader.preprocess()
-    test_theta = TransitionParameterLearner(default_rate_min=0.14, default_rate_max=0.16)
+    test_theta = TransitionParameterLearner(default_rate_min=0.05, default_rate_max=0.25)
     test_theta.fit(test_loader.data)
     _male_X   = test_loader.male_data["X"].values
     _female_X = test_loader.female_data["X"].values

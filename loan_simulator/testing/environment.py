@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from gymnasium import spaces
 
+from ..environment import ARRIVAL_REF_N, MATTHEW_C
+from ..reward import RewardSnapshot
 from ..transition_learner import TransitionParameterLearner
 
 
@@ -32,7 +34,7 @@ class TestingIncomeEnvironment(gym.Env):
         N_female: int = 2000,
         T: int = 100,
         dt: float = 0.1,
-        interest_rate: float = 0.15,
+        interest_rate: float = 0.18,
         alpha_R: float = 0.3,
         alpha_B: float = 0.3,
         beta_R: float = 2.0,
@@ -54,6 +56,10 @@ class TestingIncomeEnvironment(gym.Env):
         self.beta_R = beta_R
         self.beta_B = beta_B
 
+        # Per-capita arrival scaling -- see environment.ARRIVAL_REF_N.
+        self._arrival_scale_R = N_male / ARRIVAL_REF_N
+        self._arrival_scale_B = N_female / ARRIVAL_REF_N
+
         # Prune Hawkes events older than this — exp(-beta * cutoff) < 1e-6
         self._hawkes_cutoff_R = -np.log(1e-6) / beta_R
         self._hawkes_cutoff_B = -np.log(1e-6) / beta_B
@@ -64,8 +70,12 @@ class TestingIncomeEnvironment(gym.Env):
         self.ground_truth_male = ground_truth_male[:N_male].copy()
         self.ground_truth_female = ground_truth_female[:N_female].copy()
 
-        # Individual parameters use Bernoulli default draws (via TransitionParameterLearner)
-        self.theta_params.initialize_individual_parameters(N_male, N_female, seed)
+        # Individual default probability is derived from creditworthiness rank
+        # (via X) -- see TransitionParameterLearner.initialize_individual_parameters.
+        self.theta_params.initialize_individual_parameters(
+            N_male, N_female, seed,
+            X_male=self.initial_X_male, X_female=self.initial_X_female,
+        )
 
         self.action_space = spaces.Box(
             low=np.array([0.0], dtype=np.float32),
@@ -154,6 +164,15 @@ class TestingIncomeEnvironment(gym.Env):
             "recall_F": [],
             "hawkes_events_M": [],
             "hawkes_events_F": [],
+            # Paper Sec 3.3 metric #5: Reach_g(t) = |U_g(t)| / N_g, the
+            # fraction of UNIQUE individuals in group g who received a loan
+            # during episode t. Distinct from approval rate: it measures
+            # whether credit is spread broadly or concentrated on repeat
+            # recipients.
+            "reach_rate_M": [],
+            "reach_rate_F": [],
+            "unique_recipients_M": [],
+            "unique_recipients_F": [],
         }
 
     # ------------------------------------------------------------------
@@ -215,6 +234,16 @@ class TestingIncomeEnvironment(gym.Env):
         self.episode_actual_approvals_F = 0
         self.episode_true_approvals_M = 0
         self.episode_true_approvals_F = 0
+        # Per-episode unique loan recipients, for Reach Rate (paper metric
+        # #5). Boolean masks rather than Python sets: O(1) vectorised
+        # marking from step_cohort()'s index arrays, and cheap at large N.
+        self._ep_unique_M = np.zeros(self.N_male, dtype=bool)
+        self._ep_unique_F = np.zeros(self.N_female, dtype=bool)
+        # Cumulative per-individual loan counts, persisting across episodes
+        # (concentration / Lorenz analysis).
+        if not hasattr(self, "loan_counts_M"):
+            self.loan_counts_M = np.zeros(self.N_male, dtype=np.int64)
+            self.loan_counts_F = np.zeros(self.N_female, dtype=np.int64)
 
     # ------------------------------------------------------------------
     # reset() — continues from current state (no wealth reset)
@@ -253,6 +282,46 @@ class TestingIncomeEnvironment(gym.Env):
         self.timestep_profit = 0.0
 
         return self._get_observation(), {}
+
+    def reset_cohort(self, seed: Optional[int] = None, options: Optional[dict] = None):
+        """
+        Batched interface: same continuity semantics as reset() (wealth,
+        Hawkes events, cumulative counters all preserved), but generates
+        the first timestep's cohort and returns its observation MATRIX
+        (shape [n, 12]) instead of a single applicant's observation.
+        """
+        super().reset(seed=seed)
+
+        if self.total_episodes > 0:
+            self._record_episode_metrics()
+
+        self.total_episodes += 1
+        if self.total_episodes % 10 == 1 or self.total_episodes == 1:
+            print(
+                f"\n  Starting Episode {self.total_episodes} "
+                f"(ALL state preserved - continuous play)"
+            )
+
+        self.prev_mu_M = self.mu_M
+        self.prev_mu_F = self.mu_F
+        self.episode_start_mu_M = self.mu_M
+        self.episode_start_mu_F = self.mu_F
+        self.episode_start_time = self.current_time
+        self.episode_timesteps = 0
+
+        self._reset_episode_counters()
+
+        start_time = self.current_time
+        self.time_steps = np.arange(start_time, start_time + self.T, self.dt)
+        self.time_index = 0
+
+        self.pending_applications = deque()
+        self.current_applicant = None
+        self.timestep_data = None
+        self.timestep_profit = 0.0
+
+        self._advance_to_nonempty_cohort()
+        return self._get_cohort_observations(), {}
 
     # ------------------------------------------------------------------
     # Episode metrics recording
@@ -363,6 +432,13 @@ class TestingIncomeEnvironment(gym.Env):
         m["hawkes_events_M"].append(len(self.event_times_R))
         m["hawkes_events_F"].append(len(self.event_times_B))
 
+        n_unique_M = int(self._ep_unique_M.sum())
+        n_unique_F = int(self._ep_unique_F.sum())
+        m["unique_recipients_M"].append(n_unique_M)
+        m["unique_recipients_F"].append(n_unique_F)
+        m["reach_rate_M"].append(n_unique_M / max(self.N_male, 1))
+        m["reach_rate_F"].append(n_unique_F / max(self.N_female, 1))
+
     def finalize_episode_metrics(self):
         """Call after the last episode to record final metrics."""
         if self.total_episodes > 0:
@@ -384,12 +460,15 @@ class TestingIncomeEnvironment(gym.Env):
         while self.event_times_B and self.event_times_B[0] <= cutoff_B:
             self.event_times_B.popleft()
 
-    def _f_networth_to_rate(self, mu: float) -> float:
-        mu = mu * 5.0
-        return max(0.5, 2.0 + 0.01 * mu)
+    def _f_networth_to_rate(self, mu: float, scale: float = 1.0) -> float:
+        """Wealth-driven base arrival intensity on RELATIVE standing
+        mu_g/mu_bar; see environment.MATTHEW_C and ARRIVAL_REF_N."""
+        mu_bar = 0.5 * (self.mu_M + self.mu_F)
+        rel = mu / max(mu_bar, 1e-8)
+        return max(0.5, 2.0 * (1.0 + MATTHEW_C * (rel - 1.0))) * scale
 
     def _compute_lambda_R(self, t: float) -> float:
-        base_rate = self._f_networth_to_rate(self.mu_M)
+        base_rate = self._f_networth_to_rate(self.mu_M, self._arrival_scale_R)
         if not self.event_times_R:
             return base_rate
         # After pruning, all events in deque are <= t; ages are all >= 0
@@ -398,7 +477,7 @@ class TestingIncomeEnvironment(gym.Env):
         return base_rate + excitation
 
     def _compute_lambda_B(self, t: float) -> float:
-        base_rate = self._f_networth_to_rate(self.mu_F)
+        base_rate = self._f_networth_to_rate(self.mu_F, self._arrival_scale_B)
         if not self.event_times_B:
             return base_rate
         ages = t - np.fromiter(self.event_times_B, dtype=np.float64, count=len(self.event_times_B))
@@ -455,6 +534,85 @@ class TestingIncomeEnvironment(gym.Env):
             dtype=np.float32,
         )
 
+    def _get_cohort_observations(self) -> np.ndarray:
+        """Batched counterpart of _get_observation() -- see
+        IncomeEnvironment._get_cohort_observations() for the column layout,
+        identical here."""
+        n = len(self.pending_applications)
+        if n == 0:
+            return np.zeros((0, 12), dtype=np.float32)
+
+        apps = list(self.pending_applications)
+        lambda_R = self._compute_lambda_R(self.current_time)
+        lambda_B = self._compute_lambda_B(self.current_time)
+        rho_M = self.total_defaults_M / max(self.total_loans_M, 1)
+        rho_F = self.total_defaults_F / max(self.total_loans_F, 1)
+
+        X = np.array([a["X"] for a in apps], dtype=np.float64)
+        S = np.array([a["S"] for a in apps], dtype=np.float64)
+        loan_amount = np.array([a["loan_amount"] for a in apps], dtype=np.float64)
+        theta_approval_prob = np.array(
+            [a["theta_approval_prob"] for a in apps], dtype=np.float64
+        )
+
+        obs = np.zeros((n, 12), dtype=np.float32)
+        obs[:, 0] = X / 100.0
+        obs[:, 1] = S
+        obs[:, 2] = self.mu_M / 100.0
+        obs[:, 3] = self.mu_F / 100.0
+        obs[:, 4] = lambda_R
+        obs[:, 5] = lambda_B
+        obs[:, 6] = rho_M
+        obs[:, 7] = rho_F
+        obs[:, 8] = theta_approval_prob
+        obs[:, 9] = self.theta_params.theta_S
+        obs[:, 10] = self.theta_params.theta_X
+        obs[:, 11] = loan_amount
+        return obs
+
+    def _advance_to_nonempty_cohort(self):
+        """Advance timesteps until a non-empty cohort is pending or the
+        episode ends -- see IncomeEnvironment's version for rationale."""
+        while (
+            len(self.pending_applications) == 0
+            and self.time_index < len(self.time_steps)
+        ):
+            self._advance_one_timestep()
+
+    def _advance_one_timestep(self):
+        """Close out the just-finished timestep's bookkeeping (if any) and
+        generate the next timestep's cohort into self.pending_applications."""
+        if self.timestep_data is not None:
+            self.mu_M = np.mean(self.current_X_male)
+            self.mu_F = np.mean(self.current_X_female)
+            self.cumulative_profit += self.timestep_profit
+            self.episode_timesteps += 1
+
+        if self.time_index < len(self.time_steps):
+            self.current_time = self.time_steps[self.time_index]
+            self.time_index += 1
+            self.global_timestep += 1
+            self.timestep_profit = 0.0
+
+            self._prune_hawkes_events(self.current_time)
+            timestep_info = self._generate_timestep_applications()
+            self.pending_applications = deque(timestep_info["applications"])
+
+            self.timestep_data = {
+                "apply_select_M": timestep_info["apply_select_M"],
+                "apply_select_F": timestep_info["apply_select_F"],
+                "lambda_R": timestep_info["lambda_R"],
+                "lambda_B": timestep_info["lambda_B"],
+                "n_arrivals_M": timestep_info["n_arrivals_M"],
+                "n_arrivals_F": timestep_info["n_arrivals_F"],
+                "p_theta_R": timestep_info["p_theta_R"],
+                "p_theta_B": timestep_info["p_theta_B"],
+                "approvals_M": 0,
+                "approvals_F": 0,
+                "defaults_M": 0,
+                "defaults_F": 0,
+            }
+
     # ------------------------------------------------------------------
     # Application generation (vectorised)
     # ------------------------------------------------------------------
@@ -490,8 +648,6 @@ class TestingIncomeEnvironment(gym.Env):
         )
 
         applying_indices_M = np.where(np.random.random(self.N_male) < app_probs_M)[0]
-        if len(applying_indices_M) > 10:
-            applying_indices_M = applying_indices_M[:10]
 
         for idx in applying_indices_M:
             apply_select_M[idx] = 1
@@ -531,8 +687,6 @@ class TestingIncomeEnvironment(gym.Env):
         )
 
         applying_indices_F = np.where(np.random.random(self.N_female) < app_probs_F)[0]
-        if len(applying_indices_F) > 10:
-            applying_indices_F = applying_indices_F[:10]
 
         for idx in applying_indices_F:
             apply_select_F[idx] = 1
@@ -624,6 +778,8 @@ class TestingIncomeEnvironment(gym.Env):
 
                 if applicant["S"] == 1:
                     self.current_X_male[applicant["individual_id"]] += kappa_i
+                    self._ep_unique_M[applicant["individual_id"]] = True  # Reach Rate
+                    self.loan_counts_M[applicant["individual_id"]] += 1
                     self.total_loans_M += 1
                     self.episode_loans_M += 1
                     self.timestep_data["approvals_M"] += 1
@@ -639,6 +795,8 @@ class TestingIncomeEnvironment(gym.Env):
                         self.episode_profit += profit
                 else:
                     self.current_X_female[applicant["individual_id"]] += kappa_i
+                    self._ep_unique_F[applicant["individual_id"]] = True  # Reach Rate
+                    self.loan_counts_F[applicant["individual_id"]] += 1
                     self.total_loans_F += 1
                     self.episode_loans_F += 1
                     self.timestep_data["approvals_F"] += 1
@@ -715,6 +873,123 @@ class TestingIncomeEnvironment(gym.Env):
             "episode": self.total_episodes,
         }
         return obs, reward, terminated, truncated, info
+
+    def step_cohort(self, actions: np.ndarray):
+        """
+        Batched counterpart of step() -- see IncomeEnvironment.step_cohort()
+        for the general contract (snapshot-before-mutation, reward left to
+        the caller). Additionally updates the confusion matrix (tp/fp/tn/fn
+        per group) and episode-level counters, vectorized the same way.
+        """
+        applications = list(self.pending_applications)
+        self.pending_applications = deque()  # consume now; see IncomeEnvironment
+        n = len(applications)
+        actions = np.clip(np.asarray(actions, dtype=np.float64).reshape(-1), 0.0, 1.0)
+        if len(actions) != n:
+            raise ValueError(f"step_cohort: {len(actions)} actions for {n} applicants")
+
+        snap = RewardSnapshot.from_env(self)
+
+        if n > 0:
+            default_probs = np.array([a["default_prob"] for a in applications])
+            wealth_gains = np.array([a["wealth_gain"] for a in applications])
+            loan_amounts = np.array([a["loan_amount"] for a in applications])
+            S = np.array([a["S"] for a in applications])
+            ids = np.array([a["individual_id"] for a in applications], dtype=np.int64)
+            ground_truth = np.array(
+                [bool(a["ground_truth"]) for a in applications], dtype=bool
+            )
+
+            approved = np.random.random(n) < actions
+            defaults = np.random.random(n) < default_probs
+            kappa = np.where(defaults, 0.0, wealth_gains)
+
+            for group_S, is_male in [(1, True), (0, False)]:
+                gmask = S == group_S
+                if not gmask.any():
+                    continue
+                g_approved = approved[gmask]
+                g_gt = ground_truth[gmask]
+
+                tp = int((g_approved & g_gt).sum())
+                fp = int((g_approved & ~g_gt).sum())
+                tn = int((~g_approved & ~g_gt).sum())
+                fn = int((~g_approved & g_gt).sum())
+                true_approvals = int(g_gt.sum())
+
+                approved_mask = gmask & approved
+                n_approved = int(approved_mask.sum())
+                g_ids = ids[approved_mask]
+                g_kappa = kappa[approved_mask]
+                g_defaults = defaults[approved_mask]
+                g_loans = loan_amounts[approved_mask]
+                profit = float(
+                    np.where(g_defaults, -g_loans, g_loans * self.interest_rate).sum()
+                )
+                n_defaults = int(g_defaults.sum())
+
+                if is_male:
+                    self.tp_M += tp; self.fp_M += fp; self.tn_M += tn; self.fn_M += fn
+                    self.episode_true_approvals_M += true_approvals
+                    if n_approved > 0:
+                        self._ep_unique_M[g_ids] = True          # Reach Rate
+                        np.add.at(self.loan_counts_M, g_ids, 1)  # concentration
+                        np.add.at(self.current_X_male, g_ids, g_kappa)
+                        self.event_times_R.extend([self.current_time] * n_approved)
+                        self.episode_actual_approvals_M += n_approved
+                        self.total_loans_M += n_approved
+                        self.episode_loans_M += n_approved
+                        self.timestep_data["approvals_M"] += n_approved
+                        self.total_defaults_M += n_defaults
+                        self.episode_defaults_M += n_defaults
+                        self.timestep_data["defaults_M"] += n_defaults
+                        self.timestep_profit += profit
+                        self.episode_profit += profit
+                else:
+                    self.tp_F += tp; self.fp_F += fp; self.tn_F += tn; self.fn_F += fn
+                    self.episode_true_approvals_F += true_approvals
+                    if n_approved > 0:
+                        self._ep_unique_F[g_ids] = True          # Reach Rate
+                        np.add.at(self.loan_counts_F, g_ids, 1)  # concentration
+                        np.add.at(self.current_X_female, g_ids, g_kappa)
+                        self.event_times_B.extend([self.current_time] * n_approved)
+                        self.episode_actual_approvals_F += n_approved
+                        self.total_loans_F += n_approved
+                        self.episode_loans_F += n_approved
+                        self.timestep_data["approvals_F"] += n_approved
+                        self.total_defaults_F += n_defaults
+                        self.episode_defaults_F += n_defaults
+                        self.timestep_data["defaults_F"] += n_defaults
+                        self.timestep_profit += profit
+                        self.episode_profit += profit
+
+            default_probs_out = default_probs
+            loan_amounts_out = loan_amounts
+        else:
+            default_probs_out = np.zeros(0)
+            loan_amounts_out = np.zeros(0)
+
+        info = {
+            "time": self.current_time,
+            "applicants": applications,
+            "actions": actions,
+            "default_probs": default_probs_out,
+            "loan_amounts": loan_amounts_out,
+            "reward_snapshot": snap,
+            "p_theta_R": self.timestep_data["p_theta_R"] if self.timestep_data else 0.0,
+            "p_theta_B": self.timestep_data["p_theta_B"] if self.timestep_data else 0.0,
+            "episode": self.total_episodes,
+        }
+
+        self._advance_to_nonempty_cohort()
+
+        terminated = (
+            self.time_index >= len(self.time_steps) and len(self.pending_applications) == 0
+        )
+        truncated = False
+        next_obs = self._get_cohort_observations()
+
+        return next_obs, terminated, truncated, info
 
     # ------------------------------------------------------------------
     # DataFrame helper

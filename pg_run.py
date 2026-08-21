@@ -33,18 +33,21 @@ from test_rule_based_policies import setup_plot_style
 # Valid (reward_function, constraint_type) combos
 # ---------------------------------------------------------------------------
 
+# NOTE: the four ("*", "predictive") combos are ON HOLD. `predictive` is not
+# one of the three fairness columns in the paper's Table 1 (Outcome / DM /
+# alpha-Two-sided), and including it here made the PG pipeline run 14 combos
+# against PePG's 10 -- so any cross-agent table was not comparing like with
+# like. This list now matches pepg_adapt.PEPG_COMBOS exactly. The
+# `predictive` branches remain implemented in reward.py; re-add the entries
+# here to bring them back.
 VALID_COMBOS = [
-    ("utilitarian_profit",  "predictive"),
     ("utilitarian_profit",  "dm"),
     ("utilitarian_profit",  "two_sided"),
-    ("social_welfare",      "predictive"),
     ("social_welfare",      "social"),
     ("social_welfare",      "two_sided"),
-    ("rawlsian_maximin",    "predictive"),
     ("rawlsian_maximin",    "social"),
     ("rawlsian_maximin",    "dm"),
     ("rawlsian_maximin",    "two_sided"),
-    ("fairness_lagrangian", "predictive"),
     ("fairness_lagrangian", "social"),
     ("fairness_lagrangian", "dm"),
     ("fairness_lagrangian", "two_sided"),
@@ -191,7 +194,7 @@ def _train_worker(cfg):
             constraint_type=constraint,
             lambda_wealth=cfg.get("lambda_wealth", 0.5 if constraint == "two_sided" else 2.0),
             lambda_approval=cfg.get("lambda_approval", 2.0),
-            lambda_lr=cfg.get("lambda_lr", 1e-2),
+            lambda_lr=cfg.get("lambda_lr", 1e-3),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=cfg.get("warmup_episodes", 0),
             alpha_R=env.alpha_R,
@@ -611,7 +614,7 @@ def main():
     parser.add_argument("--hidden-dim",     type=int,   default=128)
     parser.add_argument("--lambda-wealth",  type=float, default=2.0)
     parser.add_argument("--lambda-approval",type=float, default=2.0)
-    parser.add_argument("--lambda-lr",      type=float, default=1e-2)
+    parser.add_argument("--lambda-lr",      type=float, default=1e-3)
     parser.add_argument("--entropy-coef",   type=float, default=0.01,
                         help="Entropy bonus coefficient (default: 0.01)")
     parser.add_argument("--buffer-capacity", type=int, default=50,
@@ -783,7 +786,7 @@ def main():
     test_loader.load_data()
     test_loader.preprocess()
     test_theta = TransitionParameterLearner(
-        default_rate_min=0.14, default_rate_max=0.16
+        default_rate_min=0.05, default_rate_max=0.25
     )
     test_theta.fit(test_loader.data)
     _male_X  = test_loader.male_data["X"].values

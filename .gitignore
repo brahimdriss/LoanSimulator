@@ -11,6 +11,9 @@ stable/
 
 # Exclude identity-revealing and large output files
 *.sh
+# ...but the cluster submission wrapper must be versioned: it is the file
+# HTCondor executes, and both agents' identical config lives inside it.
+!cluster/*.sh
 *.out
 *.err
 results_*/

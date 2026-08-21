@@ -868,7 +868,7 @@ def main():
     loader.load_data()
     loader.preprocess()
 
-    theta = TransitionParameterLearner(default_rate_min=0.14, default_rate_max=0.16)
+    theta = TransitionParameterLearner(default_rate_min=0.05, default_rate_max=0.25)
     theta.fit(loader.data)
 
     env_kwargs = dict(

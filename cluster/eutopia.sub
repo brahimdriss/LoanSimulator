@@ -1,0 +1,50 @@
+# Eutopia PG vs PePG — MPI-IS Tübingen cluster (HTCondor)
+#
+# Two jobs, one per agent, submitted as a 2-element array:
+#   $(Process) = 0  ->  pepg
+#   $(Process) = 1  ->  pg
+#
+# Submit with a bid (second-price auction, so bidding generously is safe in a
+# quiet queue -- you're only charged what the next competing bid would pay):
+#   condor_submit_bid 25 eutopia.sub
+#
+# EDIT before submitting: replace <username> below, and make sure
+#   cluster/run_job.sh has PROJ pointing at your copy of the repo.
+
+executable = /home/<username>/LoanSimulator/cluster/run_job.sh
+arguments  = $(agent)
+
+# Map the array index to an agent name.
+agent = $CHOICE($(Process), pepg, pg)
+
+# Condor's own logs. $(Process) keeps the two jobs from clobbering each other.
+output = /home/<username>/eutopia_logs/eutopia_$(agent)_$(ClusterId).$(Process).out
+error  = /home/<username>/eutopia_logs/eutopia_$(agent)_$(ClusterId).$(Process).err
+log    = /home/<username>/eutopia_logs/eutopia_$(ClusterId).log
+
+initialdir = /home/<username>/LoanSimulator
+
+# Resources.
+#   The pipeline parallelises over (seed, combo) with a multiprocessing Pool
+#   sized by --workers (8 in run_job.sh) -- so request 8 cores to match. CPU
+#   limits are HARD-enforced, so asking for fewer than the pool size would
+#   throttle the job rather than just slow it slightly.
+#   Memory: each worker holds a 12000-per-group population plus torch; 4GB per
+#   worker is comfortable. RAM limits are soft, but this is what's guaranteed.
+request_cpus   = 8
+request_memory = 32768
+request_disk   = 10485760
+
+# CPU-only: the shadow rollout and per-cohort batching are small dense ops,
+# and the pipeline already parallelises across processes. A GPU would add 24
+# computing units to the bid for no benefit here.
+request_gpus = 0
+
+# Inherit the submitting shell's environment (PATH, proxies, any venv).
+getenv = True
+
+# Restart if a node dies mid-run; the pipeline checkpoints per (seed, combo)
+# and skips completed ones, so a retry resumes rather than restarting.
+max_retries = 3
+
+queue 2

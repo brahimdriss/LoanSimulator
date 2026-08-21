@@ -21,7 +21,7 @@ def run_single_reward_function(
     constraint_type="wealth",
     lambda_wealth=2.0,
     lambda_approval=2.0,
-    lambda_lr=1e-2,
+    lambda_lr=1e-3,
     save_weights=True,
     weights_dir="./weights",
     save_lambda=True,
@@ -314,7 +314,7 @@ def run_experiment(
             constraint_type=constraint_type,
             lambda_wealth=lambda_wealth,
             lambda_approval=lambda_approval,
-            lambda_lr=1e-2,
+            lambda_lr=1e-3,
         )
         agent.train(num_episodes=num_episodes)
 
