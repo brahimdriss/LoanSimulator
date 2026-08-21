@@ -26,6 +26,15 @@ export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
 export OPENBLAS_NUM_THREADS=1
 export PYTHONUNBUFFERED=1
 
+# The cluster nodes provide `python3`, not `python` (login2 has no `python`
+# on PATH at all), so resolve it explicitly rather than assuming. Override by
+# exporting PYTHON=... if you are using a venv/conda env.
+PYTHON="${PYTHON:-$(command -v python3 || command -v python || true)}"
+if [ -z "$PYTHON" ]; then
+  echo "ERROR: no python3/python found on PATH" >&2
+  exit 127
+fi
+
 STAMP="$(date +%Y%m%d_%H%M%S)"
 RESULTS="$OUT/${AGENT}_${STAMP}"
 WEIGHTS="$RESULTS/weights"
@@ -53,7 +62,7 @@ echo "  agent    : $AGENT"
 echo "  results  : $RESULTS"
 echo "  host     : $(hostname)"
 echo "  started  : $(date)"
-echo "  python   : $(python --version 2>&1)"
+echo "  python   : $PYTHON ($($PYTHON --version 2>&1))"
 echo "  config   : ${COMMON[*]}"
 echo "==============================================================="
 
@@ -65,7 +74,7 @@ esac
 
 # Tee everything so the full console log is preserved alongside the CSVs,
 # not just in Condor's .out file.
-python -u "$SCRIPT" "${COMMON[@]}" 2>&1 | tee "$RESULTS/console.log"
+"$PYTHON" -u "$SCRIPT" "${COMMON[@]}" 2>&1 | tee "$RESULTS/console.log"
 
 echo "=== finished: $(date) ==="
 echo "artefacts under: $RESULTS"
