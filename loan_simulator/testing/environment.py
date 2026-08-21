@@ -64,6 +64,22 @@ class TestingIncomeEnvironment(gym.Env):
         self._hawkes_cutoff_R = -np.log(1e-6) / beta_R
         self._hawkes_cutoff_B = -np.log(1e-6) / beta_B
 
+        # Fail fast on an undersized population. Slicing an array shorter than
+        # N silently yields fewer entries while self.N_* keeps the requested
+        # value, and the mismatch only surfaces ~200 lines later inside
+        # _generate_timestep_applications as an opaque
+        #   "operands could not be broadcast together with shapes (12000,) (6439,)"
+        # after several minutes of training have already been thrown away.
+        for _name, _arr, _n in (("male", initial_wealth_male, N_male),
+                                ("female", initial_wealth_female, N_female)):
+            if len(_arr) < _n:
+                raise ValueError(
+                    f"N_{_name}={_n} requested but only {len(_arr)} {_name} "
+                    f"records supplied. Load more data (the loader's "
+                    f"sample_size caps this: Adult is ~2/3 male, so the "
+                    f"female count binds first) or lower N_{_name}."
+                )
+
         self.initial_X_male = initial_wealth_male[:N_male].copy()
         self.initial_X_female = initial_wealth_female[:N_female].copy()
 

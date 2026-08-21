@@ -41,6 +41,11 @@ from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
 from loan_simulator.pepg import PePGAgentV2
+# Rows to read from adult.csv. Must be large enough that the FEMALE
+# count (the binding one -- Adult is ~2/3 male) covers --N-female.
+# 20000 rows yields only 6439 female; the full 45222 yields 14695.
+SAMPLE_SIZE = 100000  # i.e. "all of it"; the loader caps at file size
+
 AGENT_TAG = "pepg"
 
 from run_multi_seed import add_derived_columns, aggregate_across_seeds
@@ -300,7 +305,7 @@ def _train_worker(cfg):
 
         loader = TestingAdultIncomeDataLoader(
             filepath=cfg["data_filepath"],
-            sample_size=20000,
+            sample_size=SAMPLE_SIZE,
             credit_threshold=cfg.get("credit_threshold", 0.5),
         )
         loader.load_data()
@@ -710,7 +715,7 @@ def main():
     print("  Loading test data (once)…")
     test_loader = TestingAdultIncomeDataLoader(
         filepath=args.data,
-        sample_size=20000,
+        sample_size=SAMPLE_SIZE,
         credit_threshold=args.credit_threshold,
     )
     test_loader.load_data()

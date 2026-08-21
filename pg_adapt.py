@@ -42,6 +42,10 @@ from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
 from loan_simulator.agent import PolicyGradientAgent
+# See SAMPLE_SIZE note in pepg_adapt.py -- 20000 rows gives only 6439
+# female records, far short of --N-female=12000.
+SAMPLE_SIZE = 100000
+
 AGENT_TAG = "pg"
 
 from run_multi_seed import add_derived_columns, aggregate_across_seeds
@@ -93,7 +97,7 @@ def _train_worker(cfg):
         torch.manual_seed(seed)
 
         loader = AdultIncomeDataLoader(
-            filepath=cfg["data_filepath"], sample_size=20000
+            filepath=cfg["data_filepath"], sample_size=SAMPLE_SIZE
         )
         loader.load_data()
         loader.preprocess()
@@ -425,7 +429,7 @@ def main():
     print("  Loading test data (once)…")
     test_loader = TestingAdultIncomeDataLoader(
         filepath=args.data,
-        sample_size=20000,
+        sample_size=SAMPLE_SIZE,
         credit_threshold=args.credit_threshold,
     )
     test_loader.load_data()
