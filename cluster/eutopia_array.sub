@@ -6,27 +6,26 @@
 #   $(Process)  0..19  -> pepg, seeds 0..19
 #   $(Process) 20..39  -> pg,   seeds 0..19
 #
+# The index -> (agent, seed) arithmetic is done in run_job.sh, NOT here.
+# HTCondor's macro language cannot nest $() calls -- $CHOICE($INT($(Process)/20))
+# fails at submit time with "$INT($(Process is invalid index" -- so this file
+# sticks to a bare $(Process) and lets bash do the maths.
+#
 # Submit:
 #   condor_submit_bid 25 eutopia_array.sub
 #
 # THEN, once all 40 have finished (condor_q shows none left), aggregate:
-#   condor_submit_bid 25 eutopia_aggregate.sub
-# or just run it on the login node, it is only I/O:
 #   ~/LoanSimulator/cluster/run_job.sh pepg aggregate
 #   ~/LoanSimulator/cluster/run_job.sh pg   aggregate
+# (or: condor_submit_bid 25 eutopia_aggregate.sub)
 #
 # No editing needed: $ENV(HOME) is expanded by HTCondor at submit time.
 
 executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
-arguments  = $(agent) $(seed)
+arguments  = shard $(Process)
 
-# Map the flat array index onto (agent, seed). $INT() forces integer division
-# and modulo results into plain integers for the argument string.
-agent = $CHOICE($INT($(Process) / 20), pepg, pg)
-seed  = $INT($(Process) % 20)
-
-output = $ENV(HOME)/eutopia_logs/arr_$(agent)_seed$(seed)_$(ClusterId).$(Process).out
-error  = $ENV(HOME)/eutopia_logs/arr_$(agent)_seed$(seed)_$(ClusterId).$(Process).err
+output = $ENV(HOME)/eutopia_logs/arr_$(ClusterId).$(Process).out
+error  = $ENV(HOME)/eutopia_logs/arr_$(ClusterId).$(Process).err
 log    = $ENV(HOME)/eutopia_logs/arr_$(ClusterId).log
 
 initialdir = $ENV(HOME)/LoanSimulator

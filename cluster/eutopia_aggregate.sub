@@ -11,12 +11,13 @@
 #   ~/LoanSimulator/cluster/run_job.sh pg   aggregate
 
 executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
-arguments  = $(agent) aggregate
+arguments  = pair $(Process) aggregate
 
-agent = $CHOICE($(Process), pepg, pg)
+# index -> agent mapping happens in run_job.sh (see `pair`), because
+# $CHOICE($(Process), ...) is rejected by HTCondor's macro parser.
 
-output = $ENV(HOME)/eutopia_logs/agg_$(agent)_$(ClusterId).$(Process).out
-error  = $ENV(HOME)/eutopia_logs/agg_$(agent)_$(ClusterId).$(Process).err
+output = $ENV(HOME)/eutopia_logs/agg_$(ClusterId).$(Process).out
+error  = $ENV(HOME)/eutopia_logs/agg_$(ClusterId).$(Process).err
 log    = $ENV(HOME)/eutopia_logs/agg_$(ClusterId).log
 
 initialdir = $ENV(HOME)/LoanSimulator

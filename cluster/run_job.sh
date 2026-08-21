@@ -4,6 +4,9 @@
 #   run_job.sh <pepg|pg>                 -> all seeds in one job, then aggregate
 #   run_job.sh <pepg|pg> <seed>          -> ONE seed only, no plots (array shard)
 #   run_job.sh <pepg|pg> aggregate       -> aggregate + plot from existing checkpoints
+#   run_job.sh shard <index>             -> array shard; maps a flat 0..2N-1
+#                                           index onto (agent, seed)
+#   run_job.sh pair <0|1> <mode>         -> 2-job form; 0=pepg, 1=pg
 #
 # The shard/aggregate split exists because the parallelism in this workload is
 # across independent (seed, combo) runs, not inside any one of them: the policy
@@ -16,7 +19,33 @@
 # simply re-reads all of them.
 set -euo pipefail
 
-AGENT="${1:?usage: run_job.sh <pepg|pg> [seed|aggregate]}"
+# --- flat array index -> (agent, seed) ------------------------------------
+# HTCondor's macro language cannot nest $() calls: $CHOICE($INT($(Process)/20))
+# fails to parse ("$INT($(Process is invalid index"). Only `queue N` with a
+# bare $(Process) is portable, so the submit file passes the flat index and the
+# arithmetic happens here, in bash, where it is unambiguous.
+#   index 0 .. N_SEEDS-1        -> pepg, seed = index
+#   index N_SEEDS .. 2*N_SEEDS-1 -> pg,  seed = index - N_SEEDS
+if [ "${1:-}" = "shard" ]; then
+  _IDX="${2:?usage: run_job.sh shard <array-index>}"
+  _NS="${N_SEEDS:-20}"
+  if [ "$_IDX" -lt "$_NS" ]; then
+    set -- pepg "$_IDX"
+  else
+    set -- pg "$(( _IDX - _NS ))"
+  fi
+fi
+
+# Two-job forms (all-seeds, aggregate) map index 0 -> pepg, 1 -> pg. Same
+# reason as `shard`: $CHOICE($(Process), pepg, pg) is the very nesting pattern
+# HTCondor rejects, so no submit file uses $CHOICE at all.
+if [ "${1:-}" = "pair" ]; then
+  _IDX="${2:?usage: run_job.sh pair <0|1> <mode>}"
+  _MODE="${3:?usage: run_job.sh pair <0|1> <mode>}"
+  if [ "$_IDX" -eq 0 ]; then set -- pepg "$_MODE"; else set -- pg "$_MODE"; fi
+fi
+
+AGENT="${1:?usage: run_job.sh <pepg|pg> [seed|aggregate]  |  shard <index>  |  pair <0|1> <mode>}"
 MODE="${2:-all}"
 
 # --- paths ----------------------------------------------------------------
