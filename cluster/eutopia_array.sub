@@ -1,0 +1,52 @@
+# Eutopia PG vs PePG — sharded by seed (HTCondor array)
+#
+# 40 jobs = 2 agents x 20 seeds. Each shard runs all 10 combos for ONE seed and
+# writes its (seed, combo) checkpoints into a shared per-agent results dir.
+#
+#   $(Process)  0..19  -> pepg, seeds 0..19
+#   $(Process) 20..39  -> pg,   seeds 0..19
+#
+# Submit:
+#   condor_submit_bid 25 eutopia_array.sub
+#
+# THEN, once all 40 have finished (condor_q shows none left), aggregate:
+#   condor_submit_bid 25 eutopia_aggregate.sub
+# or just run it on the login node, it is only I/O:
+#   ~/LoanSimulator/cluster/run_job.sh pepg aggregate
+#   ~/LoanSimulator/cluster/run_job.sh pg   aggregate
+#
+# No editing needed: $ENV(HOME) is expanded by HTCondor at submit time.
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(agent) $(seed)
+
+# Map the flat array index onto (agent, seed). $INT() forces integer division
+# and modulo results into plain integers for the argument string.
+agent = $CHOICE($INT($(Process) / 20), pepg, pg)
+seed  = $INT($(Process) % 20)
+
+output = $ENV(HOME)/eutopia_logs/arr_$(agent)_seed$(seed)_$(ClusterId).$(Process).out
+error  = $ENV(HOME)/eutopia_logs/arr_$(agent)_seed$(seed)_$(ClusterId).$(Process).err
+log    = $ENV(HOME)/eutopia_logs/arr_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+# Each shard runs 10 combos through a pool of --workers (8). CPU limits are
+# hard-enforced, so request what the pool will actually use.
+request_cpus   = 8
+request_memory = 32768
+request_disk   = 10485760
+request_gpus   = 0
+
+# CPU-only on purpose: the policy net is ~18k parameters evaluated on batches
+# of ~20, and the shadow rollout is a sequential 200-step loop. Kernel-launch
+# overhead would exceed the compute, and a GPU adds 24 computing units to the
+# bid for no benefit.
+
+getenv = True
+
+# Shards are idempotent -- a retry re-reads existing checkpoints and only
+# recomputes what is missing.
+max_retries = 3
+
+queue 40

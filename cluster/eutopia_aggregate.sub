@@ -1,0 +1,33 @@
+# Eutopia — aggregation pass (run AFTER eutopia_array.sub has fully drained)
+#
+# Reads every (seed, combo) checkpoint written by the array shards, aggregates
+# mean +/- std across seeds, and renders the figures. Two jobs, one per agent.
+#
+#   condor_submit_bid 25 eutopia_aggregate.sub
+#
+# This is I/O and plotting only -- no training -- so it is also perfectly fine
+# to run directly on the login node instead:
+#   ~/LoanSimulator/cluster/run_job.sh pepg aggregate
+#   ~/LoanSimulator/cluster/run_job.sh pg   aggregate
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(agent) aggregate
+
+agent = $CHOICE($(Process), pepg, pg)
+
+output = $ENV(HOME)/eutopia_logs/agg_$(agent)_$(ClusterId).$(Process).out
+error  = $ENV(HOME)/eutopia_logs/agg_$(agent)_$(ClusterId).$(Process).err
+log    = $ENV(HOME)/eutopia_logs/agg_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+# Aggregation is single-process pandas + matplotlib; it does not use the pool.
+request_cpus   = 2
+request_memory = 16384
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 2
+
+queue 2
