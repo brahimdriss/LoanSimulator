@@ -1,3 +1,26 @@
+"""Entry point. See cluster/ for HTCondor submission."""
+
+# --- BLAS thread guard -----------------------------------------------------
+# MUST run before numpy/torch/matplotlib are imported: the BLAS backend reads
+# these at load time and cannot be reconfigured afterwards.
+#
+# OpenBLAS defaults to one thread per visible core (32 on the cluster nodes).
+# With multiprocessing's "spawn" start method every worker re-imports this
+# module and does the same, so N workers try to create 32*N threads. On the
+# MPI-IS login node -- capped at ~100 processes/threads per user -- that fails
+# immediately with "blas_thread_init: pthread_create failed ... Resource
+# temporarily unavailable". On an exec node it silently oversubscribes the
+# slot, and CPU limits there are HARD-enforced, so it runs slower rather than
+# faster.
+#
+# One BLAS thread per worker is right for this workload: parallelism comes
+# from the (seed, combo) process pool, and the per-cohort tensors are small.
+# Set these in the environment beforehand to override.
+import os as _os
+for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    _os.environ.setdefault(_v, "1")
+
 import argparse
 import multiprocessing as mp
 import os
@@ -9,6 +32,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+
+# Cap torch intra-op threads too, honouring the guard set at the top.
+torch.set_num_threads(int(_os.environ["OMP_NUM_THREADS"]))
 from tqdm import tqdm
 
 from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
