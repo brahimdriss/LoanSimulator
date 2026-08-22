@@ -2,17 +2,19 @@
 #
 # One (seed, reward, constraint) triple per job -- no internal multiprocessing
 # pool, so no intra-shard worker contention. Use this instead of
-# eutopia_array.sub when N_SEEDS is small (a pilot run) or when you want the
-# cleanest possible per-episode timing to study training curves: the seed-
-# sharded array packs 8 combos onto one host at once and they visibly slow
-# each other down as they all become CPU-active (measured drift: a fixed
-# combo went 46.6s -> 57.5s/ep purely from sibling load; combos starting later
-# in the same shard ran ~1.8x slower than the first ones). Splitting one
-# combo per job removes that: every job gets its own host.
+# eutopia_array.sub when you want the cleanest possible per-episode timing to
+# study training curves: the seed-sharded array packs 8 combos onto one host
+# at once and they visibly slow each other down as they all become CPU-active
+# (measured drift: a fixed combo went 46.6s -> 57.5s/ep purely from sibling
+# load; combos starting later in the same shard ran ~1.8x slower than the
+# first ones). Splitting one combo per job removes that: every job gets its
+# own host.
 #
-# jobs = 2 agents x N_SEEDS x 10 combos. Export N_SEEDS before submitting
-# (defaults to 3 in run_job.sh's `combo` branch if unset):
-#   export N_SEEDS=3 CAMPAIGN=pilot3
+# jobs = 2 agents x N_SEEDS x 10 combos. Export N_SEEDS, N_JOBS (= 2*N_SEEDS*10),
+# CAMPAIGN, and (if not using the 500/1000 defaults) TRAIN_EPISODES/
+# DEPLOY_EPISODES before submitting -- e.g. for 10 seeds, 1000 train +
+# 3000 deploy episodes:
+#   export N_SEEDS=10 N_JOBS=200 CAMPAIGN=run10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
 #   condor_submit_bid 25 eutopia_combo_array.sub
 #
 #   $(Process)  0 .. N_SEEDS*10-1        -> pepg
@@ -20,17 +22,17 @@
 #
 # The index -> (agent, seed, reward, constraint) arithmetic is done in
 # run_job.sh's `combo` branch, NOT here -- same $CHOICE/$INT nesting limit as
-# eutopia_array.sub.
+# eutopia_array.sub. `queue` below reads N_JOBS from the environment, so
+# there's nothing in this file to hand-edit per run.
 #
 # THEN, once all jobs have finished (condor_q shows none left), aggregate
-# (must export the SAME N_SEEDS/CAMPAIGN used above):
-#   export N_SEEDS=3 CAMPAIGN=pilot3
+# (must export the SAME N_SEEDS/CAMPAIGN/TRAIN_EPISODES/DEPLOY_EPISODES used
+# above):
+#   export N_SEEDS=10 CAMPAIGN=run10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
 #   ~/LoanSimulator/cluster/run_job.sh pepg aggregate
 #   ~/LoanSimulator/cluster/run_job.sh pg   aggregate
 #
 # No editing needed: $ENV(HOME) is expanded by HTCondor at submit time.
-# queue count below assumes N_SEEDS=3 (60 jobs) -- edit if you export a
-# different N_SEEDS.
 
 executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
 arguments  = combo $(Process)
@@ -43,7 +45,10 @@ initialdir = $ENV(HOME)/LoanSimulator
 
 # One (seed, combo) job = one Python process, no internal pool. A single
 # population (12000+12000) + policy net + the 100k-row data load is far
-# lighter than the 8-worker shard's 32GB ask.
+# lighter than the 8-worker shard's 32GB ask. Memory footprint doesn't grow
+# with episode count -- per-episode history is plain scalars appended to a
+# list, and the replay buffer is capped -- so this is unchanged regardless of
+# TRAIN_EPISODES/DEPLOY_EPISODES.
 request_cpus   = 2
 request_memory = 8192
 request_disk   = 5242880
@@ -55,4 +60,4 @@ getenv = True
 # and skips recomputing it.
 max_retries = 3
 
-queue 60
+queue $ENV(N_JOBS)

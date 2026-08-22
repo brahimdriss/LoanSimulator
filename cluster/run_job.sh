@@ -130,11 +130,14 @@ mkdir -p "$RESULTS" "$WEIGHTS"
 
 # --- shared experiment configuration --------------------------------------
 # Identical for both agents; a flag differing between them would invalidate the
-# comparison, so it lives in exactly one place.
+# comparison, so it lives in exactly one place. Override TRAIN_EPISODES/
+# DEPLOY_EPISODES via env for a different scale of run (e.g. a bigger
+# confirmatory run after a pilot looks promising) -- default 500/1000 matches
+# the original pilot scale.
 COMMON=(
   --data           "$PROJ/adult.csv"
-  --train-episodes 500
-  --deploy-episodes 1000
+  --train-episodes "${TRAIN_EPISODES:-500}"
+  --deploy-episodes "${DEPLOY_EPISODES:-1000}"
   --N-male         12000
   --N-female       12000
   --T              100
