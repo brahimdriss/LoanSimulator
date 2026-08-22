@@ -112,8 +112,19 @@ export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
 export OPENBLAS_NUM_THREADS=1
 export PYTHONUNBUFFERED=1
 
-# The cluster provides `python3`, not `python`. Override with PYTHON=... for a
-# venv/conda env.
+# The cluster provides `python3`, not `python`. getenv=True carries the
+# submitting shell's PATH into the job -- if that shell didn't have the venv
+# activated (e.g. a fresh terminal), `command -v python3` silently resolves
+# to the system interpreter instead, which has none of the project's deps.
+# That's a real failure mode, not hypothetical: a 200-job array once failed
+# 100% uniformly (ModuleNotFoundError: pandas) this exact way. Prefer the
+# known venv location explicitly so a forgotten `source activate` doesn't
+# silently break every job in a submission. Override with PYTHON=... for a
+# different venv/conda env.
+PYTHON="${PYTHON:-}"
+if [ -z "$PYTHON" ] && [ -x "$HOME/eutopia-venv/bin/python3" ]; then
+  PYTHON="$HOME/eutopia-venv/bin/python3"
+fi
 PYTHON="${PYTHON:-$(command -v python3 || command -v python || true)}"
 if [ -z "$PYTHON" ]; then
   echo "ERROR: no python3/python found on PATH" >&2
