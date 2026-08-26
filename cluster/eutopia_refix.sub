@@ -1,0 +1,58 @@
+# Eutopia — recompute the 4 combos affected by the dm/two_sided reward-
+# normalization fix (loan_simulator/reward.py, commit 070dd62).
+#
+# Only rawlsian_maximin/{dm,two_sided} and fairness_lagrangian/{dm,two_sided}
+# changed -- utilitarian_profit, social_welfare, and every /social combo are
+# untouched by that fix and don't need re-running.
+#
+# The pipeline's idempotency check only looks at whether a checkpoint file
+# EXISTS, not whether it was computed with current code -- so the stale
+# checkpoints/weights for these 4 combos must be deleted BEFORE submitting,
+# or every job will just skip and leave the old (buggy) results in place:
+#
+#   export CAMPAIGN=run10   # match whatever campaign you're re-fixing
+#   cd ~/eutopia_runs/$CAMPAIGN
+#   for agent in pepg pg; do
+#     for r in rawlsian_maximin fairness_lagrangian; do
+#       for c in dm two_sided; do
+#         rm -f $agent/checkpoints/seed*_${r}__${c}.csv
+#         rm -f $agent/weights/${r}__${c}__seed*.pt
+#         rm -f $agent/deploy_artifacts/${agent}_${r}__${c}__seed*_*
+#       done
+#     done
+#   done
+#
+# THEN submit (must export the SAME CAMPAIGN/TRAIN_EPISODES/DEPLOY_EPISODES
+# used for the original run, e.g. for the 10-seed/1000-train/3000-deploy run):
+#   export CAMPAIGN=run10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
+#   condor_submit_bid 25 eutopia_refix.sub
+#
+# 80 jobs = 2 agents x 10 seeds x 4 combos, one (seed, combo) per job as
+# usual, each isolated on its own host. Listed explicitly in
+# refix_combos.txt rather than via the `combo` index-mapping, since this is
+# a specific subset, not the full 10-combo sweep.
+#
+# THEN, once done, re-verify and re-aggregate exactly as before:
+#   export N_SEEDS=10 CAMPAIGN=run10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
+#   python3 ~/LoanSimulator/cluster/verify_run.py --root ~/eutopia_runs/run10 --seeds 10 --logs ~/eutopia_logs
+#   ~/LoanSimulator/cluster/run_job.sh pepg aggregate
+#   ~/LoanSimulator/cluster/run_job.sh pg   aggregate
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) $(REWARD) $(CONSTRAINT)
+
+output = $ENV(HOME)/eutopia_logs/refix_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/refix_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/refix_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,REWARD,CONSTRAINT from $ENV(HOME)/LoanSimulator/cluster/refix_combos.txt
