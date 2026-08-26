@@ -505,10 +505,13 @@ class PolicyGradientAgent:
                 ll.log_lambda_approval.copy_(torch.log(torch.tensor(la_new)))
 
             elif self.constraint_type == "dm":
-                rho_R = self.env.total_defaults_R / max(self.env.total_loans_R, 1)
-                rho_B = self.env.total_defaults_B / max(self.env.total_loans_B, 1)
-                r_R = self.env.interest_rate * (1 - rho_R) - rho_R
-                r_B = self.env.interest_rate * (1 - rho_B) - rho_B
+                # Same function the "dm" reward itself uses (RewardFunction.
+                # _group_profit_rates) -- previously duplicated inline here
+                # without the mean_loan scaling or the loss coefficient the
+                # reward actually uses, so this dual-ascent step was tuning
+                # lambda against a ~30x-smaller, differently-signed quantity
+                # than what the reward was penalizing.
+                r_R, r_B = RewardFunction._group_profit_rates(self.env)
                 profit_rate_gap = abs(r_R - r_B)
                 base = self._baseline("dm", profit_rate_gap)
                 lw = ll.lambda_wealth.item()

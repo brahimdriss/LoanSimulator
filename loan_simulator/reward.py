@@ -21,6 +21,19 @@ class RewardFunction:
     r_t^perf,g (expected per-loan profit rate for group g):
         interest_rate * (1 - rho_g) - rho_g
         where rho_g = total_defaults_g / max(total_loans_g, 1)
+
+    _group_profit_rates scales this per-dollar rate by mean_loan_g to put it
+    on a dollar footing comparable to _calculate_bank_profit -- needed for
+    fairness_lagrangian's "dm" reward, which combines the two additively
+    (bank_profit - lambda * |r_R - r_B|). It must use the SAME loss
+    coefficient as _calculate_bank_profit (1x, i.e. -rho_g, not -2*rho_g) --
+    otherwise its breakeven default rate (rho = rate/(2+rate) = 8.3% at
+    rate=0.18) sits below _calculate_bank_profit's (rho = rate/(1+rate) =
+    15.3%), so at realistic ~10-12% default rates this formula reads
+    NEGATIVE (the bank is "unprofitable") while cumulative_profit -- the
+    actual money -- is positive. Confirmed empirically: r_R/r_B were
+    negative in all 10 seeds of a real fairness_lagrangian/dm run despite
+    multi-million cumulative_profit.
     """
 
     # ------------------------------------------------------------------
@@ -56,14 +69,16 @@ class RewardFunction:
         """
         r_t^perf,R and r_t^perf,B: expected profit for each group,
         estimated from running default statistics and mean loan amount.
-            r_g = mean_loan_g * ((1 - rho_g) * interest_rate - 2 * rho_g)
+            r_g = mean_loan_g * ((1 - rho_g) * interest_rate - rho_g)
+        Same loss coefficient as _calculate_bank_profit -- see the class
+        docstring for why this must match.
         """
         rho_R = env.total_defaults_R / max(env.total_loans_R, 1)
         rho_B = env.total_defaults_B / max(env.total_loans_B, 1)
         mean_loan_R = float(np.mean(env.theta_params.individual_loan_amounts["male"]))
         mean_loan_B = float(np.mean(env.theta_params.individual_loan_amounts["female"]))
-        r_R = mean_loan_R * ((1 - rho_R) * env.interest_rate - 2 * rho_R)
-        r_B = mean_loan_B * ((1 - rho_B) * env.interest_rate - 2 * rho_B)
+        r_R = mean_loan_R * ((1 - rho_R) * env.interest_rate - rho_R)
+        r_B = mean_loan_B * ((1 - rho_B) * env.interest_rate - rho_B)
         return r_R, r_B
 
     # ------------------------------------------------------------------
@@ -183,7 +198,13 @@ class RewardFunction:
         elif constraint_type == "two_sided":
             bank_profit = RewardFunction._calculate_bank_profit(env, action, applicant)
             alpha = lambda_wealth
-            return (1 - alpha) * bank_profit + alpha * min(env.mu_R, env.mu_B)
+            # Same mean_loan*2 normalization as utilitarian_profit's two_sided
+            # -- without it, raw mu overpowers bank_profit by ~300x within a
+            # deploy episode (confirmed empirically), making alpha ineffective.
+            mean_loan   = float(np.mean(env.theta_params.individual_loan_amounts["male"] +
+                                        env.theta_params.individual_loan_amounts["female"]))
+            wealth_norm = min(env.mu_R, env.mu_B) / (mean_loan * 2 + 1e-8)
+            return (1 - alpha) * bank_profit + alpha * wealth_norm
 
         else:
             raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
@@ -224,7 +245,13 @@ class RewardFunction:
 
         elif constraint_type == "two_sided":
             alpha = lambda_wealth
-            return (1 - alpha) * bank_profit - alpha * abs(env.mu_R - env.mu_B)
+            # Same mean_loan*2 normalization as utilitarian_profit's two_sided
+            # -- without it, raw mu overpowers bank_profit by ~300x within a
+            # deploy episode (confirmed empirically), making alpha ineffective.
+            mean_loan   = float(np.mean(env.theta_params.individual_loan_amounts["male"] +
+                                        env.theta_params.individual_loan_amounts["female"]))
+            wealth_norm = abs(env.mu_R - env.mu_B) / (mean_loan * 2 + 1e-8)
+            return (1 - alpha) * bank_profit - alpha * wealth_norm
 
         else:
             raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
@@ -302,11 +329,13 @@ def _accuracy_batch(a: np.ndarray, d: np.ndarray) -> np.ndarray:
 
 def _group_profit_rates(snap: RewardSnapshot):
     """Vectorized _group_profit_rates -- scalar pair, unchanged from the
-    original (doesn't depend on the current batch, only running totals)."""
+    original (doesn't depend on the current batch, only running totals).
+    Same loss coefficient as _calculate_bank_profit -- see
+    RewardFunction._group_profit_rates's docstring."""
     rho_R = snap.total_defaults_R / max(snap.total_loans_R, 1)
     rho_B = snap.total_defaults_B / max(snap.total_loans_B, 1)
-    r_R = snap.mean_loan_R * ((1 - rho_R) * snap.interest_rate - 2 * rho_R)
-    r_B = snap.mean_loan_B * ((1 - rho_B) * snap.interest_rate - 2 * rho_B)
+    r_R = snap.mean_loan_R * ((1 - rho_R) * snap.interest_rate - rho_R)
+    r_B = snap.mean_loan_B * ((1 - rho_B) * snap.interest_rate - rho_B)
     return r_R, r_B
 
 
@@ -396,7 +425,11 @@ def compute_batched_rewards(
         elif constraint_type == "two_sided":
             bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
             alpha = lambda_wealth
-            return (1 - alpha) * bank_profit + alpha * min(snap.mu_R, snap.mu_B) * inv_n
+            # Same mean_loan*2 normalization as utilitarian_profit's
+            # two_sided -- see RewardFunction.rawlsian_maximin's docstring.
+            mean_loan = snap.mean_loan_R + snap.mean_loan_B
+            wealth_norm = min(snap.mu_R, snap.mu_B) / (mean_loan * 2 + 1e-8)
+            return (1 - alpha) * bank_profit + alpha * wealth_norm * inv_n
         raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
 
     if reward_function_name == "fairness_lagrangian":
@@ -412,7 +445,11 @@ def compute_batched_rewards(
             return bank_profit - lambda_wealth * abs(r_R - r_B) * inv_n
         elif constraint_type == "two_sided":
             alpha = lambda_wealth
-            return (1 - alpha) * bank_profit - alpha * abs(snap.mu_R - snap.mu_B) * inv_n
+            # Same mean_loan*2 normalization as utilitarian_profit's
+            # two_sided -- see RewardFunction.rawlsian_maximin's docstring.
+            mean_loan = snap.mean_loan_R + snap.mean_loan_B
+            wealth_norm = abs(snap.mu_R - snap.mu_B) / (mean_loan * 2 + 1e-8)
+            return (1 - alpha) * bank_profit - alpha * wealth_norm * inv_n
         raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
 
     raise ValueError(f"Unknown reward_function_name: {reward_function_name!r}")
