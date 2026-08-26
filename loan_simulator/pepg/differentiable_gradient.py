@@ -255,7 +255,16 @@ def build_group_states(
 
 def _group_profit_rate(const: GroupConstants, rho, interest_rate: float):
     """Mirrors reward.py's _group_profit_rates for one group:
-        r_g = mean_loan_g * ((1 - rho_g) * interest - 2 * rho_g)
+        r_g = mean_loan_g * ((1 - rho_g) * interest - rho_g)
+    Same loss coefficient as _calculate_bank_profit/reward.py's
+    _group_profit_rates -- this used to say "- 2 * rho" (a separate,
+    independent copy of the formula that reward.py's own fix never
+    touched), which meant PePG's actual gradient kept training against the
+    old, wrong-breakeven quantity even after reward.py was corrected --
+    only the LOGGED metrics (via _collect_episode -> reward.py, logging
+    only, never backprop'd through) reflected the fix. See reward.py's
+    RewardFunction docstring for why this coefficient must match
+    _calculate_bank_profit's.
 
     `rho` is the default rate AMONG APPROVED LOANS. The real environment
     computes it as total_defaults_g / total_loans_g, which the policy
@@ -270,7 +279,7 @@ def _group_profit_rate(const: GroupConstants, rho, interest_rate: float):
     Pass a differentiable, approval-weighted rho instead (see
     differentiable_group_step) so this tracks what the policy actually does.
     """
-    return const.l_bar * ((1 - rho) * interest_rate - 2 * rho)
+    return const.l_bar * ((1 - rho) * interest_rate - rho)
 
 
 def compute_step_reward(
@@ -336,7 +345,13 @@ def compute_step_reward(
             return torch.minimum(r_R, r_B)
         elif constraint_type == "two_sided":
             alpha = lambda_wealth
-            return (1 - alpha) * bank_profit + alpha * torch.minimum(mu_R, mu_B)
+            # Same mean_loan*2 normalization as utilitarian_profit's
+            # two_sided (and reward.py's rawlsian_maximin/two_sided, which
+            # this must mirror) -- without it, raw mu overpowers bank_profit
+            # by ~300x within a deploy episode, making alpha ineffective.
+            mean_loan = const_R.l_bar + const_B.l_bar
+            wealth_norm = torch.minimum(mu_R, mu_B) / (2 * mean_loan + 1e-8)
+            return (1 - alpha) * bank_profit + alpha * wealth_norm
         raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
 
     if reward_function_name == "fairness_lagrangian":
@@ -348,7 +363,12 @@ def compute_step_reward(
             return bank_profit - lambda_wealth * torch.abs(r_R - r_B)
         elif constraint_type == "two_sided":
             alpha = lambda_wealth
-            return (1 - alpha) * bank_profit - alpha * torch.abs(mu_R - mu_B)
+            # Same mean_loan*2 normalization as utilitarian_profit's
+            # two_sided (and reward.py's fairness_lagrangian/two_sided,
+            # which this must mirror).
+            mean_loan = const_R.l_bar + const_B.l_bar
+            wealth_norm = torch.abs(mu_R - mu_B) / (2 * mean_loan + 1e-8)
+            return (1 - alpha) * bank_profit - alpha * wealth_norm
         raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
 
     raise ValueError(f"Unknown reward_function_name: {reward_function_name!r}")
