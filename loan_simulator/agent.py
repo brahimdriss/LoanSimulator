@@ -186,8 +186,23 @@ class PolicyGradientAgent:
             def forward(self, x):
                 x = F.relu(self.fc1(x))
                 x = F.relu(self.fc2(x))
-                alpha = F.softplus(self.alpha_head(x)) + 1.0
-                beta = F.softplus(self.beta_head(x)) + 1.0
+                # Floored at 1.0 (both), UNBOUNDED above -- a reward that
+                # pushes the policy toward near-certain approval (mean -> 1)
+                # has only one lever, since beta can't shrink below its
+                # floor: alpha grows without limit. Confirmed this actually
+                # happens (fairness_lagrangian/eo, whose recall-only formula
+                # has no penalty for approving unqualified applicants, so
+                # "approve everyone" is a genuine unconstrained optimum):
+                # alpha climbed 19->128+ over 600 episodes with no sign of
+                # slowing, and eventually overflows PyTorch's Beta/Dirichlet
+                # internals (lgamma, used for entropy/log_prob) into NaN,
+                # which then poisons every parameter permanently. Cap well
+                # above what any real decision needs (alpha=1000, beta=1 is
+                # already mean=0.999 with near-zero variance) but far inside
+                # lgamma's safe range -- this changes nothing for any policy
+                # that isn't already headed for this failure mode.
+                alpha = torch.clamp(F.softplus(self.alpha_head(x)) + 1.0, max=1000.0)
+                beta = torch.clamp(F.softplus(self.beta_head(x)) + 1.0, max=1000.0)
                 return alpha, beta
 
         return PolicyNet(input_dim, hidden_dim)

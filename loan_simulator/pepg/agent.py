@@ -343,8 +343,19 @@ class PePGAgentV2:
             def forward(self, x):
                 x = F.relu(self.fc1(x))
                 x = F.relu(self.fc2(x))
-                alpha = F.softplus(self.alpha_head(x)) + 1.0
-                beta = F.softplus(self.beta_head(x)) + 1.0
+                # Same clip as agent.py's PolicyNet -- see its comment.
+                # alpha/beta are floored at 1.0 but unbounded above, and a
+                # reward pushing the policy toward near-certain approval
+                # (mean -> 1) can only do so by growing alpha without limit,
+                # since beta can't shrink below its floor. Confirmed this
+                # happens for real (fairness_lagrangian/eo): alpha climbed
+                # past 128 with no sign of slowing and eventually overflows
+                # Beta/Dirichlet's internal lgamma into NaN, permanently
+                # poisoning every parameter. The cap is far above anything a
+                # non-degenerate policy needs (alpha=1000, beta=1 is already
+                # mean=0.999, near-zero variance).
+                alpha = torch.clamp(F.softplus(self.alpha_head(x)) + 1.0, max=1000.0)
+                beta = torch.clamp(F.softplus(self.beta_head(x)) + 1.0, max=1000.0)
                 return alpha, beta
 
         return PolicyNet(input_dim, hidden_dim)
