@@ -174,11 +174,21 @@ esac
 # --- mode-specific args ---------------------------------------------------
 if [ "$MODE" = "aggregate" ]; then
   # Every checkpoint already exists; this pass loads them, aggregates across
-  # seeds and writes the CSVs and figures.
-  MODE_ARGS=( --seeds "$N_SEEDS" )
+  # seeds and writes the CSVs and figures. By default this sweeps ALL valid
+  # combos -- for a campaign that only ever ran a SUBSET of combos (e.g. a
+  # targeted pilot), that means Phase 1's skip-check finds no existing
+  # weights for the untouched combos and starts training them from scratch,
+  # which is never what you want. Set REWARD_FILTER/CONSTRAINT_FILTER (env,
+  # matches --reward/--constraint's own choices) to restrict to just what
+  # the campaign actually covers.
+  MODE_ARGS=( --seeds "$N_SEEDS"
+              --reward     "${REWARD_FILTER:-all}"
+              --constraint "${CONSTRAINT_FILTER:-all}" )
   LOGNAME="aggregate"
 elif [ "$MODE" = "all" ]; then
-  MODE_ARGS=( --seeds "$N_SEEDS" )
+  MODE_ARGS=( --seeds "$N_SEEDS"
+              --reward     "${REWARD_FILTER:-all}"
+              --constraint "${CONSTRAINT_FILTER:-all}" )
   LOGNAME="all"
 elif [ -n "$REWARD" ] && [ -n "$CONSTRAINT" ]; then
   # One (seed, combo) pair -- the isolated `combo` sharding mode.
