@@ -1,0 +1,50 @@
+# Eutopia -- pilot run for the new "eo" (Equality of Opportunity) constraint
+# type (loan_simulator/reward.py commit ea33c91).
+#
+# 18 jobs = 2 agents x 3 seeds x 3 combos (social_welfare/eo,
+# rawlsian_maximin/eo, fairness_lagrangian/eo -- utilitarian_profit/eo is
+# undefined, same as utilitarian_profit/social, so it's excluded).
+#
+# This is a NEW constraint type, not a fix to existing ones -- the
+# LearnableLambdas whitelist fix in ea33c91 only affects constraint_type
+# == "eo", every other combo's behavior is unchanged, so there's no need
+# to re-run anything else. This pilot exists purely to get a first read on
+# whether "eo" produces sane, non-degenerate behavior before committing to
+# a full-scale campaign, same reasoning as the original pilot3 run.
+#
+# Submit:
+#   export CAMPAIGN=eo_pilot TRAIN_EPISODES=500 DEPLOY_EPISODES=1000
+#   condor_submit_bid 25 eo_pilot.sub
+#
+# THEN, once done:
+#   export N_SEEDS=3 CAMPAIGN=eo_pilot TRAIN_EPISODES=500 DEPLOY_EPISODES=1000
+#   python3 ~/LoanSimulator/cluster/verify_run.py --root ~/eutopia_runs/eo_pilot --seeds 3 --logs ~/eutopia_logs
+#   ~/LoanSimulator/cluster/run_job.sh pepg aggregate
+#   ~/LoanSimulator/cluster/run_job.sh pg   aggregate
+#
+# Note: verify_run.py's completeness check expects ALL 13 combos per seed
+# (its COMBOS list, matching VALID_COMBOS/PEPG_COMBOS) -- since this pilot
+# only runs the 3 eo combos, the "checkpoints complete" check will report
+# missing entries for the other 10. That's expected here, not a failure --
+# read its other checks (finite metrics, episode counts, no zero-lending)
+# for the eo combos specifically; don't aggregate expecting a clean PASS
+# on completeness for this partial run.
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) $(REWARD) $(CONSTRAINT)
+
+output = $ENV(HOME)/eutopia_logs/eo_pilot_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/eo_pilot_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/eo_pilot_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,REWARD,CONSTRAINT from $ENV(HOME)/LoanSimulator/cluster/eo_pilot_combos.txt
