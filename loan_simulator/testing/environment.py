@@ -1153,6 +1153,14 @@ class TestingIncomeEnvironment(gym.Env):
     @property
     def total_applications_B(self): return self.total_applications_F
     @property
+    def tp_R(self):                 return self.tp_M
+    @property
+    def fn_R(self):                 return self.fn_M
+    @property
+    def tp_B(self):                 return self.tp_F
+    @property
+    def fn_B(self):                 return self.fn_F
+    @property
     def history(self):
         # agent uses sum(env.history["profit"]) — episode_profit is that sum
         return {"profit": [self.episode_profit]}

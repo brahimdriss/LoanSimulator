@@ -156,6 +156,10 @@ class GroupConstants:
     default_prob_pop: np.ndarray  # real (fixed) default probability, per individual
     loan_amount_pop: np.ndarray  # real (fixed) loan amount, per individual
     wealth_gain_pop: np.ndarray  # real (fixed) wealth gain on success, per individual
+    ground_truth_pop: np.ndarray  # real (fixed) "should be approved" label, per individual;
+    # all-zero if the environment wasn't given ground truth (see
+    # IncomeEnvironment.__init__) -- makes 'eo' silently read TPR=0 rather
+    # than crash, same fallback RewardSnapshot.from_env uses via getattr.
 
 
 def build_group_constants(env, group: str) -> GroupConstants:
@@ -189,11 +193,18 @@ def build_group_constants(env, group: str) -> GroupConstants:
     default_prob_pop = np.asarray(tp.individual_default_probs[key], dtype=np.float64)
     loan_amount_pop = np.asarray(tp.individual_loan_amounts[key], dtype=np.float64)
     wealth_gain_pop = np.asarray(tp.individual_wealth_gains[key], dtype=np.float64)
+    gt_attr = "ground_truth_male" if is_male else "ground_truth_female"
+    gt_raw = getattr(env, gt_attr, None)
+    ground_truth_pop = (
+        np.asarray(gt_raw, dtype=np.float64) if gt_raw is not None
+        else np.zeros(len(X_pop), dtype=np.float64)
+    )
     return GroupConstants(
         N=N, d_bar=d_bar, l_bar=l_bar, h=h, sensitivity=sensitivity,
         alpha=alpha, beta=beta, arrival_scale=arrival_scale,
         X_pop=X_pop, default_prob_pop=default_prob_pop,
         loan_amount_pop=loan_amount_pop, wealth_gain_pop=wealth_gain_pop,
+        ground_truth_pop=ground_truth_pop,
     )
 
 
@@ -289,6 +300,7 @@ def compute_step_reward(
     bank_profit_R: torch.Tensor, bank_profit_B: torch.Tensor,
     n_R: torch.Tensor, n_B: torch.Tensor,
     rho_R: torch.Tensor, rho_B: torch.Tensor,
+    tpr_R: torch.Tensor, tpr_B: torch.Tensor,
     const_R: GroupConstants, const_B: GroupConstants,
     interest_rate: float, lambda_wealth: float, lambda_approval: float,
 ) -> torch.Tensor:
@@ -319,6 +331,8 @@ def compute_step_reward(
             return bank_profit
         elif constraint_type == "social":
             return torch.zeros_like(bank_profit)
+        elif constraint_type == "eo":
+            return torch.zeros_like(bank_profit)  # undefined, same as 'social'
         elif constraint_type == "two_sided":
             alpha = lambda_wealth
             mean_loan = const_R.l_bar + const_B.l_bar
@@ -329,6 +343,8 @@ def compute_step_reward(
     if reward_function_name == "social_welfare":
         if constraint_type == "social":
             return mu_R + mu_B
+        elif constraint_type == "eo":
+            return tpr_R + tpr_B
         elif constraint_type == "dm":
             return torch.zeros_like(bank_profit)
         elif constraint_type == "two_sided":
@@ -339,6 +355,8 @@ def compute_step_reward(
     if reward_function_name == "rawlsian_maximin":
         if constraint_type == "social":
             return torch.minimum(mu_R, mu_B)
+        elif constraint_type == "eo":
+            return torch.minimum(tpr_R, tpr_B)
         elif constraint_type == "dm":
             r_R = _group_profit_rate(const_R, rho_R, interest_rate)
             r_B = _group_profit_rate(const_B, rho_B, interest_rate)
@@ -357,6 +375,8 @@ def compute_step_reward(
     if reward_function_name == "fairness_lagrangian":
         if constraint_type == "social":
             return mu_R + mu_B - lambda_wealth * torch.abs(mu_R - mu_B)
+        elif constraint_type == "eo":
+            return tpr_R + tpr_B - lambda_wealth * torch.abs(tpr_R - tpr_B)
         elif constraint_type == "dm":
             r_R = _group_profit_rate(const_R, rho_R, interest_rate)
             r_B = _group_profit_rate(const_B, rho_B, interest_rate)
@@ -418,6 +438,7 @@ def differentiable_group_step(
     d_i = torch.as_tensor(const.default_prob_pop[sample_idx], dtype=torch.float32)
     l_i = torch.as_tensor(const.loan_amount_pop[sample_idx], dtype=torch.float32)
     kappa_i = torch.as_tensor(const.wealth_gain_pop[sample_idx], dtype=torch.float32)
+    gt_i = torch.as_tensor(const.ground_truth_pop[sample_idx], dtype=torch.float32)
 
     mean_a = a.mean()
 
@@ -452,7 +473,14 @@ def differentiable_group_step(
     # environment's total_defaults_g / total_loans_g. See _group_profit_rate.
     rho = (a * d_i).sum() / (a.sum() + 1e-8)
 
-    return mu_next, S_exc_next, n_arrivals, entropy, bank_profit, rho
+    # True positive rate AMONG GROUND-TRUTH-QUALIFIED individuals in this
+    # sample, differentiable in the policy's own actions: approving more of
+    # the qualified ones pulls it up. Mirrors the environment's
+    # tp_g / (tp_g + fn_g) -- see reward.RewardFunction._group_tpr. 0 if
+    # this environment has no ground truth (gt_i all zero).
+    tpr = (a * gt_i).sum() / (gt_i.sum() + 1e-8)
+
+    return mu_next, S_exc_next, n_arrivals, entropy, bank_profit, rho, tpr
 
 
 def differentiable_episode_return(
@@ -506,16 +534,16 @@ def differentiable_episode_return(
     total_return = torch.tensor(0.0)
 
     for _ in range(T_steps):
-        mu_R_next, S_R_next, n_R, ent_R, bp_R, rho_R = differentiable_group_step(
+        mu_R_next, S_R_next, n_R, ent_R, bp_R, rho_R, tpr_R = differentiable_group_step(
             mu_R, S_R, policy_net, "R", const_R, tp, env.dt, interest_rate, mu_B, lam_B
         )
-        mu_B_next, S_B_next, n_B, ent_B, bp_B, rho_B = differentiable_group_step(
+        mu_B_next, S_B_next, n_B, ent_B, bp_B, rho_B, tpr_B = differentiable_group_step(
             mu_B, S_B, policy_net, "B", const_B, tp, env.dt, interest_rate, mu_R, lam_R
         )
 
         r = compute_step_reward(
             reward_function_name, constraint_type,
-            mu_R, mu_B, bp_R, bp_B, n_R, n_B, rho_R, rho_B,
+            mu_R, mu_B, bp_R, bp_B, n_R, n_B, rho_R, rho_B, tpr_R, tpr_B,
             const_R, const_B, interest_rate, lambda_wealth, lambda_approval,
         )
         mean, std = reward_normalizer.update_and_get_stats(r.detach().item())

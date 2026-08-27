@@ -25,7 +25,7 @@ class LearnableLambdas(nn.Module):
         _FLOOR = 1e-4
 
         # Use log-space for positivity (exp recovery), logit-space for two_sided (sigmoid recovery)
-        if constraint_type in ["wealth", "both", "social", "dm", "two_sided"]:
+        if constraint_type in ["wealth", "both", "social", "dm", "eo", "two_sided"]:
             if constraint_type == "two_sided":
                 # init_lambda_wealth is the desired starting alpha ∈ (0, 1); store as logit
                 alpha0 = float(np.clip(init_lambda_wealth, _FLOOR, 1 - _FLOOR))
@@ -516,6 +516,15 @@ class PolicyGradientAgent:
                 base = self._baseline("dm", profit_rate_gap)
                 lw = ll.lambda_wealth.item()
                 lw_new = max(lw + lr * (profit_rate_gap - base), eps)
+                ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
+
+            elif self.constraint_type == "eo":
+                # Same function the "eo" reward uses (RewardFunction._group_tpr).
+                tpr_R, tpr_B = RewardFunction._group_tpr(self.env)
+                tpr_gap = abs(tpr_R - tpr_B)
+                base = self._baseline("eo", tpr_gap)
+                lw = ll.lambda_wealth.item()
+                lw_new = max(lw + lr * (tpr_gap - base), eps)
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
 
     def save_model(self, filepath):

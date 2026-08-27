@@ -73,6 +73,8 @@ class IncomeEnvironment(gym.Env):
         beta_R: float = 2.0,
         beta_B: float = 2.0,
         seed: int = None,
+        ground_truth_male: Optional[np.ndarray] = None,
+        ground_truth_female: Optional[np.ndarray] = None,
     ):
         super().__init__()
 
@@ -111,6 +113,20 @@ class IncomeEnvironment(gym.Env):
 
         self.initial_X_male = initial_wealth_male[:N_male].copy()
         self.initial_X_female = initial_wealth_female[:N_female].copy()
+
+        # Optional -- only needed for the "eo" (equality of opportunity)
+        # reward, which requires a ground-truth "should this applicant be
+        # approved" label per individual (TestingIncomeEnvironment has
+        # always had this; the static IncomeEnvironment didn't, which meant
+        # PG's Phase 1 pretrain had no signal to train "eo" on at all).
+        # None if the caller doesn't provide it -- everything else here is
+        # unaffected, and "eo" simply isn't computable without it.
+        self.ground_truth_male = (
+            ground_truth_male[:N_male].copy() if ground_truth_male is not None else None
+        )
+        self.ground_truth_female = (
+            ground_truth_female[:N_female].copy() if ground_truth_female is not None else None
+        )
 
         self.theta_params.initialize_individual_parameters(
             N_male, N_female, seed,
@@ -175,6 +191,14 @@ class IncomeEnvironment(gym.Env):
         self.total_loans_B = 0
         self.total_applications_R = 0
         self.total_applications_B = 0
+
+        # Confusion-matrix counters against ground_truth_male/female, for
+        # the "eo" reward. Stay at 0 (tpr reads 0/0 -> 0 via max(...,1)) if
+        # ground truth wasn't provided to this environment.
+        self.tp_R = 0
+        self.fn_R = 0
+        self.tp_B = 0
+        self.fn_B = 0
 
         self.history = {
             "time": [0.0],
@@ -498,6 +522,10 @@ class IncomeEnvironment(gym.Env):
                         "male", idx, defaulted=False
                     ),
                     "theta_approval_prob": approval_probs_R[idx],
+                    "ground_truth": (
+                        self.ground_truth_male[idx]
+                        if self.ground_truth_male is not None else None
+                    ),
                 }
             )
 
@@ -541,6 +569,10 @@ class IncomeEnvironment(gym.Env):
                         "female", idx, defaulted=False
                     ),
                     "theta_approval_prob": approval_probs_B[idx],
+                    "ground_truth": (
+                        self.ground_truth_female[idx]
+                        if self.ground_truth_female is not None else None
+                    ),
                 }
             )
 
@@ -769,6 +801,23 @@ class IncomeEnvironment(gym.Env):
             approved = np.random.random(n) < actions
             defaults = np.random.random(n) < default_probs
             kappa = np.where(defaults, 0.0, wealth_gains)
+
+            # Confusion-matrix counters for the "eo" reward -- only if this
+            # environment was given ground-truth labels (see __init__).
+            if self.ground_truth_male is not None:
+                ground_truth = np.array(
+                    [bool(a["ground_truth"]) for a in applications], dtype=bool
+                )
+                male_gt_mask = S == 1
+                female_gt_mask = S == 0
+                g_approved_R = approved[male_gt_mask]
+                g_gt_R = ground_truth[male_gt_mask]
+                self.tp_R += int((g_approved_R & g_gt_R).sum())
+                self.fn_R += int((~g_approved_R & g_gt_R).sum())
+                g_approved_B = approved[female_gt_mask]
+                g_gt_B = ground_truth[female_gt_mask]
+                self.tp_B += int((g_approved_B & g_gt_B).sum())
+                self.fn_B += int((~g_approved_B & g_gt_B).sum())
 
             male_mask = approved & (S == 1)
             female_mask = approved & (S == 0)

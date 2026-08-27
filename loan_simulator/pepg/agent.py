@@ -1195,6 +1195,16 @@ class PePGAgentV2:
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
                 return -(lw_new * profit_rate_gap)
 
+            elif self.constraint_type == "eo":
+                # Same function the "eo" reward uses (RewardFunction._group_tpr).
+                tpr_R, tpr_B = RewardFunction._group_tpr(self.env)
+                tpr_gap = abs(tpr_R - tpr_B)
+                base = self._baseline("eo", tpr_gap)
+                lw = ll.lambda_wealth.item()
+                lw_new = max(lw + lr * (tpr_gap - base), eps)
+                ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
+                return -(lw_new * tpr_gap)
+
             return 0.0
 
     def _update_lambdas(self):

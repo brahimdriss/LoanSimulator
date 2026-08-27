@@ -28,9 +28,12 @@ import pandas as pd
 COMBOS = [
     ("utilitarian_profit", "dm"), ("utilitarian_profit", "two_sided"),
     ("social_welfare", "social"), ("social_welfare", "two_sided"),
+    ("social_welfare", "eo"),
     ("rawlsian_maximin", "social"), ("rawlsian_maximin", "dm"),
-    ("rawlsian_maximin", "two_sided"), ("fairness_lagrangian", "social"),
+    ("rawlsian_maximin", "two_sided"), ("rawlsian_maximin", "eo"),
+    ("fairness_lagrangian", "social"),
     ("fairness_lagrangian", "dm"), ("fairness_lagrangian", "two_sided"),
+    ("fairness_lagrangian", "eo"),
 ]
 
 # Metrics that must be finite and, where noted, non-degenerate.

@@ -81,6 +81,22 @@ class RewardFunction:
         r_B = mean_loan_B * ((1 - rho_B) * env.interest_rate - rho_B)
         return r_R, r_B
 
+    @staticmethod
+    def _group_tpr(env):
+        """
+        True positive rate per group, for the "eo" (equality of opportunity)
+        reward: among ground-truth-qualified applicants (Y=1), what fraction
+        got approved. TPR_g = tp_g / (tp_g + fn_g), running totals.
+        0 if this environment has no ground-truth labels (tp_g/fn_g both 0).
+        """
+        tp_R = getattr(env, "tp_R", 0)
+        fn_R = getattr(env, "fn_R", 0)
+        tp_B = getattr(env, "tp_B", 0)
+        fn_B = getattr(env, "fn_B", 0)
+        tpr_R = tp_R / max(tp_R + fn_R, 1)
+        tpr_B = tp_B / max(tp_B + fn_B, 1)
+        return tpr_R, tpr_B
+
     # ------------------------------------------------------------------
     # Reward functions
     # ------------------------------------------------------------------
@@ -99,6 +115,7 @@ class RewardFunction:
 
         'predictive'  → Acc_t^perf
         'social'      → undefined (−)
+        'eo'          → undefined (−), same reason as 'social'
         'dm'          → r_t^perf
         'two_sided'   → (1 − α) * r_t^perf + α * (μ_R + μ_B)
         """
@@ -109,6 +126,9 @@ class RewardFunction:
 
         elif constraint_type == "social":
             return 0.0  # undefined (−) in the table
+
+        elif constraint_type == "eo":
+            return 0.0  # undefined (−), same as 'social' -- no fairness term at all
 
         elif constraint_type == "dm":
             return RewardFunction._calculate_bank_profit(env, action, applicant)
@@ -138,6 +158,7 @@ class RewardFunction:
 
         'predictive'  → app_t^R + app_t^B
         'social'      → μ_t^R + μ_t^B
+        'eo'          → TPR_R + TPR_B
         'dm'          → undefined (−)
         'two_sided'   → (r_t^perf + μ_R + μ_B) / (1 + N)
         """
@@ -151,6 +172,10 @@ class RewardFunction:
 
         elif constraint_type == "social":
             return env.mu_R + env.mu_B
+
+        elif constraint_type == "eo":
+            tpr_R, tpr_B = RewardFunction._group_tpr(env)
+            return tpr_R + tpr_B
 
         elif constraint_type == "dm":
             return 0.0  # undefined (−) in the table
@@ -177,6 +202,7 @@ class RewardFunction:
 
         'predictive'  → min{app_t^R, app_t^B}
         'social'      → min{μ_t^R, μ_t^B}
+        'eo'          → min{TPR_R, TPR_B}
         'dm'          → min{r_t^perf,R, r_t^perf,B}
         'two_sided'   → (1 − α) * r_t^perf + α * min{μ_R, μ_B}
         """
@@ -190,6 +216,10 @@ class RewardFunction:
 
         elif constraint_type == "social":
             return min(env.mu_R, env.mu_B)
+
+        elif constraint_type == "eo":
+            tpr_R, tpr_B = RewardFunction._group_tpr(env)
+            return min(tpr_R, tpr_B)
 
         elif constraint_type == "dm":
             r_R, r_B = RewardFunction._group_profit_rates(env)
@@ -223,6 +253,7 @@ class RewardFunction:
 
         'predictive'  → Acc_t^perf − λ * |app_t^R − app_t^B|
         'social'      → μ_R + μ_B − λ * |μ_R − μ_B|
+        'eo'          → TPR_R + TPR_B − λ * |TPR_R − TPR_B|
         'dm'          → r_t^perf − λ * |r_t^perf,R − r_t^perf,B|
         'two_sided'   → (1 − α) * r_t^perf − α * |μ_R − μ_B|
         """
@@ -238,6 +269,10 @@ class RewardFunction:
 
         elif constraint_type == "social":
             return env.mu_R + env.mu_B - lambda_wealth * abs(env.mu_R - env.mu_B)
+
+        elif constraint_type == "eo":
+            tpr_R, tpr_B = RewardFunction._group_tpr(env)
+            return tpr_R + tpr_B - lambda_wealth * abs(tpr_R - tpr_B)
 
         elif constraint_type == "dm":
             r_R, r_B = RewardFunction._group_profit_rates(env)
@@ -295,6 +330,10 @@ class RewardSnapshot:
     mean_loan_B: float  # population-wide mean loan amount, group B (fixed)
     N_male: int
     N_female: int
+    tp_R: int = 0  # true positives (approved & ground-truth-qualified), group R
+    fn_R: int = 0  # false negatives (rejected & ground-truth-qualified), group R
+    tp_B: int = 0
+    fn_B: int = 0
 
     @classmethod
     def from_env(cls, env) -> "RewardSnapshot":
@@ -312,6 +351,10 @@ class RewardSnapshot:
             mean_loan_B=float(np.mean(env.theta_params.individual_loan_amounts["female"])),
             N_male=env.N_male,
             N_female=env.N_female,
+            tp_R=getattr(env, "tp_R", 0),
+            fn_R=getattr(env, "fn_R", 0),
+            tp_B=getattr(env, "tp_B", 0),
+            fn_B=getattr(env, "fn_B", 0),
         )
 
 
@@ -337,6 +380,15 @@ def _group_profit_rates(snap: RewardSnapshot):
     r_R = snap.mean_loan_R * ((1 - rho_R) * snap.interest_rate - rho_R)
     r_B = snap.mean_loan_B * ((1 - rho_B) * snap.interest_rate - rho_B)
     return r_R, r_B
+
+
+def _group_tpr(snap: RewardSnapshot):
+    """Vectorized RewardFunction._group_tpr -- scalar pair, unchanged from
+    the original (doesn't depend on the current batch, only running
+    totals)."""
+    tpr_R = snap.tp_R / max(snap.tp_R + snap.fn_R, 1)
+    tpr_B = snap.tp_B / max(snap.tp_B + snap.fn_B, 1)
+    return tpr_R, tpr_B
 
 
 def compute_batched_rewards(
@@ -391,6 +443,8 @@ def compute_batched_rewards(
             return _accuracy_batch(a, d)
         elif constraint_type == "social":
             return np.zeros(n)
+        elif constraint_type == "eo":
+            return np.zeros(n)  # undefined, same as 'social' -- no fairness term
         elif constraint_type == "dm":
             return _bank_profit_batch(a, d, l, snap.interest_rate)
         elif constraint_type == "two_sided":
@@ -406,6 +460,9 @@ def compute_batched_rewards(
             return np.full(n, (approval_rate_R + approval_rate_B) * inv_n)
         elif constraint_type == "social":
             return np.full(n, (snap.mu_R + snap.mu_B) * inv_n)
+        elif constraint_type == "eo":
+            tpr_R, tpr_B = _group_tpr(snap)
+            return np.full(n, (tpr_R + tpr_B) * inv_n)
         elif constraint_type == "dm":
             return np.zeros(n)
         elif constraint_type == "two_sided":
@@ -419,6 +476,9 @@ def compute_batched_rewards(
             return np.full(n, min(approval_rate_R, approval_rate_B) * inv_n)
         elif constraint_type == "social":
             return np.full(n, min(snap.mu_R, snap.mu_B) * inv_n)
+        elif constraint_type == "eo":
+            tpr_R, tpr_B = _group_tpr(snap)
+            return np.full(n, min(tpr_R, tpr_B) * inv_n)
         elif constraint_type == "dm":
             r_R, r_B = _group_profit_rates(snap)
             return np.full(n, min(r_R, r_B) * inv_n)
@@ -439,6 +499,10 @@ def compute_batched_rewards(
             return accuracy - lambda_approval * abs(approval_rate_R - approval_rate_B) * inv_n
         elif constraint_type == "social":
             val = snap.mu_R + snap.mu_B - lambda_wealth * abs(snap.mu_R - snap.mu_B)
+            return np.full(n, val * inv_n)
+        elif constraint_type == "eo":
+            tpr_R, tpr_B = _group_tpr(snap)
+            val = tpr_R + tpr_B - lambda_wealth * abs(tpr_R - tpr_B)
             return np.full(n, val * inv_n)
         elif constraint_type == "dm":
             r_R, r_B = _group_profit_rates(snap)

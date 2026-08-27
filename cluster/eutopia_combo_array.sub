@@ -10,15 +10,15 @@
 # first ones). Splitting one combo per job removes that: every job gets its
 # own host.
 #
-# jobs = 2 agents x N_SEEDS x 10 combos. Export N_SEEDS, N_JOBS (= 2*N_SEEDS*10),
+# jobs = 2 agents x N_SEEDS x 13 combos. Export N_SEEDS, N_JOBS (= 2*N_SEEDS*13),
 # CAMPAIGN, and (if not using the 500/1000 defaults) TRAIN_EPISODES/
 # DEPLOY_EPISODES before submitting -- e.g. for 10 seeds, 1000 train +
 # 3000 deploy episodes:
-#   export N_SEEDS=10 N_JOBS=200 CAMPAIGN=run10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
+#   export N_SEEDS=10 N_JOBS=260 CAMPAIGN=run10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
 #   condor_submit_bid 25 eutopia_combo_array.sub
 #
-#   $(Process)  0 .. N_SEEDS*10-1        -> pepg
-#   $(Process)  N_SEEDS*10 .. 2*N_SEEDS*10-1 -> pg
+#   $(Process)  0 .. N_SEEDS*13-1        -> pepg
+#   $(Process)  N_SEEDS*13 .. 2*N_SEEDS*13-1 -> pg
 #
 # The index -> (agent, seed, reward, constraint) arithmetic is done in
 # run_job.sh's `combo` branch, NOT here -- same $CHOICE/$INT nesting limit as

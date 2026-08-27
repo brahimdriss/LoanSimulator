@@ -2,12 +2,12 @@
 # Wrapper executed by HTCondor for the Eutopia experiments.
 #
 #   run_job.sh <pepg|pg>                       -> all seeds in one job, then aggregate
-#   run_job.sh <pepg|pg> <seed>                -> ONE seed, all 10 combos, no plots
+#   run_job.sh <pepg|pg> <seed>                -> ONE seed, all 13 combos, no plots
 #   run_job.sh <pepg|pg> <seed> <r> <c>        -> ONE (seed, combo) pair only
 #   run_job.sh <pepg|pg> aggregate             -> aggregate + plot from existing checkpoints
 #   run_job.sh shard <index>                   -> array shard; maps a flat 0..2N-1
-#                                                  index onto (agent, seed) -- 10 combos/job
-#   run_job.sh combo <index>                   -> array shard; maps a flat 0..2*10N-1
+#                                                  index onto (agent, seed) -- 13 combos/job
+#   run_job.sh combo <index>                   -> array shard; maps a flat 0..2*13N-1
 #                                                  index onto (agent, seed, reward, constraint)
 #                                                  -- ONE combo/job, no internal worker pool
 #   run_job.sh pair <0|1> <mode>               -> 2-job form; 0=pepg, 1=pg
@@ -17,7 +17,7 @@
 # net is ~18k parameters on batches of ~20, so a single job pinned to one node
 # leaves the cluster idle.
 #
-# `shard` packs all 10 combos of one seed into one job (8-worker internal pool)
+# `shard` packs all 13 combos of one seed into one job (8-worker internal pool)
 # -- fewer Condor jobs, but the 8 workers contend with each other for the same
 # host's cache/memory bandwidth once all are CPU-active (measured: episode time
 # for a fixed combo drifted 46.6s -> 57.5s purely from sibling-worker load, and
@@ -50,12 +50,18 @@ fi
 
 # --- flat array index -> (agent, seed, reward, constraint) -----------------
 # Same $CHOICE/$INT nesting problem as `shard` -- the arithmetic happens here.
-# Order matches VALID_COMBOS in pg_run.py / COMBOS in verify_run.py (the
-# `predictive` column is on hold, so 10 combos, not 14).
-_COMBOS_R=(utilitarian_profit utilitarian_profit social_welfare social_welfare \
-           rawlsian_maximin rawlsian_maximin rawlsian_maximin \
-           fairness_lagrangian fairness_lagrangian fairness_lagrangian)
-_COMBOS_C=(dm two_sided social two_sided social dm two_sided social dm two_sided)
+# Order matches VALID_COMBOS in pg_run.py / PEPG_COMBOS in pepg_adapt.py /
+# COMBOS in verify_run.py (the `predictive` column is on hold; utilitarian_
+# profit/eo is undefined -- same reason it has no /social entry -- so 13
+# combos, not 14).
+_COMBOS_R=(utilitarian_profit utilitarian_profit \
+           social_welfare social_welfare social_welfare \
+           rawlsian_maximin rawlsian_maximin rawlsian_maximin rawlsian_maximin \
+           fairness_lagrangian fairness_lagrangian fairness_lagrangian fairness_lagrangian)
+_COMBOS_C=(dm two_sided \
+           social two_sided eo \
+           social dm two_sided eo \
+           social dm two_sided eo)
 
 if [ "${1:-}" = "combo" ]; then
   _IDX="${2:?usage: run_job.sh combo <array-index>}"
@@ -179,7 +185,7 @@ elif [ -n "$REWARD" ] && [ -n "$CONSTRAINT" ]; then
   MODE_ARGS=( --seed-list "$MODE" --reward "$REWARD" --constraint "$CONSTRAINT" --no-plots )
   LOGNAME="seed${MODE}_${REWARD}__${CONSTRAINT}"
 else
-  # One seed, all 10 combos. --no-plots because N shards each rendering the
+  # One seed, all 13 combos. --no-plots because N shards each rendering the
   # same figures from a single seed would be waste; the aggregate pass draws
   # them once.
   MODE_ARGS=( --seed-list "$MODE" --no-plots )

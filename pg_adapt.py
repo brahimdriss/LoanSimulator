@@ -120,6 +120,8 @@ def _train_worker(cfg):
             theta_params=theta,
             initial_wealth_male=loader.male_data["X"].values,
             initial_wealth_female=loader.female_data["X"].values,
+            ground_truth_male=loader.male_data["ground_truth_approval"].values,
+            ground_truth_female=loader.female_data["ground_truth_approval"].values,
             N_male=cfg["N_male"],
             N_female=cfg["N_female"],
             T=cfg["T"],
@@ -285,7 +287,7 @@ def main():
                         choices=["all", "utilitarian_profit", "social_welfare",
                                  "rawlsian_maximin", "fairness_lagrangian"])
     parser.add_argument("--constraint", type=str, default="all",
-                        choices=["all", "social", "dm", "two_sided"])
+                        choices=["all", "social", "eo", "dm", "two_sided"])
 
     # Training (static env)
     parser.add_argument("--train-episodes",  type=int,   default=500)
@@ -565,7 +567,7 @@ def main():
 
     if not args.no_plots:
         print("  Generating plots…")
-        for ct in ["social", "dm", "two_sided"]:
+        for ct in ["social", "eo", "dm", "two_sided"]:
             plot_comparison_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
             plot_wealth_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
             plot_social_welfare_agg(aggregated, args.results_dir, timestamp, n_complete, ct)

@@ -45,13 +45,18 @@ VALID_COMBOS = [
     ("utilitarian_profit",  "two_sided"),
     ("social_welfare",      "social"),
     ("social_welfare",      "two_sided"),
+    ("social_welfare",      "eo"),
     ("rawlsian_maximin",    "social"),
     ("rawlsian_maximin",    "dm"),
     ("rawlsian_maximin",    "two_sided"),
+    ("rawlsian_maximin",    "eo"),
     ("fairness_lagrangian", "social"),
     ("fairness_lagrangian", "dm"),
     ("fairness_lagrangian", "two_sided"),
+    ("fairness_lagrangian", "eo"),
 ]
+# utilitarian_profit/eo is not included -- undefined, same as utilitarian_profit/social
+# (utilitarian_profit has no fairness term in either formula).
 
 # colour = reward function
 REWARD_COLORS = {
@@ -65,6 +70,7 @@ REWARD_COLORS = {
 CONSTRAINT_STYLES = {
     "predictive": "-",
     "social":     "--",
+    "eo":         (0, (3, 1, 1, 1)),  # densely dashdotted -- distinct from dm's ":"
     "dm":         ":",
     "two_sided":  "-.",
 }
@@ -79,6 +85,7 @@ REWARD_LABELS = {
 CONSTRAINT_LABELS = {
     "predictive": "Predictive",
     "social":     "Social",
+    "eo":         "Equality of Opportunity",
     "dm":         "DM",
     "two_sided":  "Two-Sided",
 }
@@ -884,7 +891,7 @@ def main():
 
     if not args.no_plots:
         print("  Generating aggregated plots…")
-        for ct in ["social", "dm", "two_sided"]:
+        for ct in ["social", "eo", "dm", "two_sided"]:
             plot_comparison_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
             plot_wealth_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
             plot_social_welfare_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
@@ -904,7 +911,7 @@ def main():
             mdf.to_csv(os.path.join(args.results_dir, f"train_mean_{key}_{timestamp}.csv"), index=False)
             sdf.to_csv(os.path.join(args.results_dir, f"train_std_{key}_{timestamp}.csv"), index=False)
         if not args.no_plots:
-            for ct in ["social", "dm", "two_sided"]:
+            for ct in ["social", "eo", "dm", "two_sided"]:
                 plot_comparison_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
                 plot_wealth_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
                 plot_social_welfare_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
@@ -928,7 +935,7 @@ def main():
             mdf.to_csv(os.path.join(args.results_dir, f"combined_mean_{key}_{timestamp}.csv"), index=False)
             sdf.to_csv(os.path.join(args.results_dir, f"combined_std_{key}_{timestamp}.csv"), index=False)
         if not args.no_plots:
-            for ct in ["social", "dm", "two_sided"]:
+            for ct in ["social", "eo", "dm", "two_sided"]:
                 plot_comparison_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
                 plot_wealth_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
                 plot_social_welfare_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
