@@ -160,6 +160,9 @@ class GroupConstants:
     # all-zero if the environment wasn't given ground truth (see
     # IncomeEnvironment.__init__) -- makes 'eo' silently read TPR=0 rather
     # than crash, same fallback RewardSnapshot.from_env uses via getattr.
+    qualified_idx: np.ndarray  # indices where ground_truth_pop == 1, precomputed
+    # once per episode. The 'eo' TPR term samples from THIS subpopulation
+    # rather than the uniform sample -- see differentiable_group_step.
 
 
 def build_group_constants(env, group: str) -> GroupConstants:
@@ -199,12 +202,13 @@ def build_group_constants(env, group: str) -> GroupConstants:
         np.asarray(gt_raw, dtype=np.float64) if gt_raw is not None
         else np.zeros(len(X_pop), dtype=np.float64)
     )
+    qualified_idx = np.flatnonzero(ground_truth_pop > 0.5)
     return GroupConstants(
         N=N, d_bar=d_bar, l_bar=l_bar, h=h, sensitivity=sensitivity,
         alpha=alpha, beta=beta, arrival_scale=arrival_scale,
         X_pop=X_pop, default_prob_pop=default_prob_pop,
         loan_amount_pop=loan_amount_pop, wealth_gain_pop=wealth_gain_pop,
-        ground_truth_pop=ground_truth_pop,
+        ground_truth_pop=ground_truth_pop, qualified_idx=qualified_idx,
     )
 
 
@@ -399,6 +403,7 @@ def differentiable_group_step(
     policy_net: nn.Module,
     group: str, const: GroupConstants, tp, dt: float, interest_rate: float,
     other_mu: torch.Tensor, other_lam: torch.Tensor,
+    need_tpr: bool = False,
 ):
     """
     One mean-field step for a single group: samples K_SAMPLE real
@@ -427,18 +432,53 @@ def differentiable_group_step(
     k = min(K_SAMPLE, len(const.X_pop))
     sample_idx = np.random.choice(len(const.X_pop), size=k, replace=len(const.X_pop) < K_SAMPLE)
 
-    states = build_group_states(mu_R, mu_B, lam_R, lam_B, group, const, tp, sample_idx)
+    # STRATIFIED draw from the ground-truth-QUALIFIED subpopulation, used
+    # ONLY for the 'eo' TPR term.
+    #
+    # TPR = E[approve | qualified]. Estimating that from the UNIFORM sample
+    # as (sum a_i*gt_i)/(sum gt_i) is a ratio estimator that is UNDEFINED
+    # when the sample happens to contain no qualified individual -- and at
+    # K_SAMPLE=16 against the real qualification rates (17.3% male, 8.9%
+    # female) that happens 4.8% / 22.5% of the time respectively. Returning
+    # 0 there conflates "no qualified applicant was sampled" with "the
+    # policy rejected every qualified applicant", which manufactures a
+    # phantom TPR disparity: measured E|tpr_R - tpr_B| = 0.25 even when the
+    # policy approves EVERYONE. For fairness_lagrangian/eo (the only 'eo'
+    # combo with a lambda*|gap| term) that phantom gap times lambda=10
+    # swamps the bounded [0,2] reward, making reject-everyone the optimum
+    # -- measured E[reward] = -0.79 at approve-all vs exactly 0.0 at
+    # reject-all, monotonic in between. The real fairness_lagrangian/eo run
+    # duly collapsed to a 0.0001 approval rate while PG (which never uses
+    # this estimator) did not.
+    #
+    # Sampling from the qualified subpopulation instead makes every drawn
+    # individual have gt=1, so the estimate is just mean(a) over qualified
+    # individuals: exactly E[approve | qualified], unbiased, with no
+    # degenerate denominator and far lower variance.
+    qual = const.qualified_idx
+    kq = 0
+    if need_tpr and len(qual) > 0:
+        kq = min(K_SAMPLE, len(qual))
+        qual_idx = np.random.choice(qual, size=kq, replace=len(qual) < kq)
+        all_idx = np.concatenate([sample_idx, qual_idx])
+    else:
+        all_idx = sample_idx
+
+    states = build_group_states(mu_R, mu_B, lam_R, lam_B, group, const, tp, all_idx)
 
     policy_alpha, policy_beta = policy_net(states)
     dist = Beta(policy_alpha.squeeze(-1), policy_beta.squeeze(-1))
-    a = dist.rsample()  # [k]
-    a = a.clamp(1e-4, 1 - 1e-4)
-    entropy = dist.entropy().mean()
+    a_all = dist.rsample()  # [k + kq]
+    a_all = a_all.clamp(1e-4, 1 - 1e-4)
+    # Everything except the TPR term uses the UNIFORM sample only, so the
+    # stratified rows never bias the wealth/profit/rho/entropy estimates
+    # (and non-'eo' runs are unaffected: kq == 0, all_idx == sample_idx).
+    a = a_all[:k]
+    entropy = dist.entropy()[:k].mean()
 
     d_i = torch.as_tensor(const.default_prob_pop[sample_idx], dtype=torch.float32)
     l_i = torch.as_tensor(const.loan_amount_pop[sample_idx], dtype=torch.float32)
     kappa_i = torch.as_tensor(const.wealth_gain_pop[sample_idx], dtype=torch.float32)
-    gt_i = torch.as_tensor(const.ground_truth_pop[sample_idx], dtype=torch.float32)
 
     mean_a = a.mean()
 
@@ -473,12 +513,13 @@ def differentiable_group_step(
     # environment's total_defaults_g / total_loans_g. See _group_profit_rate.
     rho = (a * d_i).sum() / (a.sum() + 1e-8)
 
-    # True positive rate AMONG GROUND-TRUTH-QUALIFIED individuals in this
-    # sample, differentiable in the policy's own actions: approving more of
-    # the qualified ones pulls it up. Mirrors the environment's
-    # tp_g / (tp_g + fn_g) -- see reward.RewardFunction._group_tpr. 0 if
-    # this environment has no ground truth (gt_i all zero).
-    tpr = (a * gt_i).sum() / (gt_i.sum() + 1e-8)
+    # True positive rate: mean approval probability over the STRATIFIED
+    # qualified sample (every row there has gt=1 by construction), i.e.
+    # E[approve | qualified], differentiable in the policy's own actions.
+    # Mirrors the environment's tp_g / (tp_g + fn_g) -- see
+    # reward.RewardFunction._group_tpr. 0 if this environment has no ground
+    # truth, or if the TPR term isn't needed by the configured reward.
+    tpr = a_all[k:].mean() if kq > 0 else torch.zeros_like(mean_a)
 
     return mu_next, S_exc_next, n_arrivals, entropy, bank_profit, rho, tpr
 
@@ -529,16 +570,22 @@ def differentiable_episode_return(
     lam_R = f_base_rate(mu_R, mu_bar0, const_R.arrival_scale)
     lam_B = f_base_rate(mu_B, mu_bar0, const_B.arrival_scale)
 
+    # Only 'eo' reads the TPR term; skip its extra stratified policy call
+    # for every other constraint type.
+    _need_tpr = constraint_type == "eo"
+
     T_steps = int(env.T / env.dt)
     discount = 1.0
     total_return = torch.tensor(0.0)
 
     for _ in range(T_steps):
         mu_R_next, S_R_next, n_R, ent_R, bp_R, rho_R, tpr_R = differentiable_group_step(
-            mu_R, S_R, policy_net, "R", const_R, tp, env.dt, interest_rate, mu_B, lam_B
+            mu_R, S_R, policy_net, "R", const_R, tp, env.dt, interest_rate, mu_B, lam_B,
+            need_tpr=_need_tpr,
         )
         mu_B_next, S_B_next, n_B, ent_B, bp_B, rho_B, tpr_B = differentiable_group_step(
-            mu_B, S_B, policy_net, "B", const_B, tp, env.dt, interest_rate, mu_R, lam_R
+            mu_B, S_B, policy_net, "B", const_B, tp, env.dt, interest_rate, mu_R, lam_R,
+            need_tpr=_need_tpr,
         )
 
         r = compute_step_reward(
