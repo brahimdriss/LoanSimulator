@@ -1,0 +1,52 @@
+# Eutopia -- full-scale run for the "eo" (Equality of Opportunity) combos,
+# matching run10's scale (1000 train + 3000 deploy, 10 seeds).
+#
+# 60 jobs = 2 agents x 10 seeds x 3 combos (social_welfare/eo,
+# rawlsian_maximin/eo, fairness_lagrangian/eo -- utilitarian_profit/eo is
+# undefined, same as utilitarian_profit/social, so it's excluded).
+#
+# Writes into the SAME campaign as run10 (CAMPAIGN=run10), so the result
+# is one complete, consistent 13-combo dataset at the same scale/seed
+# count -- not a separate campaign to merge later. run10's other 10
+# combos are untouched; this only adds the 3 new ones.
+#
+# Requires both fixes from the eo_pilot investigation to be pulled first:
+#   2428df4 -- stratified TPR sampling (fixed the fairness_lagrangian/eo
+#              reject-everyone collapse)
+#   069fff1 -- alpha/beta clamp (fixed the NaN crash once that collapse
+#              was removed)
+#
+# Submit:
+#   export CAMPAIGN=run10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
+#   condor_submit_bid 25 eo_full.sub
+#
+# THEN, once done:
+#   export N_SEEDS=10 CAMPAIGN=run10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
+#   python3 ~/LoanSimulator/cluster/verify_run.py --root ~/eutopia_runs/run10 --seeds 10 --logs ~/eutopia_logs
+#   (this will now correctly check all 13 combos, since run10 will be complete)
+#   ~/LoanSimulator/cluster/run_job.sh pepg aggregate
+#   ~/LoanSimulator/cluster/run_job.sh pg   aggregate
+#
+# At the pilot's isolated per-episode rate this is a much longer run than
+# the 500/1000 pilot -- roughly 6x the episode count -- so budget for a
+# correspondingly longer wall clock, same reasoning as the original
+# 500/1000 -> 1000/3000 scale-up for the non-eo combos.
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) $(REWARD) $(CONSTRAINT)
+
+output = $ENV(HOME)/eutopia_logs/eo_full_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/eo_full_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/eo_full_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,REWARD,CONSTRAINT from $ENV(HOME)/LoanSimulator/cluster/eo_full_combos.txt
