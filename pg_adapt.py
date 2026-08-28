@@ -223,6 +223,9 @@ def _deploy_worker(cfg):
 
         # Continue training (fine-tune) on the performative environment
         deploy_eps = cfg["deploy_episodes"]
+        snapshot_eps = sorted(e for e in cfg.get(
+            "population_snapshot_episodes", []) if e <= deploy_eps)
+        population_snapshots = {}
         for ep in range(deploy_eps):
             agent.train_episode()
             if (ep + 1) % max(1, deploy_eps // 5) == 0 or ep + 1 == deploy_eps:
@@ -235,6 +238,13 @@ def _deploy_worker(cfg):
                     f"μ_M={env.mu_M:.1f}  μ_F={env.mu_F:.1f}  "
                     f"appM={app_M:.3f} appF={app_F:.3f}"
                 )
+            if snapshot_eps and (ep + 1) == snapshot_eps[0]:
+                population_snapshots[snapshot_eps.pop(0)] = {
+                    "X_male": env.current_X_male.copy(),
+                    "X_female": env.current_X_female.copy(),
+                    "loan_counts_M": env.loan_counts_M.copy(),
+                    "loan_counts_F": env.loan_counts_F.copy(),
+                }
 
         env.finalize_episode_metrics()
         df = env.get_episode_metrics_dataframe()
@@ -255,10 +265,16 @@ def _deploy_worker(cfg):
                 "lambda_wealth": agent.lambda_history["wealth"],
                 "lambda_approval": agent.lambda_history["approval"],
             }).to_csv(os.path.join(deploy_dir, f"{stem}_training_trace.csv"), index=False)
+            npz_payload = {
+                "X_male": env.current_X_male, "X_female": env.current_X_female,
+                "loan_counts_M": env.loan_counts_M, "loan_counts_F": env.loan_counts_F,
+            }
+            for snap_ep, snap in population_snapshots.items():
+                for arr_name, arr_val in snap.items():
+                    npz_payload[f"{arr_name}_ep{snap_ep}"] = arr_val
             np.savez_compressed(
                 os.path.join(deploy_dir, f"{stem}_population.npz"),
-                X_male=env.current_X_male, X_female=env.current_X_female,
-                loan_counts_M=env.loan_counts_M, loan_counts_F=env.loan_counts_F,
+                **npz_payload,
             )
 
         print(f"  [{run_id:3d}/{total}] DEPLOY OK  seed={seed}  {reward}/{constraint}")
@@ -307,6 +323,11 @@ def main():
     # Deployment (performative env)
     parser.add_argument("--deploy-episodes",  type=int,   default=1000)  # paper: 1000-episode axis
     parser.add_argument("--credit-threshold", type=float, default=0.5)
+    parser.add_argument("--population-snapshot-episodes", type=str, default="",
+                        help="Comma-separated episode numbers at which to snapshot "
+                             "current_X_male/female and loan_counts_M/F into the "
+                             "deploy population.npz, in addition to the final episode "
+                             "(e.g. '100,500,1000,1500,2000,2500,3000' for Lorenz curves).")
 
     # Architecture
     parser.add_argument("--hidden-dim", type=int, default=128)
@@ -489,6 +510,9 @@ def main():
             "constraint_type":  constraint,
             "weights_path":     tr["weights_path"],
             "deploy_episodes":  args.deploy_episodes,
+            "population_snapshot_episodes": [
+                int(e) for e in args.population_snapshot_episodes.split(",") if e.strip()
+            ],
             "N_male":           args.N_male,
             "N_female":         args.N_female,
             "T":                args.T,

@@ -140,9 +140,19 @@ fi
 # --- output layout --------------------------------------------------------
 # FIXED (not timestamped) so every shard of a campaign writes to one place and
 # the aggregate pass can find them. Set CAMPAIGN to keep separate runs apart.
+#
+# WEIGHTS_CAMPAIGN decouples where trained weights are read from vs. where
+# results/checkpoints are written -- default is the same campaign, but set it
+# to an already-trained campaign (e.g. run10) while CAMPAIGN points at a new
+# one (e.g. run10_lorenz) to re-run deploy only: Phase 1 finds the existing
+# weights and skips training, Phase 2 finds no checkpoints in the new results
+# dir (since it's empty) and actually re-executes deploy, e.g. to pick up
+# --population-snapshot-episodes on a campaign that was already deployed
+# without it. Never touches the original campaign's checkpoints.
 CAMPAIGN="${CAMPAIGN:-main}"
+WEIGHTS_CAMPAIGN="${WEIGHTS_CAMPAIGN:-$CAMPAIGN}"
 RESULTS="$OUT/$CAMPAIGN/$AGENT"
-WEIGHTS="$RESULTS/weights"
+WEIGHTS="$OUT/$WEIGHTS_CAMPAIGN/$AGENT/weights"
 mkdir -p "$RESULTS" "$WEIGHTS"
 
 # --- shared experiment configuration --------------------------------------
@@ -163,6 +173,9 @@ COMMON=(
   --weights-dir    "$WEIGHTS"
   --results-dir    "$RESULTS"
 )
+if [ -n "${SNAPSHOT_EPISODES:-}" ]; then
+  COMMON+=( --population-snapshot-episodes "$SNAPSHOT_EPISODES" )
+fi
 N_SEEDS="${N_SEEDS:-20}"
 
 case "$AGENT" in
