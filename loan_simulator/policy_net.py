@@ -18,18 +18,25 @@ two guards that the run10 post-mortem showed were missing:
    data-dependent) chosen so every feature is O(1) over the ranges the
    environment actually produces.
 
-2. Pre-activation clamp. alpha = softplus(x) + 1 has softplus'(x) =
+2. Lower pre-activation clamp. alpha = softplus(x) + 1 has softplus'(x) =
    sigmoid(x) ~ 1e-9 at x = -20, so once a head reaches the floor every
    gradient into it vanishes and Beta(1, 1) -- a uniform coin flip that
    ignores the applicant -- becomes an absorbing state. That is exactly
    what 6 of 30 PG social-fairness seeds converged to, and where PePG sat
-   under social fairness in every seed. Clamping x to [-6, 8] keeps
+   under social fairness in every seed. Clamping x >= -6 keeps
    sigmoid(x) >= 0.0025 (alpha >= 1.0025), so the policy can always leave
-   the floor, while still allowing a genuinely confident alpha ~ 3000 (the
-   existing max=1000 cap then applies). The clamp has zero gradient outside
-   the range, so it is a guard, not the mechanism that keeps the policy
-   away from the corners -- input scaling and the head weight decay set in
-   the agents' optimizers do that.
+   the floor. The clamp has zero gradient below -6, so it is a guard, not
+   the mechanism that keeps the policy away from the corner -- input
+   scaling and the head weight decay set in the agents' optimizers do that.
+
+   There is deliberately NO upper clamp on the pre-activation. The first
+   pilot (fixpilot) had one at +8, which meant alpha <= softplus(8)+1 = 9
+   while beta could sit at its floor of ~1, capping the expressible Beta
+   mean at 9/10 = 0.90 (and the mirror case at 0.10): 30 of 36 pilot
+   policies parked at exactly 0.90/0.90 with zero gradient. softplus does
+   not saturate at the high end (softplus' -> 1), so the gradient needs no
+   protection there; only the concentration needs bounding, and CONC_MAX
+   below does that (alpha, beta <= 1000 -> mean in [0.001, 0.999]).
 
 The parameter names (fc1, fc2, alpha_head, beta_head) are unchanged from
 the old inline classes, so existing state_dicts still load.
@@ -46,7 +53,6 @@ import torch.nn.functional as F
 OBS_SCALE = (10.0, 1.0, 10.0, 10.0, 10.0, 10.0, 1.0, 1.0, 1.0, 5.0, 5.0, 50.0)
 
 PREACT_MIN = -6.0
-PREACT_MAX = 8.0
 CONC_MAX = 1000.0
 
 
@@ -80,8 +86,8 @@ class BetaPolicyNet(nn.Module):
 
     def forward(self, x):
         xa, xb = self.preactivations(x)
-        xa = torch.clamp(xa, PREACT_MIN, PREACT_MAX)
-        xb = torch.clamp(xb, PREACT_MIN, PREACT_MAX)
+        xa = torch.clamp(xa, min=PREACT_MIN)   # lower guard only, see module docstring
+        xb = torch.clamp(xb, min=PREACT_MIN)
         alpha = torch.clamp(F.softplus(xa) + 1.0, max=CONC_MAX)
         beta = torch.clamp(F.softplus(xb) + 1.0, max=CONC_MAX)
         return alpha, beta
