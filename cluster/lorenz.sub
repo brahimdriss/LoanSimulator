@@ -1,0 +1,54 @@
+# Eutopia -- deploy-only re-run to capture per-episode population snapshots
+# for Lorenz curves (paper figure), RL (pg) vs PERL (pepg), social + eo.
+#
+# 120 jobs = 2 agents x 10 seeds x 6 combos
+#   (rawlsian_maximin / fairness_lagrangian / social_welfare) x (social, eo)
+#
+# Training is SKIPPED: WEIGHTS_CAMPAIGN=run10 points each job at the weights
+# run10 already trained, and pg_adapt.py / pepg_adapt.py skip Phase 1 when
+# the weights file exists. Results go to a NEW campaign (run10_lorenz) so
+# Phase 2 finds no deploy checkpoint and actually re-runs the 3000-episode
+# deploy, this time with --population-snapshot-episodes set. run10 itself
+# is never written to.
+#
+# NOTE: the re-deploy is a fresh stochastic rollout from the same seed, not
+# a byte-identical replay of run10 -- use its population.npz for Lorenz
+# curves, but keep quoting run10's own CSVs for the headline metrics.
+#
+# Submit:
+#   export N_SEEDS=10 CAMPAIGN=run10_lorenz WEIGHTS_CAMPAIGN=run10 \
+#          TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000 \
+#          SNAPSHOT_EPISODES=100,500,1000,1500,2000,2500,3000
+#   condor_submit_bid 25 lorenz.sub
+#
+# Verify when condor_q is empty (expect 60 files per agent, each with the
+# _ep{N} snapshot keys):
+#   ~/eutopia-venv/bin/python3 - <<'EOF'
+#   import glob, numpy as np, os
+#   for a in ("pepg","pg"):
+#       fs = glob.glob(os.path.expanduser(f"~/eutopia_runs/run10_lorenz/{a}/deploy_artifacts/*_population.npz"))
+#       ok = sum("loan_counts_M_ep100" in np.load(f).files for f in fs)
+#       print(a, len(fs), "npz,", ok, "with snapshots")
+#   EOF
+#
+# Then pull ~/eutopia_runs/run10_lorenz/{pepg,pg}/deploy_artifacts/ locally
+# and run plots/plot_lorenz_run10.py --root <that dir>.
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) $(REWARD) $(CONSTRAINT)
+
+output = $ENV(HOME)/eutopia_logs/lorenz_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/lorenz_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/lorenz_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,REWARD,CONSTRAINT from $ENV(HOME)/LoanSimulator/cluster/lorenz_combos.txt
