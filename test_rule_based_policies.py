@@ -1,6 +1,42 @@
 #!/usr/bin/env python3
+"""
+Rule-based baseline policies on the performative TestingIncomeEnvironment.
+
+Two ways to run it:
+
+  * Local sweep (original behaviour): all 7 policies, one process each,
+    default 50 episodes at N=3000/3000, summary table + plots.
+
+  * Cluster deploy (matches pg_adapt / pepg_adapt's Phase 2 exactly):
+        --policy NAME --seed S --episodes 3000 --N-male 12000 --N-female 12000
+        --population-snapshot-episodes 100,500,... --deploy-artifacts-dir DIR
+    runs ONE policy for the agents' deploy horizon on the same population
+    sample (SAMPLE_SIZE = 100000, seeds 0..9) and writes the same artefacts
+    the agents write, under the same names with agent tag "rule" and
+    constraint tag "baseline":
+        DIR/rule_{policy}__baseline__seed{S}_episodes.csv
+        DIR/rule_{policy}__baseline__seed{S}_population.npz   (+ snapshots)
+    so plots/plot_lorenz_run10.py / plot_reach_rate_run10.py can read them
+    with agent="rule", reward=policy, constraint="baseline".
+    --aggregate then averages the per-seed episodes CSVs into
+    mean_{policy}__baseline_*.csv / std_*.csv next to DIR, the files the
+    reach-rate plot reads.
+
+Every policy is stepped through env.step_cohort (batched, one action per
+applicant in the cohort) -- the same code path the agents deploy through --
+so the baselines and the agents see identical environment dynamics.
+
+None of the 7 policies has a learnable component in this script:
+always_approve / always_reject / uniform_acceptance / rich_becomes_richer /
+reverse_rich_becomes_richer are fixed rules; oracle reads each applicant's
+true default probability (fixed per individual for the whole run); and
+pattern_prediction applies the logistic credit model fit ONCE on the Adult
+data (theta_S, theta_X, b) to the applicant's CURRENT wealth, so it tracks
+wealth drift but never refits on loan outcomes.
+"""
 
 import argparse
+import glob
 import multiprocessing as mp
 import os
 from datetime import datetime
@@ -78,8 +114,21 @@ def setup_plot_style():
 class RuleBasedPolicy:
     name: str = "base"
 
-    def get_action(self, obs: np.ndarray, applicant: dict | None) -> float:
+    def __init__(self, seed: int = 0):
+        # Own RNG so a randomised policy's draws never touch the environment's
+        # stream (the env seeds its own np.random.default_rng).
+        self.rng = np.random.default_rng(seed)
+
+    def get_actions(self, obs: np.ndarray, applicants: list) -> np.ndarray:
+        """One approval probability per row of obs (shape [n, 12]);
+        applicants is the matching list of env application dicts."""
         raise NotImplementedError
+
+    def get_action(self, obs: np.ndarray, applicant: dict | None) -> float:
+        """Single-applicant convenience wrapper (env.step interface)."""
+        if applicant is None:
+            return 0.0
+        return float(self.get_actions(np.asarray(obs).reshape(1, -1), [applicant])[0])
 
     def reset(self):
         """Called at the start of every episode."""
@@ -94,24 +143,24 @@ class AlwaysApprovePolicy(RuleBasedPolicy):
     """Approve all loans unconditionally."""
     name = "always_approve"
 
-    def get_action(self, obs, applicant):
-        return 1.0
+    def get_actions(self, obs, applicants):
+        return np.ones(len(obs))
 
 
 class AlwaysRejectPolicy(RuleBasedPolicy):
     """Reject all loans unconditionally."""
     name = "always_reject"
 
-    def get_action(self, obs, applicant):
-        return 0.0
+    def get_actions(self, obs, applicants):
+        return np.zeros(len(obs))
 
 
 class UniformAcceptancePolicy(RuleBasedPolicy):
     """Randomised policy — approval probability drawn uniformly from [0, 1]."""
     name = "uniform_acceptance"
 
-    def get_action(self, obs, applicant):
-        return float(np.random.uniform(0.0, 1.0))
+    def get_actions(self, obs, applicants):
+        return self.rng.uniform(0.0, 1.0, size=len(obs))
 
 
 class OraclePolicy(RuleBasedPolicy):
@@ -133,13 +182,13 @@ class OraclePolicy(RuleBasedPolicy):
     """
     name = "oracle"
 
-    def __init__(self, interest_rate: float = 0.18):
+    def __init__(self, seed: int = 0, interest_rate: float = 0.18):
+        super().__init__(seed)
         self.breakeven_default_prob = interest_rate / (1 + interest_rate)
 
-    def get_action(self, obs, applicant):
-        if applicant is None:
-            return 0.0
-        return 1.0 if applicant.get("default_prob", 1.0) < self.breakeven_default_prob else 0.0
+    def get_actions(self, obs, applicants):
+        d = np.array([a.get("default_prob", 1.0) for a in applicants], dtype=float)
+        return (d < self.breakeven_default_prob).astype(float)
 
 
 class PatternPredictionPolicy(RuleBasedPolicy):
@@ -150,9 +199,11 @@ class PatternPredictionPolicy(RuleBasedPolicy):
     """
     name = "pattern_prediction"
 
-    def get_action(self, obs, applicant):
-        # obs[OBS_THETA_PROB] = sigma(theta_S * S + theta_X * X_norm + b)
-        return float(np.clip(obs[OBS_THETA_PROB], 0.0, 1.0))
+    def get_actions(self, obs, applicants):
+        # obs[:, OBS_THETA_PROB] = sigma(theta_S * S + theta_X * X_norm + b),
+        # evaluated on the applicant's CURRENT wealth with the coefficients
+        # fit once at start-up (TransitionParameterLearner.learn_approval_model).
+        return np.clip(obs[:, OBS_THETA_PROB], 0.0, 1.0)
 
 
 class RichBecomesRicherPolicy(RuleBasedPolicy):
@@ -163,12 +214,9 @@ class RichBecomesRicherPolicy(RuleBasedPolicy):
     """
     name = "rich_becomes_richer"
 
-    def get_action(self, obs, applicant):
-        group = int(round(obs[OBS_S]))
-        if group == 1:   # male
-            return 1.0
-        else:            # female
-            return float(np.random.uniform(0.0, 1.0))
+    def get_actions(self, obs, applicants):
+        male = np.round(obs[:, OBS_S]) == 1
+        return np.where(male, 1.0, self.rng.uniform(0.0, 1.0, size=len(obs)))
 
 
 class ReverseRichBecomesRicherPolicy(RuleBasedPolicy):
@@ -179,12 +227,20 @@ class ReverseRichBecomesRicherPolicy(RuleBasedPolicy):
     """
     name = "reverse_rich_becomes_richer"
 
-    def get_action(self, obs, applicant):
-        group = int(round(obs[OBS_S]))
-        if group == 0:   # female
-            return 1.0
-        else:            # male
-            return float(np.random.uniform(0.0, 1.0))
+    def get_actions(self, obs, applicants):
+        female = np.round(obs[:, OBS_S]) == 0
+        return np.where(female, 1.0, self.rng.uniform(0.0, 1.0, size=len(obs)))
+
+
+POLICY_CLASSES = {
+    "always_approve":              AlwaysApprovePolicy,
+    "always_reject":               AlwaysRejectPolicy,
+    "uniform_acceptance":          UniformAcceptancePolicy,
+    "oracle":                      OraclePolicy,
+    "pattern_prediction":          PatternPredictionPolicy,
+    "rich_becomes_richer":         RichBecomesRicherPolicy,
+    "reverse_rich_becomes_richer": ReverseRichBecomesRicherPolicy,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -223,24 +279,41 @@ def run_policy(
     env: TestingIncomeEnvironment,
     num_episodes: int,
     verbose: bool = True,
+    snapshot_episodes: list | None = None,
+    snapshots_out: dict | None = None,
 ) -> pd.DataFrame:
     """
-    Run *policy* on *env* for *num_episodes* continuous episodes.
-    Returns the episode-metrics DataFrame.
+    Run *policy* on *env* for *num_episodes* continuous episodes through
+    env.step_cohort (the agents' deploy code path). Returns the
+    episode-metrics DataFrame.
 
-    env.current_applicant is passed directly to get_action so that the
-    Oracle policy can access ground-truth creditworthiness.
+    env.pending_applications (the cohort's application dicts, same order as
+    the observation rows) is passed to get_actions so the Oracle policy can
+    read each applicant's default_prob.
+
+    snapshot_episodes: 1-based episode numbers at which to copy the
+    population state into snapshots_out[ep] (same keys as pg_adapt's
+    deploy snapshots).
     """
+    pending = sorted(e for e in (snapshot_episodes or []) if e <= num_episodes)
     for episode in range(num_episodes):
         policy.reset()
-        obs, _ = env.reset()
+        obs, _ = env.reset_cohort()
         done = False
 
         while not done:
-            applicant = env.current_applicant          # may be None
-            action = policy.get_action(obs, applicant)
-            obs, _, terminated, truncated, _ = env.step(np.array([action]))
+            applicants = list(env.pending_applications)
+            actions = policy.get_actions(obs, applicants) if len(applicants) else np.zeros(0)
+            obs, terminated, truncated, _ = env.step_cohort(actions)
             done = terminated or truncated
+
+        if pending and (episode + 1) == pending[0] and snapshots_out is not None:
+            snapshots_out[pending.pop(0)] = {
+                "X_male": env.current_X_male.copy(),
+                "X_female": env.current_X_female.copy(),
+                "loan_counts_M": env.loan_counts_M.copy(),
+                "loan_counts_F": env.loan_counts_F.copy(),
+            }
 
         if verbose and ((episode + 1) % 10 == 0 or episode + 1 == num_episodes):
             app_rate_M = env.episode_loans_M / max(env.episode_applications_M, 1)
@@ -572,6 +645,75 @@ def _policy_worker(args):
 
 
 # ---------------------------------------------------------------------------
+# Cluster deploy: one policy, one seed, agents' artefact layout
+# ---------------------------------------------------------------------------
+
+AGENT_TAG = "rule"
+CONSTRAINT_TAG = "baseline"
+
+
+def deploy_one(args, loader, theta_learner):
+    policy = POLICY_CLASSES[args.policy](seed=args.seed)
+    stem = f"{AGENT_TAG}_{policy.name}__{CONSTRAINT_TAG}__seed{args.seed}"
+    out_dir = args.deploy_artifacts_dir
+    os.makedirs(out_dir, exist_ok=True)
+    episodes_path = os.path.join(out_dir, f"{stem}_episodes.csv")
+    if os.path.exists(episodes_path) and not args.force:
+        print(f"  SKIP {stem}: {episodes_path} exists (pass --force to redo)")
+        return
+
+    snapshot_eps = [int(e) for e in args.population_snapshot_episodes.split(",") if e.strip()]
+    np.random.seed(args.seed)
+    env = _build_env(loader, theta_learner, args.N_male, args.N_female, args.T, args.dt, args.seed)
+    snapshots = {}
+    print(f"  DEPLOY {stem}: {args.episodes} episodes, snapshots at {snapshot_eps}")
+    df = run_policy(policy, env, num_episodes=args.episodes, verbose=True,
+                    snapshot_episodes=snapshot_eps, snapshots_out=snapshots)
+
+    df.to_csv(episodes_path, index=False)
+    npz_payload = {
+        "X_male": env.current_X_male, "X_female": env.current_X_female,
+        "loan_counts_M": env.loan_counts_M, "loan_counts_F": env.loan_counts_F,
+    }
+    for snap_ep, snap in snapshots.items():
+        for arr_name, arr_val in snap.items():
+            npz_payload[f"{arr_name}_ep{snap_ep}"] = arr_val
+    np.savez_compressed(os.path.join(out_dir, f"{stem}_population.npz"), **npz_payload)
+    row = df.iloc[-1]
+    print(f"  DEPLOY OK {stem}: mu_M={row['mu_M_end']:.1f} mu_F={row['mu_F_end']:.1f} "
+          f"appM={df['approval_rate_M_cumulative'].iloc[-1]:.3f} "
+          f"appF={df['approval_rate_F_cumulative'].iloc[-1]:.3f} "
+          f"profit={df['cumulative_profit'].iloc[-1]:.1f}")
+
+
+def aggregate(args):
+    """Per-policy mean/std over seeds of the deploy episodes CSVs, written
+    next to the deploy_artifacts dir in the agents' aggregate layout:
+        <parent>/mean_{policy}__baseline_<timestamp>.csv, std_...
+    (plots/plot_reach_rate_run10.py globs mean_{reward}__{constraint}_*.csv
+    under <root>/<agent>/, so <parent> should be <root>/rule)."""
+    out_dir = args.deploy_artifacts_dir
+    parent = os.path.dirname(os.path.normpath(out_dir))
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    for name in POLICY_CLASSES:
+        paths = sorted(glob.glob(os.path.join(out_dir, f"{AGENT_TAG}_{name}__{CONSTRAINT_TAG}__seed*_episodes.csv")))
+        if not paths:
+            print(f"  aggregate {name}: no seeds found, skipping")
+            continue
+        dfs = [pd.read_csv(p) for p in paths]
+        n = min(len(d) for d in dfs)
+        num_cols = [c for c in dfs[0].columns if np.issubdtype(dfs[0][c].dtype, np.number)]
+        stack = np.stack([d[num_cols].iloc[:n].to_numpy(dtype=float) for d in dfs])
+        mdf = pd.DataFrame(stack.mean(axis=0), columns=num_cols)
+        sdf = pd.DataFrame(stack.std(axis=0, ddof=0), columns=num_cols)
+        mdf["episode"] = dfs[0]["episode"].iloc[:n].to_numpy()
+        sdf["episode"] = mdf["episode"]
+        mdf.to_csv(os.path.join(parent, f"mean_{name}__{CONSTRAINT_TAG}_{timestamp}.csv"), index=False)
+        sdf.to_csv(os.path.join(parent, f"std_{name}__{CONSTRAINT_TAG}_{timestamp}.csv"), index=False)
+        print(f"  aggregate {name}: {len(paths)} seeds x {n} episodes -> {parent}")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -596,7 +738,28 @@ def main():
     parser.add_argument("--results-dir", type=str, default="./rule_policy_results")
     parser.add_argument("--checkpoint-dir", type=str, default=None)
     parser.add_argument("--no-plots", action="store_true")
+    parser.add_argument("--policy", type=str, default=None, choices=sorted(POLICY_CLASSES),
+                        help="Cluster deploy mode: run ONLY this policy for --episodes and "
+                             "write the agents' deploy artefacts (see module docstring)")
+    parser.add_argument("--deploy-artifacts-dir", type=str, default=None,
+                        help="Where --policy / --aggregate read and write artefacts "
+                             "(e.g. ~/eutopia_runs/run11/rule/deploy_artifacts)")
+    parser.add_argument("--population-snapshot-episodes", type=str, default="",
+                        help="Comma-separated deploy episodes at which to snapshot the "
+                             "population into population.npz (same as pg_adapt)")
+    parser.add_argument("--aggregate", action="store_true",
+                        help="Average the per-seed deploy artefacts into mean_/std_ CSVs")
+    parser.add_argument("--force", action="store_true",
+                        help="Redo a --policy run whose episodes CSV already exists")
+    parser.add_argument("--sample-size", type=int, default=100000,
+                        help="Adult rows to load (100000 = pg_adapt/pepg_adapt's SAMPLE_SIZE)")
     args = parser.parse_args()
+
+    if args.aggregate:
+        if not args.deploy_artifacts_dir:
+            parser.error("--aggregate needs --deploy-artifacts-dir")
+        aggregate(args)
+        return
 
     np.random.seed(args.seed)
     os.makedirs(args.results_dir, exist_ok=True)
@@ -615,7 +778,7 @@ def main():
     print("\n[1] Loading and preprocessing data...")
     loader = TestingAdultIncomeDataLoader(
         filepath=args.data,
-        sample_size=20000,
+        sample_size=args.sample_size,
         credit_threshold=args.credit_threshold,
     )
     loader.load_data()
@@ -627,18 +790,16 @@ def main():
     )
     theta_learner.fit(loader.data)
 
+    if args.policy:
+        if not args.deploy_artifacts_dir:
+            parser.error("--policy needs --deploy-artifacts-dir")
+        deploy_one(args, loader, theta_learner)
+        return
+
     # ------------------------------------------------------------------ #
     # Policies to evaluate
     # ------------------------------------------------------------------ #
-    policies = [
-        AlwaysApprovePolicy(),
-        AlwaysRejectPolicy(),
-        UniformAcceptancePolicy(),
-        OraclePolicy(),
-        PatternPredictionPolicy(),
-        RichBecomesRicherPolicy(),
-        ReverseRichBecomesRicherPolicy(),
-    ]
+    policies = [cls(seed=args.seed) for cls in POLICY_CLASSES.values()]
 
     # ------------------------------------------------------------------ #
     # Load existing checkpoint CSVs — skip those policies (pepg_adapt style)

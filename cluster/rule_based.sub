@@ -1,0 +1,47 @@
+# Eutopia -- rule-based baseline policies deployed for the agents' Phase-2
+# horizon (3000 episodes, N = 12000 + 12000, T = 100, dt = 0.5, seeds 0..9)
+# on the same performative environment, through the same env.step_cohort
+# path. Writes into the SAME campaign as the agents (run11), so the Lorenz
+# and reach-rate plots can put the baselines next to RL / PERL.
+#
+# 70 jobs = 7 policies x 10 seeds (cluster/rule_combos.txt):
+#   always_approve, always_reject, uniform_acceptance, oracle,
+#   pattern_prediction, rich_becomes_richer, reverse_rich_becomes_richer
+# None of them trains anything -- there is no Phase 1 and no weights dir.
+#
+# Submit (same exports as full_fix.sub; WEIGHTS_CAMPAIGN is irrelevant here):
+#   cd ~/LoanSimulator && git pull
+#   export CAMPAIGN=run11 DEPLOY_EPISODES=3000 \
+#          SNAPSHOT_EPISODES=100,500,1000,1500,2000,2500,3000
+#   mkdir -p ~/eutopia_logs
+#   condor_submit_bid 25 cluster/rule_based.sub
+#
+# Outputs:
+#   ~/eutopia_runs/run11/rule/deploy_artifacts/rule_<policy>__baseline__seed<S>_episodes.csv
+#   ~/eutopia_runs/run11/rule/deploy_artifacts/rule_<policy>__baseline__seed<S>_population.npz
+#
+# When condor_q is empty, aggregate over seeds (login-node safe, seconds):
+#   ~/eutopia-venv/bin/python3 test_rule_based_policies.py --aggregate \
+#       --deploy-artifacts-dir ~/eutopia_runs/run11/rule/deploy_artifacts
+#   -> ~/eutopia_runs/run11/rule/mean_<policy>__baseline_*.csv, std_*.csv
+# Expect 70 episodes CSVs:
+#   ls ~/eutopia_runs/run11/rule/deploy_artifacts/*_episodes.csv | wc -l
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_rule.sh
+arguments  = $(POLICY) $(SEED)
+
+output = $ENV(HOME)/eutopia_logs/rule_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/rule_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/rule_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 1
+request_memory = 4096
+request_disk   = 2097152
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue POLICY,SEED from $ENV(HOME)/LoanSimulator/cluster/rule_combos.txt
