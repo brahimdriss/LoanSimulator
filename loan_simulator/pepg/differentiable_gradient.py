@@ -156,6 +156,8 @@ class GroupConstants:
     default_prob_pop: np.ndarray  # real (fixed) default probability, per individual
     loan_amount_pop: np.ndarray  # real (fixed) loan amount, per individual
     wealth_gain_pop: np.ndarray  # real (fixed) wealth gain on success, per individual
+    kappa_bar: float  # mean of wealth_gain_pop -- unit of the Outcome constraint
+    # terms (see reward._outcome_violation_batch / RewardSnapshot.kappa_bar)
     ground_truth_pop: np.ndarray  # real (fixed) "should be approved" label, per individual;
     # all-zero if the environment wasn't given ground truth (see
     # IncomeEnvironment.__init__) -- makes 'eo' silently read TPR=0 rather
@@ -208,6 +210,7 @@ def build_group_constants(env, group: str) -> GroupConstants:
         alpha=alpha, beta=beta, arrival_scale=arrival_scale,
         X_pop=X_pop, default_prob_pop=default_prob_pop,
         loan_amount_pop=loan_amount_pop, wealth_gain_pop=wealth_gain_pop,
+        kappa_bar=float(wealth_gain_pop.mean()),
         ground_truth_pop=ground_truth_pop, qualified_idx=qualified_idx,
     )
 
@@ -341,6 +344,9 @@ def compute_step_reward(
     the dominant gradient once the penalty turned the value negative).
     """
     bank_profit = bank_profit_R + bank_profit_B
+    # Unit of the Outcome constraint terms: population-mean wealth gain on a
+    # repaid loan (mirrors reward.RewardSnapshot.kappa_bar).
+    kbar = 0.5 * (const_R.kappa_bar + const_B.kappa_bar)
 
     if reward_function_name == "utilitarian_profit":
         if constraint_type == "dm":
@@ -356,11 +362,17 @@ def compute_step_reward(
             return (1 - alpha) * bank_profit + alpha * wealth_norm
         raise ValueError(f"Unknown constraint_type: {constraint_type!r}")
 
+    # 'social' / 'eo': Eutopia Table 1 as a Lagrangian, reward = r_t^pi - lam*C
+    # with C entering as its violation (SW/RMM want their quantity high ->
+    # +lam*C; FL wants the gap low -> -lam*|gap|). Mirrors
+    # reward.compute_batched_rewards; the wealth terms use this step's
+    # expected CHANGE (dW, total-wealth units), the TPR terms the fresh
+    # per-step stratified estimate.
     if reward_function_name == "social_welfare":
         if constraint_type == "social":
-            return dW_R + dW_B
+            return bank_profit + lambda_wealth * (dW_R + dW_B) / kbar
         elif constraint_type == "eo":
-            return tpr_R + tpr_B
+            return bank_profit + lambda_wealth * (tpr_R + tpr_B)
         elif constraint_type == "dm":
             return torch.zeros_like(bank_profit)
         elif constraint_type == "two_sided":
@@ -375,10 +387,12 @@ def compute_step_reward(
             # a step, the gap is O(10) vs a per-step move of O(1e-3)).
             mu_R_d, mu_B_d = mu_R.detach(), mu_B.detach()
             if bool(mu_R_d == mu_B_d):
-                return 0.5 * (dW_R + dW_B)
-            return dW_R if bool(mu_R_d < mu_B_d) else dW_B
+                d_min = 0.5 * (dW_R + dW_B)
+            else:
+                d_min = dW_R if bool(mu_R_d < mu_B_d) else dW_B
+            return bank_profit + lambda_wealth * d_min / kbar
         elif constraint_type == "eo":
-            return torch.minimum(tpr_R, tpr_B)
+            return bank_profit + lambda_wealth * torch.minimum(tpr_R, tpr_B)
         elif constraint_type == "dm":
             r_R = _group_profit_rate(const_R, rho_R, interest_rate)
             r_B = _group_profit_rate(const_B, rho_B, interest_rate)
@@ -396,14 +410,15 @@ def compute_step_reward(
 
     if reward_function_name == "fairness_lagrangian":
         if constraint_type == "social":
-            # Delta[mu_R + mu_B - lam|mu_R - mu_B|] = dW_R (1 - lam s) + dW_B (1 + lam s),
-            # s = sign(mu_R - mu_B) on detached levels. With lam > 1 the
-            # richer group's weight is negative -- see the matching note in
+            # r - lam * Delta|mu_R - mu_B|, with Delta|gap| = s (dW_R - dW_B),
+            # s = sign(mu_R - mu_B) on detached levels (equal N_g). Approving
+            # the richer group widens the gap (penalised), approving the
+            # poorer group narrows it (rewarded) -- see the matching note in
             # reward.compute_batched_rewards.
             s = torch.sign(mu_R.detach() - mu_B.detach())
-            return dW_R * (1.0 - lambda_wealth * s) + dW_B * (1.0 + lambda_wealth * s)
+            return bank_profit - lambda_wealth * s * (dW_R - dW_B) / kbar
         elif constraint_type == "eo":
-            return tpr_R + tpr_B - lambda_wealth * torch.abs(tpr_R - tpr_B)
+            return bank_profit - lambda_wealth * torch.abs(tpr_R - tpr_B)
         elif constraint_type == "dm":
             r_R = _group_profit_rate(const_R, rho_R, interest_rate)
             r_B = _group_profit_rate(const_B, rho_B, interest_rate)

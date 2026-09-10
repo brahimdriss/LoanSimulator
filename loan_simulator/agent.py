@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.distributions import Beta
 from tqdm import tqdm
 
-from .reward import RewardFunction, compute_batched_rewards
+from .reward import RewardFunction, compute_batched_rewards, constraint_measure, dual_ascent_update
 from .policy_net import BetaPolicyNet, make_optimizer
 
 
@@ -153,9 +153,15 @@ class PolicyGradientAgent:
         # episodes) -- see train_episode.
         self._rtg_baseline = []
         self._baseline_ema = 0.9
-        # Dual-ascent cap: lambda is clipped to [eps, 2 x its initial value]
-        # (at least 1). See _update_lambdas.
-        self._lambda_max = max(2.0 * float(lambda_wealth), 1.0)
+        # Table 1 Lagrangian dual (social / eo): lambda <- clip(lambda +
+        # dual_lr * normalised violation, eps, _lambda_max) once per episode
+        # -- see reward.constraint_measure / dual_ascent_update. dual_lr is
+        # deliberately much larger than lambda_lr (used by the other, absolute-
+        # unit constraint types): the violation is dimensionless, so at 0.1
+        # lambda can cross its whole range in ~100 episodes instead of being
+        # pinned at its initial value for the entire run (run10 / fixpilot).
+        self.dual_lr = 0.1
+        self._lambda_max = max(10.0, 2.0 * float(lambda_wealth))
 
         # Episode-level metrics tracking
         self.episode_metrics = {
@@ -396,9 +402,13 @@ class PolicyGradientAgent:
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 1.0)
             self.optimizer.step()
 
-        # Update learnable lambdas
+        # Update learnable lambdas (this episode's wealth created per group,
+        # N_g * delta mu_g, feeds the Outcome constraints' dual update)
         if self.learnable_lambdas is not None:
-            self._update_lambdas()
+            self._update_lambdas(
+                dW_R=self.env.N_male * (self.env.mu_R - mu_M_start),
+                dW_B=self.env.N_female * (self.env.mu_B - mu_F_start),
+            )
 
         # Raw (unnormalized) sum -- comparable across reward types AND across
         # agents (PePGAgent's episode_reward is likewise raw; see
@@ -479,7 +489,7 @@ class PolicyGradientAgent:
             self._violation_baseline[key] = float(value)
         return self._violation_baseline[key]
 
-    def _update_lambdas(self):
+    def _update_lambdas(self, dW_R=None, dW_B=None):
         """
         Update learnable lambdas via dual ascent against the status-quo
         baseline: lambda += lr * (violation - baseline), applied directly
@@ -512,19 +522,23 @@ class PolicyGradientAgent:
                     torch.log(torch.tensor(alpha_new / (1 - alpha_new)))
                 )
 
-            elif self.constraint_type in ("wealth", "social"):
-                # RELATIVE gap |mu_R - mu_B| / mean(mu), clipped to
-                # [eps, _lambda_max]. In absolute dollars the gap grows
-                # ~13 -> ~1400 over a deploy from the Matthew dynamics alone,
-                # regardless of policy, so the additive unclipped update
-                # drove lambda 5 -> 1800 / 10 -> 3200 in run10 (reconstructed
-                # exactly from the traces). The relative gap is O(0.2) and
-                # is what the environment's own relative-standing dynamics
-                # respond to.
-                rel_gap = wealth_gap / max(0.5 * (self.env.mu_R + self.env.mu_B), eps)
-                base = self._baseline("wealth", rel_gap)
-                lw = ll.lambda_wealth.item()
-                lw_new = float(np.clip(lw + lr * (rel_gap - base), eps, self._lambda_max))
+            elif self.constraint_type in ("wealth", "social", "eo"):
+                # Table 1 Lagrangian dual: lambda <- clip(lambda + dual_lr * v),
+                # v = normalised violation of THIS reward function's constraint
+                # against the status quo measured at the end of the first
+                # episode (SW/RMM: wealth created / TPRs must not fall below
+                # it; FL: the gap must not exceed it). lambda rises while
+                # violated, decays toward 0 once satisfied. See
+                # reward.constraint_measure / dual_ascent_update.
+                key, sense, C = constraint_measure(
+                    self.env, self.reward_func_name,
+                    "social" if self.constraint_type == "wealth" else self.constraint_type,
+                    dW_R, dW_B,
+                )
+                base = self._baseline(key, C)
+                lw_new = dual_ascent_update(
+                    ll.lambda_wealth.item(), sense, C, base, self.dual_lr, self._lambda_max, eps
+                )
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
 
             elif self.constraint_type in ("approval_rate", "predictive"):
@@ -557,14 +571,7 @@ class PolicyGradientAgent:
                 lw_new = max(lw + lr * (profit_rate_gap - base), eps)
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
 
-            elif self.constraint_type == "eo":
-                # Same function the "eo" reward uses (RewardFunction._group_tpr).
-                tpr_R, tpr_B = RewardFunction._group_tpr(self.env)
-                tpr_gap = abs(tpr_R - tpr_B)
-                base = self._baseline("eo", tpr_gap)
-                lw = ll.lambda_wealth.item()
-                lw_new = float(np.clip(lw + lr * (tpr_gap - base), eps, self._lambda_max))
-                ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
+            # ("eo" is handled together with "social" above.)
 
     def save_model(self, filepath):
         """Save policy network weights and lambda parameters."""

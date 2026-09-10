@@ -97,6 +97,14 @@ class RewardFunction:
         tpr_B = tp_B / max(tp_B + fn_B, 1)
         return tpr_R, tpr_B
 
+    @staticmethod
+    def _kappa_bar(env) -> float:
+        """Population-mean wealth gain on a repaid loan, both groups. The
+        Equality-of-Outcome constraint terms are measured in units of this
+        -- see reward.RewardSnapshot.kappa_bar / _outcome_violation_batch."""
+        g = env.theta_params.individual_wealth_gains
+        return 0.5 * (float(np.mean(g["male"])) + float(np.mean(g["female"])))
+
     # ------------------------------------------------------------------
     # Reward functions
     # ------------------------------------------------------------------
@@ -157,8 +165,8 @@ class RewardFunction:
         Social Welfare.
 
         'predictive'  → app_t^R + app_t^B
-        'social'      → μ_t^R + μ_t^B
-        'eo'          → TPR_R + TPR_B
+        'social'      → r_t^perf + λ (μ_t^R + μ_t^B)        [Table 1 Lagrangian, see compute_batched_rewards]
+        'eo'          → r_t^perf + λ (TPR_R + TPR_B)
         'dm'          → undefined (−)
         'two_sided'   → (r_t^perf + μ_R + μ_B) / (1 + N)
         """
@@ -171,11 +179,13 @@ class RewardFunction:
             return approval_rate_R + approval_rate_B
 
         elif constraint_type == "social":
-            return env.mu_R + env.mu_B
+            bank_profit = RewardFunction._calculate_bank_profit(env, action, applicant)
+            return bank_profit + lambda_wealth * (env.mu_R + env.mu_B) / RewardFunction._kappa_bar(env)
 
         elif constraint_type == "eo":
+            bank_profit = RewardFunction._calculate_bank_profit(env, action, applicant)
             tpr_R, tpr_B = RewardFunction._group_tpr(env)
-            return tpr_R + tpr_B
+            return bank_profit + lambda_wealth * (tpr_R + tpr_B)
 
         elif constraint_type == "dm":
             return 0.0  # undefined (−) in the table
@@ -201,8 +211,8 @@ class RewardFunction:
         Rawlsian Max-Min.
 
         'predictive'  → min{app_t^R, app_t^B}
-        'social'      → min{μ_t^R, μ_t^B}
-        'eo'          → min{TPR_R, TPR_B}
+        'social'      → r_t^perf + λ min{μ_t^R, μ_t^B}      [Table 1 Lagrangian, see compute_batched_rewards]
+        'eo'          → r_t^perf + λ min{TPR_R, TPR_B}
         'dm'          → min{r_t^perf,R, r_t^perf,B}
         'two_sided'   → (1 − α) * r_t^perf + α * min{μ_R, μ_B}
         """
@@ -215,11 +225,13 @@ class RewardFunction:
             return min(approval_rate_R, approval_rate_B)
 
         elif constraint_type == "social":
-            return min(env.mu_R, env.mu_B)
+            bank_profit = RewardFunction._calculate_bank_profit(env, action, applicant)
+            return bank_profit + lambda_wealth * min(env.mu_R, env.mu_B) / RewardFunction._kappa_bar(env)
 
         elif constraint_type == "eo":
+            bank_profit = RewardFunction._calculate_bank_profit(env, action, applicant)
             tpr_R, tpr_B = RewardFunction._group_tpr(env)
-            return min(tpr_R, tpr_B)
+            return bank_profit + lambda_wealth * min(tpr_R, tpr_B)
 
         elif constraint_type == "dm":
             r_R, r_B = RewardFunction._group_profit_rates(env)
@@ -252,8 +264,8 @@ class RewardFunction:
         Fairness Lagrangian.
 
         'predictive'  → Acc_t^perf − λ * |app_t^R − app_t^B|
-        'social'      → μ_R + μ_B − λ * |μ_R − μ_B|
-        'eo'          → TPR_R + TPR_B − λ * |TPR_R − TPR_B|
+        'social'      → r_t^perf − λ * |μ_R − μ_B|          [Table 1 Lagrangian, see compute_batched_rewards]
+        'eo'          → r_t^perf − λ * |TPR_R − TPR_B|
         'dm'          → r_t^perf − λ * |r_t^perf,R − r_t^perf,B|
         'two_sided'   → (1 − α) * r_t^perf − α * |μ_R − μ_B|
         """
@@ -268,11 +280,11 @@ class RewardFunction:
             return accuracy - lambda_approval * abs(approval_rate_R - approval_rate_B)
 
         elif constraint_type == "social":
-            return env.mu_R + env.mu_B - lambda_wealth * abs(env.mu_R - env.mu_B)
+            return bank_profit - lambda_wealth * abs(env.mu_R - env.mu_B) / RewardFunction._kappa_bar(env)
 
         elif constraint_type == "eo":
             tpr_R, tpr_B = RewardFunction._group_tpr(env)
-            return tpr_R + tpr_B - lambda_wealth * abs(tpr_R - tpr_B)
+            return bank_profit - lambda_wealth * abs(tpr_R - tpr_B)
 
         elif constraint_type == "dm":
             r_R, r_B = RewardFunction._group_profit_rates(env)
@@ -334,6 +346,17 @@ class RewardSnapshot:
     fn_R: int = 0  # false negatives (rejected & ground-truth-qualified), group R
     tp_B: int = 0
     fn_B: int = 0
+    # Population-mean wealth gain on a repaid loan, kappa_i = (tau_inv -
+    # tau_interest) * l_i, per group (fixed). The Equality-of-Outcome
+    # constraint terms are measured in units of this (see
+    # _outcome_violation_batch), so lambda is "profit per average loan's
+    # worth of borrower wealth" rather than being swamped by raw $k.
+    mean_gain_R: float = 1.0
+    mean_gain_B: float = 1.0
+
+    @property
+    def kappa_bar(self) -> float:
+        return 0.5 * (self.mean_gain_R + self.mean_gain_B)
 
     @classmethod
     def from_env(cls, env) -> "RewardSnapshot":
@@ -355,6 +378,8 @@ class RewardSnapshot:
             fn_R=getattr(env, "fn_R", 0),
             tp_B=getattr(env, "tp_B", 0),
             fn_B=getattr(env, "fn_B", 0),
+            mean_gain_R=float(np.mean(env.theta_params.individual_wealth_gains["male"])),
+            mean_gain_B=float(np.mean(env.theta_params.individual_wealth_gains["female"])),
         )
 
 
@@ -391,6 +416,63 @@ def _group_tpr(snap: RewardSnapshot):
     return tpr_R, tpr_B
 
 
+def constraint_measure(env, reward_function_name: str, constraint_type: str,
+                       dW_R: float = None, dW_B: float = None):
+    """
+    End-of-episode value C of the Table 1 constraint for the DUAL update,
+    and its sense. Returns (key, sense, C) with sense 'ge' for constraints
+    the objective wants HIGH (SW, RMM) and 'le' for ones it wants LOW (FL).
+    The agents then do  lambda <- clip(lambda + eta * v, 0, lambda_max)  with
+    v = (base - C)/|base| for 'ge' and (C - base)/|base| for 'le', where
+    base is the status quo (the value measured at the end of the first
+    episode, see the agents' _baseline). lambda therefore RISES while the
+    constraint is violated and DECAYS toward 0 once it is satisfied, i.e.
+    it settles where the constraint binds -- a multiplier, not a constant.
+
+    Equality of Outcome (constraint_type 'social'):
+        SW   C = wealth created this episode, both groups   (dW_R + dW_B) / kappa_bar
+        RMM  C = wealth created this episode, poorer group  dW_poorer / kappa_bar
+        FL   C = relative wealth gap  |mu_R - mu_B| / mean(mu)
+      dW_g = N_g * (mu_g_end - mu_g_start): the episode's total wealth
+      created in group g (the same quantity the per-step credits sum to).
+    Equality of Opportunity (constraint_type 'eo'), end-of-episode TPRs:
+        SW   C = TPR_R + TPR_B      RMM  C = min(TPR_R, TPR_B)      FL  C = |TPR_R - TPR_B|
+    """
+    if constraint_type == "social":
+        if dW_R is None or dW_B is None:
+            raise ValueError("constraint_measure('social') needs this episode's dW_R, dW_B")
+        kb = RewardFunction._kappa_bar(env)
+        if reward_function_name == "social_welfare":
+            return "sw_social", "ge", (dW_R + dW_B) / kb
+        if reward_function_name == "rawlsian_maximin":
+            poorer_is_R = env.mu_R < env.mu_B
+            return "rmm_social", "ge", (dW_R if poorer_is_R else dW_B) / kb
+        if reward_function_name == "fairness_lagrangian":
+            mean_mu = max(0.5 * (env.mu_R + env.mu_B), 1e-8)
+            return "fl_social", "le", abs(env.mu_R - env.mu_B) / mean_mu
+    if constraint_type == "eo":
+        tpr_R, tpr_B = RewardFunction._group_tpr(env)
+        if reward_function_name == "social_welfare":
+            return "sw_eo", "ge", tpr_R + tpr_B
+        if reward_function_name == "rawlsian_maximin":
+            return "rmm_eo", "ge", min(tpr_R, tpr_B)
+        if reward_function_name == "fairness_lagrangian":
+            return "fl_eo", "le", abs(tpr_R - tpr_B)
+    raise ValueError(f"no Table 1 constraint for {reward_function_name!r}/{constraint_type!r}")
+
+
+def dual_ascent_update(lam: float, sense: str, C: float, base: float,
+                       eta: float, lam_max: float, eps: float = 1e-4) -> float:
+    """One projected dual-ascent step shared by both agents (see
+    constraint_measure). The violation is normalised by |base| (floored at
+    0.1 so a near-zero status quo cannot blow it up) so eta means the same
+    thing for every constraint: at full violation lambda moves by eta per
+    episode, crossing a range of 10 in 100 episodes at eta = 0.1."""
+    scale = max(abs(base), 0.1)
+    v = (base - C) / scale if sense == "ge" else (C - base) / scale
+    return float(np.clip(lam + eta * v, eps, lam_max))
+
+
 def _wealth_credit_batch(a: np.ndarray, d: np.ndarray, kappa: np.ndarray) -> np.ndarray:
     """Expected wealth created by approving applicant i with probability a_i:
     a_i * (1 - d_i) * kappa_i. This is exactly the applicant's expected
@@ -400,26 +482,49 @@ def _wealth_credit_batch(a: np.ndarray, d: np.ndarray, kappa: np.ndarray) -> np.
     return a * (1.0 - d) * kappa
 
 
-def _social_group_weights(snap: RewardSnapshot, groups: np.ndarray, mode: str,
-                          lambda_wealth: float) -> np.ndarray:
-    """Per-applicant weight on the wealth credit that turns it into the
-    per-step CHANGE of the Table 1 'social' objective:
-        social_welfare      Phi = mu_R + mu_B                  -> w = 1
-        rawlsian_maximin    Phi = min(mu_R, mu_B)              -> w = 1[g is the poorer group]
-        fairness_lagrangian Phi = mu_R + mu_B - lam|mu_R-mu_B| -> w = 1 - lam*sign(mu_g - mu_other)
-    evaluated at the pre-cohort state `snap` (the group ordering never flips
-    within one step: the gap is O(10) while one step moves mu by O(1e-3))."""
+def _outcome_violation_batch(snap: RewardSnapshot, groups: np.ndarray,
+                             credit: np.ndarray, mode: str) -> np.ndarray:
+    """Per-applicant contribution g_i to the per-step CHANGE of the Table 1
+    Equality-of-Outcome constraint VIOLATION, so that the Lagrangian reward
+    is  r_i - lambda * g_i  (Eutopia Table 1, reward = r_t^pi - lambda * C):
+        SW   C = mu_R + mu_B   (wanted HIGH)  -> g_i = -credit_i
+        RMM  C = min(mu_R, mu_B) (wanted HIGH) -> g_i = -1[g_i is the poorer group] credit_i
+        FL   C = |mu_R - mu_B| (wanted LOW)   -> g_i = +sign(mu_g - mu_other) credit_i
+    credit_i = a_i (1-d_i) kappa_i is the applicant's expected addition to
+    N_g * mu_g this step, so the cohort sum of g is N * Delta(violation)
+    (equal N_g). Group ordering is decided on the pre-cohort snapshot; it
+    never flips within a step (gap O(10) vs per-step move O(1e-3)).
+
+    NORMALISATION: credit is divided by kappa_bar, the population-mean
+    wealth gain on a repaid loan (~0.17 * mean loan), so g is measured in
+    "average loans' worth of borrower wealth" (~1 per average successful
+    approval) rather than $k. Profit and raw wealth are both in $k, but a
+    loan creates ~10-40x more borrower wealth than bank profit in this
+    economy, so in raw units lambda ~ 1 makes the constraint swamp the
+    profit term (measured: 8611 vs 510 per episode under approve-all).
+    With this scaling lambda reads as "$k of profit the lender gives up
+    per average-loan of borrower wealth"."""
+    # The SW and FL forms sum N_R*dmu_R and N_B*dmu_B directly, which equals
+    # N * Delta(mu_R +/- mu_B) only when the groups are the same size (every
+    # campaign so far: 12000/12000). Fail loudly rather than silently
+    # mis-weight the groups if that ever changes (fix: per-capita credit,
+    # credit / N_g * N_ref).
+    if snap.N_male != snap.N_female:
+        raise ValueError(
+            f"_outcome_violation_batch assumes N_male == N_female (got "
+            f"{snap.N_male} / {snap.N_female}); see comment for the per-capita fix.")
     is_R = groups == 1
     mu_own = np.where(is_R, snap.mu_R, snap.mu_B)
     mu_other = np.where(is_R, snap.mu_B, snap.mu_R)
+    credit = credit / snap.kappa_bar
     if mode == "sw":
-        return np.ones_like(mu_own)
+        return -credit
     if mode == "rmm":
         if snap.mu_R == snap.mu_B:
-            return np.full_like(mu_own, 0.5)
-        return (mu_own < mu_other).astype(np.float64)
+            return -0.5 * credit
+        return -(mu_own < mu_other).astype(np.float64) * credit
     if mode == "fl":
-        return 1.0 - lambda_wealth * np.sign(mu_own - mu_other)
+        return np.sign(mu_own - mu_other) * credit
     raise ValueError(mode)
 
 
@@ -451,25 +556,40 @@ def compute_batched_rewards(
     once per applicant. Returns one reward per applicant in the batch
     (shape matches `actions`).
 
-    'social' (Equality of Outcome) IS DIFFERENT FROM THE SCALAR FORM. The
-    scalar RewardFunction.* return the LEVEL of the Table 1 objective
-    Phi(mu_R, mu_B) each step. As a training signal that level is
-    action-independent: the snapshot is taken before the cohort's approvals
-    are applied, and one step's approvals move a group mean over 12,000
-    people by ~1e-5 relative, so approve-everyone and reject-everyone differ
-    by 0.3% of the episode return (measured). Every run10 social policy
-    therefore sat at the uninformative prior. Here the social branches
-    return instead each applicant's expected contribution to the per-step
-    CHANGE of Phi, in total-wealth units:
-        r_i = a_i (1 - d_i) kappa_i * w_g        (see _social_group_weights)
-    Summed over a step this is Delta Phi (times N, a constant), and summed
-    over the episode it telescopes to Phi_T - Phi_0: the same argmax as the
-    level objective (at gamma = 0.99 an affine rescaling of it plus a
-    terminal term of weight gamma^T), but action-dependent per applicant
-    and stationary when wealth is carried across episodes. The scalar
-    functions are left as the reporting/definition of Phi.
+    'social' (Equality of Outcome) and 'eo' (Equality of Opportunity) follow
+    Eutopia Table 1 as a Lagrangian:   reward = r_t^pi - lambda * C
+    where r_t^pi is the bank's per-applicant profit (Section 2) and C is
+    the row's constraint, entering as its VIOLATION (SW, RMM want their
+    quantity high -> +lambda*C; FL wants the gap low -> -lambda*|gap|):
+        SW   r_i + lam (mu_R + mu_B)          | r_i + lam (TPR_R + TPR_B)
+        RMM  r_i + lam min(mu_R, mu_B)        | r_i + lam min(TPR_R, TPR_B)
+        FL   r_i - lam |mu_R - mu_B|          | r_i - lam |TPR_R - TPR_B|
 
-    The 'eo', 'dm', 'predictive' and 'two_sided' branches are unchanged.
+    HOW THE WEALTH TERMS ENTER (Outcome). The scalar RewardFunction.* use
+    the LEVEL of mu, which as a training signal is action-independent: the
+    snapshot precedes the cohort's approvals, and one step's approvals move
+    a group mean over 12,000 people by ~1e-5 relative (approve-everyone vs
+    reject-everyone differed by 0.3% of episode return; every run10 social
+    policy sat at the uninformative prior). Here the wealth constraint
+    enters as each applicant's expected contribution to its per-step
+    CHANGE, in total-wealth units (see _outcome_violation_batch):
+        credit_i = a_i (1 - d_i) kappa_i
+    Summed over a step this is N * Delta C, and over the episode it
+    telescopes to C_T - C_0: same argmax as the level (at gamma = 0.99 an
+    affine rescaling plus a gamma^T terminal term), action-dependent per
+    applicant, stationary when wealth is carried across episodes. The
+    credit is measured in units of kappa_bar (population-mean gain on a
+    repaid loan) so that lambda ~ 1 puts the constraint on the profit
+    term's scale -- see _outcome_violation_batch.
+
+    HOW THE TPR TERMS ENTER (Opportunity). As the LEVEL, split /n across
+    the cohort (state-based, see below). The level is fine here: TPR is a
+    ratio over the ~10^2 qualified applicants seen this episode (reset each
+    episode), so one approval moves it by ~1/n_g and, persisting over the
+    remaining steps, contributes O(1) to the return -- comparable to the
+    per-applicant profit. Not the 1/12000 problem the wealth level has.
+
+    The 'dm', 'predictive' and 'two_sided' branches are unchanged.
 
     TWO KINDS OF TERM, aggregated differently -- this distinction matters
     and was previously conflated:
@@ -524,11 +644,13 @@ def compute_batched_rewards(
             return np.full(n, (approval_rate_R + approval_rate_B) * inv_n)
         elif constraint_type == "social":
             _require_credit_inputs(groups, wealth_gains, reward_function_name)
-            return _wealth_credit_batch(a, d, wealth_gains) * _social_group_weights(
-                snap, groups, "sw", lambda_wealth)
+            bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
+            g = _outcome_violation_batch(snap, groups, _wealth_credit_batch(a, d, wealth_gains), "sw")
+            return bank_profit - lambda_wealth * g
         elif constraint_type == "eo":
+            bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
             tpr_R, tpr_B = _group_tpr(snap)
-            return np.full(n, (tpr_R + tpr_B) * inv_n)
+            return bank_profit + lambda_wealth * (tpr_R + tpr_B) * inv_n
         elif constraint_type == "dm":
             return np.zeros(n)
         elif constraint_type == "two_sided":
@@ -542,11 +664,13 @@ def compute_batched_rewards(
             return np.full(n, min(approval_rate_R, approval_rate_B) * inv_n)
         elif constraint_type == "social":
             _require_credit_inputs(groups, wealth_gains, reward_function_name)
-            return _wealth_credit_batch(a, d, wealth_gains) * _social_group_weights(
-                snap, groups, "rmm", lambda_wealth)
+            bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
+            g = _outcome_violation_batch(snap, groups, _wealth_credit_batch(a, d, wealth_gains), "rmm")
+            return bank_profit - lambda_wealth * g
         elif constraint_type == "eo":
+            bank_profit = _bank_profit_batch(a, d, l, snap.interest_rate)
             tpr_R, tpr_B = _group_tpr(snap)
-            return np.full(n, min(tpr_R, tpr_B) * inv_n)
+            return bank_profit + lambda_wealth * min(tpr_R, tpr_B) * inv_n
         elif constraint_type == "dm":
             r_R, r_B = _group_profit_rates(snap)
             return np.full(n, min(r_R, r_B) * inv_n)
@@ -567,18 +691,15 @@ def compute_batched_rewards(
             return accuracy - lambda_approval * abs(approval_rate_R - approval_rate_B) * inv_n
         elif constraint_type == "social":
             _require_credit_inputs(groups, wealth_gains, reward_function_name)
-            # Note: with lambda_wealth > 1 the richer group's weight is
-            # negative, so the optimum of this objective withholds credit
-            # from the richer group entirely. That is what Table 1's
-            # Phi = mu_R + mu_B - lam|mu_R - mu_B| already implies
-            # (dPhi/dmu_richer = 1 - lam); it just becomes reachable now that
-            # the gradient can see it.
-            return _wealth_credit_batch(a, d, wealth_gains) * _social_group_weights(
-                snap, groups, "fl", lambda_wealth)
+            # r_i - lam * sign(mu_g - mu_other) * credit_i: approving the
+            # richer group widens the gap (penalised), approving the poorer
+            # group narrows it (rewarded), on top of the applicant's own
+            # profit. lam is the price of one unit of gap in profit units.
+            g = _outcome_violation_batch(snap, groups, _wealth_credit_batch(a, d, wealth_gains), "fl")
+            return bank_profit - lambda_wealth * g
         elif constraint_type == "eo":
             tpr_R, tpr_B = _group_tpr(snap)
-            val = tpr_R + tpr_B - lambda_wealth * abs(tpr_R - tpr_B)
-            return np.full(n, val * inv_n)
+            return bank_profit - lambda_wealth * abs(tpr_R - tpr_B) * inv_n
         elif constraint_type == "dm":
             r_R, r_B = _group_profit_rates(snap)
             return bank_profit - lambda_wealth * abs(r_R - r_B) * inv_n

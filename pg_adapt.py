@@ -65,18 +65,18 @@ from pg_run import (
 # ---------------------------------------------------------------------------
 
 def _default_lambdas(reward, constraint):
-    # fairness_lagrangian under social / eo: lambda < 1. The reward is now
-    # the per-step CHANGE of Phi = mu_R + mu_B - lambda|mu_R - mu_B|, whose
-    # per-group weights are (1 - lambda) for the richer group and (1 + lambda)
-    # for the poorer one. With the old default of 10 the richer group's
-    # weight was -9: the objective wanted to REDUCE that group's wealth,
-    # which lending cannot do, so the policy withheld from them entirely,
-    # overshot the gap, then flipped (fixpilot: gap +13 -> -175 in 500
-    # episodes, seeds scattered along the flip-flop). At 0.5 both weights
-    # stay positive (0.5 / 1.5): welfare with priority to the poorer group,
-    # a well-defined optimum, and a clean interpolation toward SW as
-    # lambda -> 0. The dual-ascent clip (2 x initial = 1.0) keeps it < 1.
-    # dm keeps 10.0: there lambda multiplies |r_R - r_B| in bank-profit
+    # These are INITIAL values of a learnable multiplier. Under social / eo
+    # the reward is Table 1's Lagrangian, profit - lambda * violation, with
+    # the Outcome wealth terms in units of kappa_bar (one average loan's
+    # worth of borrower wealth) so lambda reads as "$k of profit per
+    # average loan of borrower wealth"; per-applicant expected profit on
+    # approval is ~2.4 (pretrain) / ~0.1 +/- 2 (deploy), so 2 / 5 / 0.5 are
+    # all on-scale. lambda is then updated once per episode by dual ascent
+    # against a status-quo threshold and clipped to [eps, max(10, 2*init)]
+    # (see reward.constraint_measure / dual_ascent_update), so it does not
+    # stay at these values. FL's 0.5 is a start point on the profit side of
+    # the trade-off; the dual raises it when the gap grows past the status
+    # quo. dm keeps 10.0: there lambda multiplies |r_R - r_B| in bank-profit
     # units, a different quantity (and out of the current rerun's scope).
     lw = 0.5 if constraint == "two_sided" else (
         0.0 if reward == "utilitarian_profit" else

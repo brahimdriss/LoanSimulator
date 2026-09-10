@@ -111,8 +111,10 @@ def _default_lambdas(reward, constraint):
     penalty weight at episode 0. The values below match pg_adapt and also
     match reward.RewardFunction's own per-reward signature defaults
     (social_welfare 2.0, rawlsian_maximin 5.0, fairness_lagrangian 10.0),
-    EXCEPT fairness_lagrangian under social / eo, which is 0.5 -- see the
-    comment in pg_adapt._default_lambdas for why lambda must be < 1 there.
+    EXCEPT fairness_lagrangian under social / eo, which starts at 0.5 -- see
+    the comment in pg_adapt._default_lambdas. Under social / eo these are
+    only INITIAL values: lambda is a learnable multiplier updated by dual
+    ascent each episode (reward.constraint_measure / dual_ascent_update).
 
     two_sided's lw is alpha, a blend weight in (0,1), initialised at 0.5.
     """

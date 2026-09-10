@@ -11,7 +11,7 @@ Usage:
     python3 cluster/verify_run.py                       # ~/eutopia_runs/main
     python3 cluster/verify_run.py --root ~/eutopia_runs/main --seeds 20
     python3 cluster/verify_run.py --logs ~/eutopia_logs  # also scan condor .err
-    python3 cluster/verify_run.py --seeds 10 --diagnose   # + per-seed basin table
+    python3 cluster/verify_run.py --seeds 10 --diagnose   # + per-seed basin + lambda tables
 
 Exit status is 0 only if every check passes, so it can gate a script:
     python3 cluster/verify_run.py && run_job.sh pepg aggregate
@@ -238,6 +238,153 @@ def diagnose_agent(root, agent, seeds):
         print(f"  [{OK}] {agent}: no coin-flip cells, per-combo spread <= {SPREAD_WARN}")
 
 
+# --- lambda diagnostics (--diagnose) -----------------------------------------
+# The Lagrangian dual lambda is learnt by dual ascent once per episode,
+# clipped to [1e-4, lambda_max] with lambda_max = max(10, 2 * initial value)
+# (see agent._lambda_max).  Aggregate means cannot tell "lambda did its job"
+# from "lambda never moved" or "lambda hit the clip and stayed there", so this
+# table shows start->end [min,max] of the DEPLOY trace (lambda_wealth column of
+# *_training_trace.csv) for every (combo, seed), prefixed with the end of the
+# Phase-1 history from the weights file when it is present.
+LAMBDA_COL = "lambda_wealth"
+LAMBDA_TAIL_FRAC = 0.20   # last 20% of deploy episodes decide MAXPIN / EPSPIN
+LAMBDA_PIN_REL = 0.01     # within 1% of 10.0 or of lambda_max   -> MAXPIN
+LAMBDA_EPS_PIN = 2e-4     # every tail value <= this               -> EPSPIN
+LAMBDA_FLAT_REL = 0.02    # (max-min)/max(start,1e-3) below this   -> FLAT
+LAMBDA_SKIP_REWARDS = ("utilitarian_profit",)   # lambda is not learnable
+LAMBDA_FLAGS = ("MAXPIN", "EPSPIN", "FLAT", ".")
+
+
+def _lambda_fmt(v):
+    v = float(v)
+    return f"{v:.0f}" if abs(v) >= 100 else f"{v:.3g}"
+
+
+def _lambda_flag(lam, start):
+    """lam: deploy lambda trace (1-D array); start: Phase-1 initial value if
+    known, else the first deploy value. Mirrors agent._lambda_max."""
+    lam_max = max(10.0, 2.0 * float(start))
+    tail = lam[-max(1, int(np.ceil(len(lam) * LAMBDA_TAIL_FRAC))):]
+    if (np.abs(tail - 10.0) <= LAMBDA_PIN_REL * 10.0).all() or \
+            (np.abs(tail - lam_max) <= LAMBDA_PIN_REL * lam_max).all():
+        return "MAXPIN"
+    if (tail <= LAMBDA_EPS_PIN).all():
+        return "EPSPIN"
+    if (lam.max() - lam.min()) / max(float(lam[0]), 1e-3) < LAMBDA_FLAT_REL:
+        return "FLAT"
+    return "."
+
+
+def _phase1_lambda(root, agent, combo, seed):
+    """(first, last) of ck['lambda_history']['wealth'] from the Phase-1
+    weights file, or None if the file is absent / unreadable."""
+    prefix = "" if agent == "pg" else f"{agent}_"
+    path = os.path.join(root, agent, "weights", f"{prefix}{combo}__seed{seed}.pt")
+    if not os.path.isfile(path):
+        return None
+    try:
+        import torch
+        ck = torch.load(path, map_location="cpu", weights_only=False)
+        hist = ck["lambda_history"]["wealth"]
+        if not len(hist):
+            return None
+        return float(hist[0]), float(hist[-1])
+    except Exception as e:
+        print(f"  ! {os.path.basename(path)}: {e}")
+        return None
+
+
+def diagnose_lambda(root, agent, seeds):
+    """Per-agent table of deploy-trace lambda (start->end [min,max]) per
+    (combo, seed), flagged MAXPIN / EPSPIN / FLAT. Warns (does not fail) on a
+    combo whose seeds are all FLAT (lambda not learning) or all pinned
+    (constraint unsatisfiable / inactive). utilitarian_profit is skipped."""
+    print(f"\n=== {agent}: lambda diagnostics (deploy {LAMBDA_COL}: "
+          f"[p1=phase-1 end|]start->end [min,max] flag) ===")
+    dep = os.path.join(root, agent, "deploy_artifacts")
+    pat = re.compile(rf"^{re.escape(agent)}_(.+?)__(.+?)__seed(\d+)_training_trace\.csv$")
+    cells = {}                                  # (combo, seed) -> (text, flag)
+    combos_on_disk = set()
+    for f in glob.glob(os.path.join(dep, f"{agent}_*_training_trace.csv")):
+        m = pat.match(os.path.basename(f))
+        if not m:
+            continue
+        reward, constraint, seed = m.group(1), m.group(2), int(m.group(3))
+        if reward in LAMBDA_SKIP_REWARDS:
+            continue
+        combo = f"{reward}__{constraint}"
+        combos_on_disk.add(combo)
+        if seed >= seeds:
+            continue
+        try:
+            lam = pd.to_numeric(pd.read_csv(f, usecols=[LAMBDA_COL])[LAMBDA_COL],
+                                errors="coerce").dropna().to_numpy(dtype=float)
+            if not len(lam):
+                raise ValueError(f"no finite {LAMBDA_COL} values")
+        except Exception as e:
+            print(f"  ! {os.path.basename(f)}: {e}")
+            cells[(combo, seed)] = None
+            continue
+        p1 = _phase1_lambda(root, agent, combo, seed)
+        start = p1[0] if p1 is not None else lam[0]
+        flag = _lambda_flag(lam, start)
+        text = (f"p1={_lambda_fmt(p1[1])}|" if p1 is not None else "") + \
+            f"{_lambda_fmt(lam[0])}->{_lambda_fmt(lam[-1])} " \
+            f"[{_lambda_fmt(lam.min())},{_lambda_fmt(lam.max())}] {flag}"
+        cells[(combo, seed)] = (text, flag)
+    if not combos_on_disk:
+        warn(f"{agent}: diagnose found lambda traces", False, dep)
+        return
+
+    order = [f"{r}__{c}" for r, c in COMBOS
+             if f"{r}__{c}" in combos_on_disk]
+    order += sorted(combos_on_disk - set(order))
+    width = max(len(c) for c in order)
+    seed_cols = list(range(seeds))
+    cw = max([len(v[0]) for v in cells.values() if v is not None] + [10])
+    print("  " + "combo".ljust(width) + "  " + "  ".join(f"s{s}".center(cw) for s in seed_cols))
+
+    counts = {k: 0 for k in LAMBDA_FLAGS}
+    total = 0
+    flat_combos, pinned_combos = [], []
+    for combo in order:
+        row = [combo.ljust(width)]
+        flags = []
+        for s in seed_cols:
+            cell = cells.get((combo, s))
+            if cell is None:
+                row.append("--".center(cw))
+                continue
+            text, flag = cell
+            counts[flag] += 1
+            total += 1
+            flags.append(flag)
+            row.append(text.ljust(cw))
+        if flags and all(fl == "FLAT" for fl in flags):
+            flat_combos.append(combo)
+        elif flags and all(fl in ("MAXPIN", "EPSPIN") for fl in flags):
+            pinned_combos.append(combo)
+        print("  " + "  ".join(row))
+
+    print(f"  flags: MAXPIN=last {int(LAMBDA_TAIL_FRAC * 100)}% within "
+          f"{int(LAMBDA_PIN_REL * 100)}% of 10 or of lambda_max=max(10,2*init)  "
+          f"EPSPIN=last {int(LAMBDA_TAIL_FRAC * 100)}% <= {LAMBDA_EPS_PIN:g}  "
+          f"FLAT=(max-min)/start < {LAMBDA_FLAT_REL}  .=moved")
+    print(f"  {agent} lambda summary: MAXPIN={counts['MAXPIN']}  "
+          f"EPSPIN={counts['EPSPIN']}  FLAT={counts['FLAT']}  of {total} cells")
+    problems = []
+    if flat_combos:
+        problems.append(f"lambda not learning (all seeds FLAT) in {flat_combos}")
+    if pinned_combos:
+        problems.append(f"constraint unsatisfiable / inactive (all seeds "
+                        f"MAXPIN/EPSPIN) in {pinned_combos}")
+    if problems:
+        print(f"  WARNING: {agent}: " + "; ".join(problems))
+        _warn.append(f"{agent}: lambda -- " + "; ".join(problems))
+    else:
+        print(f"  [{OK}] {agent}: no combo with every seed FLAT or pinned")
+
+
 def scan_condor_logs(logdir):
     print(f"\n=== condor stderr ({logdir}) ===")
     errs = glob.glob(os.path.join(logdir, "*.err"))
@@ -266,7 +413,9 @@ def main():
     ap.add_argument("--diagnose", action="store_true",
                     help="after the checks, print a per-(combo, seed) table of final "
                          "cumulative approval rates flagged for degenerate basins "
-                         "(coin-flip / reject-all / approve-all)")
+                         "(coin-flip / reject-all / approve-all), then a "
+                         "per-(combo, seed) table of deploy lambda "
+                         "(start->end [min,max]) flagged MAXPIN/EPSPIN/FLAT")
     a = ap.parse_args()
 
     print(f"Verifying campaign at {a.root}  (expecting {a.seeds} seeds "
@@ -276,6 +425,7 @@ def main():
     if a.diagnose:
         for agent in a.agents:
             diagnose_agent(a.root, agent, a.seeds)
+            diagnose_lambda(a.root, agent, a.seeds)
     if a.logs:
         scan_condor_logs(os.path.expanduser(a.logs))
 

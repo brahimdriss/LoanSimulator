@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from ..agent import LearnableLambdas
 from ..policy_net import BetaPolicyNet, make_optimizer
-from ..reward import RewardFunction, compute_batched_rewards
+from ..reward import RewardFunction, compute_batched_rewards, constraint_measure, dual_ascent_update
 from .buffers import DecisionTracker, PerformativeReplayBuffer
 from .differentiable_gradient import RunningNormalizer, differentiable_episode_return
 
@@ -165,9 +165,10 @@ class PePGAgentV2:
         self.alpha_lr = alpha_lr if alpha_lr is not None else lambda_lr / 4.0
         # Status-quo violation references for dual ascent; see _baseline().
         self._violation_baseline = {}
-        # Dual-ascent cap: lambda clipped to [eps, 2 x initial] (at least 1),
-        # same as PolicyGradientAgent -- see _dual_ascent_step.
-        self._lambda_max = max(2.0 * float(lambda_wealth), 1.0)
+        # Table 1 Lagrangian dual (social / eo) -- same rule and constants as
+        # PolicyGradientAgent; see its __init__ comment and _dual_ascent_step.
+        self.dual_lr = 0.1
+        self._lambda_max = max(10.0, 2.0 * float(lambda_wealth))
         if reward_function != "utilitarian_profit" or constraint_type == "two_sided":
             self.learnable_lambdas = LearnableLambdas(
                 constraint_type=constraint_type,
@@ -733,6 +734,10 @@ class PePGAgentV2:
 
         mu_M_start = self.env.mu_R
         mu_F_start = self.env.mu_B
+        # Episode-start means, for _episode_dW (the Outcome constraints' dual
+        # update) -- works on any environment, not only the testing env
+        # that records episode_start_mu_M/F itself.
+        self._ep_mu_start = (mu_M_start, mu_F_start)
 
         if self.initial_mu_M is None:
             self.initial_mu_M = mu_M_start
@@ -1102,7 +1107,8 @@ class PePGAgentV2:
             self._violation_baseline[key] = float(value)
         return self._violation_baseline[key]
 
-    def _dual_ascent_step(self, wealth_gap: float, rate_gap: float) -> float:
+    def _dual_ascent_step(self, wealth_gap: float, rate_gap: float,
+                          dW_R: float = None, dW_B: float = None) -> float:
         """
         Dual ascent applied directly and additively to lambda itself, against
         the status-quo baseline (see _baseline) -- NOT through log-space
@@ -1149,16 +1155,21 @@ class PePGAgentV2:
                 )
                 return -(alpha_new * wealth_gap)
 
-            elif self.constraint_type in ("wealth", "social"):
-                # RELATIVE gap |mu_R - mu_B| / mean(mu), clipped to
-                # [eps, _lambda_max] -- same rule as PolicyGradientAgent.
-                # _update_lambdas; see its comment for the run10 divergence.
-                rel_gap = wealth_gap / max(0.5 * (self.env.mu_R + self.env.mu_B), eps)
-                base = self._baseline("wealth", rel_gap)
-                lw = ll.lambda_wealth.item()
-                lw_new = float(np.clip(lw + lr * (rel_gap - base), eps, self._lambda_max))
+            elif self.constraint_type in ("wealth", "social", "eo"):
+                # Table 1 Lagrangian dual -- identical rule to
+                # PolicyGradientAgent._update_lambdas; see its comment and
+                # reward.constraint_measure / dual_ascent_update.
+                key, sense, C = constraint_measure(
+                    self.env, self.reward_func_name,
+                    "social" if self.constraint_type == "wealth" else self.constraint_type,
+                    dW_R, dW_B,
+                )
+                base = self._baseline(key, C)
+                lw_new = dual_ascent_update(
+                    ll.lambda_wealth.item(), sense, C, base, self.dual_lr, self._lambda_max, eps
+                )
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
-                return -(lw_new * rel_gap)
+                return -(lw_new * C)
 
             elif self.constraint_type in ("approval_rate", "predictive"):
                 base = self._baseline("rate", rate_gap)
@@ -1193,17 +1204,23 @@ class PePGAgentV2:
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
                 return -(lw_new * profit_rate_gap)
 
-            elif self.constraint_type == "eo":
-                # Same function the "eo" reward uses (RewardFunction._group_tpr).
-                tpr_R, tpr_B = RewardFunction._group_tpr(self.env)
-                tpr_gap = abs(tpr_R - tpr_B)
-                base = self._baseline("eo", tpr_gap)
-                lw = ll.lambda_wealth.item()
-                lw_new = float(np.clip(lw + lr * (tpr_gap - base), eps, self._lambda_max))
-                ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
-                return -(lw_new * tpr_gap)
+            # ("eo" is handled together with "social" above.)
 
             return 0.0
+
+    def _episode_dW(self) -> Tuple[float, float]:
+        """This episode's wealth created per group, N_g * (mu_end - mu_start)
+        -- the Outcome constraints' measured value for the dual update.
+        TestingIncomeEnvironment records mu at reset_cohort() as
+        episode_start_mu_M/F; if an environment lacks them, fall back to
+        no change (dW = 0), which leaves the dual step at its baseline."""
+        env = self.env
+        if getattr(self, "_ep_mu_start", None) is not None:
+            start_M, start_F = self._ep_mu_start   # recorded by _collect_episode
+        else:
+            start_M = getattr(env, "episode_start_mu_M", env.mu_R)
+            start_F = getattr(env, "episode_start_mu_F", env.mu_B)
+        return env.N_male * (env.mu_R - start_M), env.N_female * (env.mu_B - start_F)
 
     def _update_lambdas(self):
         """Update learnable lambdas based on constraint violations."""
@@ -1211,7 +1228,8 @@ class PePGAgentV2:
         approval_rate_F = self.env.total_loans_B / max(self.env.total_applications_B, 1)
         wealth_gap = abs(self.env.mu_R - self.env.mu_B)
         rate_gap = abs(approval_rate_M - approval_rate_F)
-        self._dual_ascent_step(wealth_gap, rate_gap)
+        dW_R, dW_B = self._episode_dW()
+        self._dual_ascent_step(wealth_gap, rate_gap, dW_R, dW_B)
 
     def _update_lambdas_with_loss(self) -> Tuple[float, float, float]:
         """Update learnable lambdas and return loss values for tracking."""
@@ -1219,7 +1237,8 @@ class PePGAgentV2:
         approval_rate_F = self.env.total_loans_B / max(self.env.total_applications_B, 1)
         wealth_gap = abs(self.env.mu_R - self.env.mu_B)
         rate_gap = abs(approval_rate_M - approval_rate_F)
-        lambda_loss_value = self._dual_ascent_step(wealth_gap, rate_gap)
+        dW_R, dW_B = self._episode_dW()
+        lambda_loss_value = self._dual_ascent_step(wealth_gap, rate_gap, dW_R, dW_B)
         return lambda_loss_value, wealth_gap, rate_gap
 
     def _update_episode_metrics(self, episode_data: dict):
