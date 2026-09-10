@@ -232,11 +232,16 @@ def _deploy_worker(cfg):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         saved = torch.load(weights_path, map_location=device, weights_only=False)
         agent.policy_net.load_state_dict(saved["policy_net_state_dict"])
-        # Key must match PolicyGradientAgent.save_model. It used to look for
-        # "lambda_state_dict", which save_model never writes, so every PG
-        # deploy silently restarted lambda at its default instead of the
-        # value Phase 1 had trained.
-        if "learnable_lambdas_state_dict" in saved and agent.learnable_lambdas is not None:
+        # Key must match PolicyGradientAgent.save_model. Under the Table 1
+        # cells (social / eo) lambda is deliberately NOT carried over: deploy
+        # restarts the multiplier at its init (_default_lambdas) and the dual
+        # re-learns it in the performative environment, instead of inheriting
+        # whatever value the static training env drove it to (the floor or
+        # the cap, in the fixpilot traces). Both agents do the same, so the
+        # comparison starts from an identical lambda.
+        if (constraint not in ("social", "eo")
+                and "learnable_lambdas_state_dict" in saved
+                and agent.learnable_lambdas is not None):
             agent.learnable_lambdas.load_state_dict(saved["learnable_lambdas_state_dict"])
 
         # Continue training (fine-tune) on the performative environment

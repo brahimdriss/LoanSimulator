@@ -467,7 +467,11 @@ def _deploy_worker(cfg):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         saved  = torch.load(weights_path, map_location=device, weights_only=False)
         agent.policy_net.load_state_dict(saved["policy_net_state_dict"])
-        if "learnable_lambdas_state_dict" in saved and agent.learnable_lambdas is not None:
+        # Table 1 cells (social / eo) restart lambda at its init for deploy --
+        # same rule as pg_adapt's deploy, see the comment there.
+        if (constraint not in ("social", "eo")
+                and "learnable_lambdas_state_dict" in saved
+                and agent.learnable_lambdas is not None):
             agent.learnable_lambdas.load_state_dict(saved["learnable_lambdas_state_dict"])
         if "replay_buffer_data" in saved:
             from collections import deque

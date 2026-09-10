@@ -1,0 +1,73 @@
+# Eutopia -- FULL-SCALE run of the fixed code (branch eutopia/reward-signal-fix):
+# RL (pg) vs PERL (pepg), the six Table 1 cells, run10's scale.
+#
+# 120 jobs = 2 agents x 10 seeds x 6 combos
+#   (social_welfare / rawlsian_maximin / fairness_lagrangian) x (social, eo)
+# The combo list is cluster/lorenz_combos.txt, which is exactly that grid.
+#
+# What is different from run10 (all on the fix branch, see git log):
+#   - BetaPolicyNet: fixed input scaling, lower pre-activation clamp,
+#     concentration cap, AdamW weight decay on the heads (no coin-flip /
+#     prior-pinned basins).
+#   - Table 1 objectives: reward = bank_profit +/- lambda * C, with C the
+#     Table 1 constraint (social: wealth created / kappa_bar; eo: TPRs).
+#   - lambda learned by dual ascent against the fixed thresholds in
+#     loan_simulator/reward.py CONSTRAINT_TARGETS, reset to its init at
+#     deploy start for both agents.
+#
+# TRAINS from scratch: WEIGHTS_CAMPAIGN must NOT be set (a leftover export
+# from a deploy-only submission makes every job print TRAIN SKIP and deploy
+# run10's weights -- the banner in each .out prints WEIGHTS_CAMPAIGN, check
+# it reads the new campaign name). Population snapshots are taken at the
+# listed deploy episodes so the Lorenz / reach-rate plots come out of this
+# same campaign (plots/plot_lorenz_run10.py, plots/plot_reach_rate_run10.py
+# take --root).
+#
+# Submit:
+#   cd ~/LoanSimulator && git pull
+#   unset WEIGHTS_CAMPAIGN REWARD_FILTER CONSTRAINT_FILTER
+#   export N_SEEDS=10 CAMPAIGN=run11 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000 \
+#          SNAPSHOT_EPISODES=100,500,1000,1500,2000,2500,3000
+#   mkdir -p ~/eutopia_logs
+#   condor_submit_bid 25 cluster/full_fix.sub
+#
+# Check ~1 min in that a job is TRAINING, not skipping:
+#   grep -A12 "=== Eutopia" ~/eutopia_logs/full_fix_*.0.out | head -20
+#
+# Verify when condor_q is empty (expect 60 checkpoints per agent):
+#   ~/eutopia-venv/bin/python3 cluster/verify_run.py --root ~/eutopia_runs/run11 --seeds 10 --diagnose
+#   ~/eutopia-venv/bin/python3 cluster/probe_policies.py --root ~/eutopia_runs/run11
+#   (verify_run's "checkpoints complete" line expects the 13-combo grid and
+#   will FAIL for this 6-combo campaign -- ignore that one line.)
+#
+# Then aggregate (mean/std CSVs per combo; the reach-rate plot reads these).
+# Aggregate mode sweeps the full 13-combo grid unless filtered and would
+# start TRAINING the 7 combos this campaign never ran, so run it once per
+# constraint with the filter set -- four short login-node-safe passes:
+#   for A in pepg pg; do for C in social eo; do
+#     CONSTRAINT_FILTER=$C ~/LoanSimulator/cluster/run_job.sh $A aggregate
+#   done; done
+#
+# Plots (Lorenz from the population snapshots, reach rate from the
+# aggregated CSVs), same campaign, no further runs:
+#   ~/eutopia-venv/bin/python3 plots/plot_lorenz_run10.py     --root ~/eutopia_runs/run11 --out plots/lorenz_run11
+#   ~/eutopia-venv/bin/python3 plots/plot_reach_rate_run10.py --root ~/eutopia_runs/run11 --out plots/reach_rate_run11
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) $(REWARD) $(CONSTRAINT)
+
+output = $ENV(HOME)/eutopia_logs/full_fix_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/full_fix_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/full_fix_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,REWARD,CONSTRAINT from $ENV(HOME)/LoanSimulator/cluster/lorenz_combos.txt

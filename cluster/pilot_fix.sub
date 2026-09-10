@@ -24,9 +24,12 @@
 #   3. probe_policies reports NO FLAT policies (every net's Beta mean varies
 #      with its inputs; std across the synthetic batch >= 0.01). SAT rows are
 #      worth a look but a confident head near +7 can be legitimate.
-#   4. lambda stays bounded in the training traces (it is clipped now, so a
-#      trace hitting the clip every episode means the constraint is unsatisfiable,
-#      not that the fix failed).
+#   4. lambda MOVES: --diagnose's lambda table should show few MAXPIN/EPSPIN
+#      cells. lambda is learned by dual ascent against the fixed Table 1
+#      thresholds in loan_simulator/reward.py (CONSTRAINT_TARGETS, anchored
+#      to the coin-flip lender) and is reset to its init at deploy start, so
+#      a cell pinned at the cap for the whole deploy means the threshold is
+#      unreachable for that policy, one pinned at the floor means it is slack.
 #
 # NOTE: verify_run.py's completeness check expects the full 13-combo grid, so
 # its "checkpoints complete" line will FAIL for this 6-combo pilot -- ignore

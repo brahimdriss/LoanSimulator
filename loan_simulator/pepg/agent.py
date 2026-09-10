@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from ..agent import LearnableLambdas
 from ..policy_net import BetaPolicyNet, make_optimizer
-from ..reward import RewardFunction, compute_batched_rewards, constraint_measure, dual_ascent_update
+from ..reward import RewardFunction, compute_batched_rewards, constraint_measure, dual_ascent_update, CONSTRAINT_TARGETS
 from .buffers import DecisionTracker, PerformativeReplayBuffer
 from .differentiable_gradient import RunningNormalizer, differentiable_episode_return
 
@@ -1084,7 +1084,12 @@ class PePGAgentV2:
 
     def _baseline(self, key: str, value: float) -> float:
         """
-        Status-quo reference for a constraint, captured on first use.
+        Status-quo reference for the LEGACY constraint types (two_sided,
+        approval_rate, predictive, both, dm), captured on first use. The
+        Table 1 cells (social / eo / wealth) do not use it: they ascend
+        against the fixed thresholds in reward.CONSTRAINT_TARGETS, because
+        a policy's own first episode is either trivially met or permanently
+        violated and lambda then only ever reaches the floor or the cap.
 
         Dual ascent needs a THRESHOLD to ascend against: the standard form
         is lambda <- max(0, lambda + lr*(J_C - d)) for a constraint
@@ -1111,8 +1116,9 @@ class PePGAgentV2:
                           dW_R: float = None, dW_B: float = None) -> float:
         """
         Dual ascent applied directly and additively to lambda itself, against
-        the status-quo baseline (see _baseline) -- NOT through log-space
-        autograd.
+        the fixed Table 1 thresholds (social / eo, reward.CONSTRAINT_TARGETS)
+        or the status-quo baseline (legacy types, see _baseline) -- NOT
+        through log-space autograd.
 
         Differentiating a (lambda * violation) loss w.r.t. log_lambda gives
         a gradient proportional to lambda itself (chain rule through
@@ -1156,7 +1162,8 @@ class PePGAgentV2:
                 return -(alpha_new * wealth_gap)
 
             elif self.constraint_type in ("wealth", "social", "eo"):
-                # Table 1 Lagrangian dual -- identical rule to
+                # Table 1 Lagrangian dual against the fixed thresholds in
+                # reward.CONSTRAINT_TARGETS -- identical rule to
                 # PolicyGradientAgent._update_lambdas; see its comment and
                 # reward.constraint_measure / dual_ascent_update.
                 key, sense, C = constraint_measure(
@@ -1164,9 +1171,9 @@ class PePGAgentV2:
                     "social" if self.constraint_type == "wealth" else self.constraint_type,
                     dW_R, dW_B,
                 )
-                base = self._baseline(key, C)
                 lw_new = dual_ascent_update(
-                    ll.lambda_wealth.item(), sense, C, base, self.dual_lr, self._lambda_max, eps
+                    ll.lambda_wealth.item(), sense, C, CONSTRAINT_TARGETS[key],
+                    self.dual_lr, self._lambda_max, eps
                 )
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
                 return -(lw_new * C)

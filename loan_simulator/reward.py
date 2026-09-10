@@ -416,22 +416,52 @@ def _group_tpr(snap: RewardSnapshot):
     return tpr_R, tpr_B
 
 
+# Fixed thresholds d for the Table 1 constraints (the dual ascends against
+# C >= d for SW/RMM, C <= d for FL). Anchored to the COIN-FLIP lender
+# (approve every applicant w.p. 0.5) in the deploy environment at the
+# cluster scale (N = 12000 + 12000, T = 100, dt = 0.5), measured over four
+# consecutive episodes with scratchpad/constraint_refs.py:
+#
+#   policy         profit  SW/soc  RMM/soc  FL/soc | SW/eo  RMM/eo  FL/eo
+#   approve all       480    1730      610   0.245 |  2.00    1.00   0.00
+#   coin flip         255     840      297   0.243 |  1.02    0.48   0.06
+#   profit-max half   990     310       29   0.244 |  1.47    0.47   0.53
+#   (SW/RMM social in kappa_bar units of wealth created per episode)
+#
+# SW/RMM social are stored PER POPULATION MEMBER so the same number means the
+# same thing at any N: 840 / 24000 = 0.035 and 297 / 12000 = 0.025. FL/social
+# is half the population's starting relative wealth gap (0.24). The eo
+# thresholds sit between the profit-maximising policy (TPR gap ~0.5) and the
+# coin flip (~0.06), so every one of the six binds against profit without
+# being unreachable.
+CONSTRAINT_TARGETS = {
+    "sw_social":  0.035,   # (dW_R + dW_B) / kappa_bar / (N_R + N_B)   >= d
+    "rmm_social": 0.025,   # dW_poorer   / kappa_bar / N_poorer         >= d
+    "fl_social":  0.12,    # |mu_R - mu_B| / mean(mu)                   <= d
+    "sw_eo":      1.5,     # TPR_R + TPR_B                              >= d
+    "rmm_eo":     0.75,    # min(TPR_R, TPR_B)                          >= d
+    "fl_eo":      0.10,    # |TPR_R - TPR_B|                            <= d
+}
+
+
 def constraint_measure(env, reward_function_name: str, constraint_type: str,
                        dW_R: float = None, dW_B: float = None):
     """
     End-of-episode value C of the Table 1 constraint for the DUAL update,
     and its sense. Returns (key, sense, C) with sense 'ge' for constraints
     the objective wants HIGH (SW, RMM) and 'le' for ones it wants LOW (FL).
-    The agents then do  lambda <- clip(lambda + eta * v, 0, lambda_max)  with
-    v = (base - C)/|base| for 'ge' and (C - base)/|base| for 'le', where
-    base is the status quo (the value measured at the end of the first
-    episode, see the agents' _baseline). lambda therefore RISES while the
-    constraint is violated and DECAYS toward 0 once it is satisfied, i.e.
+    The agents then do  lambda <- clip(lambda + eta * v, eps, lambda_max)
+    with v = (d - C)/|d| for 'ge' and (C - d)/|d| for 'le', d the fixed
+    threshold CONSTRAINT_TARGETS[key]. lambda therefore RISES while the
+    constraint is violated and DECAYS toward eps once it is satisfied, i.e.
     it settles where the constraint binds -- a multiplier, not a constant.
+    (An earlier version used the first episode's own value as d; that is
+    either trivially met or permanently violated, so lambda only ever
+    reached the floor or the cap -- see the fixpilot lambda diagnostics.)
 
     Equality of Outcome (constraint_type 'social'):
-        SW   C = wealth created this episode, both groups   (dW_R + dW_B) / kappa_bar
-        RMM  C = wealth created this episode, poorer group  dW_poorer / kappa_bar
+        SW   C = wealth created this episode per member   (dW_R + dW_B) / kappa_bar / (N_R + N_B)
+        RMM  C = wealth created per member, poorer group  dW_poorer / kappa_bar / N_poorer
         FL   C = relative wealth gap  |mu_R - mu_B| / mean(mu)
       dW_g = N_g * (mu_g_end - mu_g_start): the episode's total wealth
       created in group g (the same quantity the per-step credits sum to).
@@ -442,11 +472,12 @@ def constraint_measure(env, reward_function_name: str, constraint_type: str,
         if dW_R is None or dW_B is None:
             raise ValueError("constraint_measure('social') needs this episode's dW_R, dW_B")
         kb = RewardFunction._kappa_bar(env)
+        N_R, N_B = int(env.N_male), int(env.N_female)
         if reward_function_name == "social_welfare":
-            return "sw_social", "ge", (dW_R + dW_B) / kb
+            return "sw_social", "ge", (dW_R + dW_B) / kb / (N_R + N_B)
         if reward_function_name == "rawlsian_maximin":
             poorer_is_R = env.mu_R < env.mu_B
-            return "rmm_social", "ge", (dW_R if poorer_is_R else dW_B) / kb
+            return "rmm_social", "ge", (dW_R / N_R if poorer_is_R else dW_B / N_B) / kb
         if reward_function_name == "fairness_lagrangian":
             mean_mu = max(0.5 * (env.mu_R + env.mu_B), 1e-8)
             return "fl_social", "le", abs(env.mu_R - env.mu_B) / mean_mu
@@ -461,15 +492,15 @@ def constraint_measure(env, reward_function_name: str, constraint_type: str,
     raise ValueError(f"no Table 1 constraint for {reward_function_name!r}/{constraint_type!r}")
 
 
-def dual_ascent_update(lam: float, sense: str, C: float, base: float,
+def dual_ascent_update(lam: float, sense: str, C: float, target: float,
                        eta: float, lam_max: float, eps: float = 1e-4) -> float:
     """One projected dual-ascent step shared by both agents (see
-    constraint_measure). The violation is normalised by |base| (floored at
-    0.1 so a near-zero status quo cannot blow it up) so eta means the same
-    thing for every constraint: at full violation lambda moves by eta per
-    episode, crossing a range of 10 in 100 episodes at eta = 0.1."""
-    scale = max(abs(base), 0.1)
-    v = (base - C) / scale if sense == "ge" else (C - base) / scale
+    constraint_measure / CONSTRAINT_TARGETS). The violation is normalised
+    by |target| so eta means the same thing for every constraint: a
+    violation of one target-width moves lambda by eta per episode,
+    crossing a range of 10 in 100 episodes at eta = 0.1."""
+    scale = max(abs(target), 1e-8)
+    v = (target - C) / scale if sense == "ge" else (C - target) / scale
     return float(np.clip(lam + eta * v, eps, lam_max))
 
 

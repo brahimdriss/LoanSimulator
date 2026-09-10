@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.distributions import Beta
 from tqdm import tqdm
 
-from .reward import RewardFunction, compute_batched_rewards, constraint_measure, dual_ascent_update
+from .reward import RewardFunction, compute_batched_rewards, constraint_measure, dual_ascent_update, CONSTRAINT_TARGETS
 from .policy_net import BetaPolicyNet, make_optimizer
 
 
@@ -491,8 +491,10 @@ class PolicyGradientAgent:
 
     def _update_lambdas(self, dW_R=None, dW_B=None):
         """
-        Update learnable lambdas via dual ascent against the status-quo
-        baseline: lambda += lr * (violation - baseline), applied directly
+        Update learnable lambdas via dual ascent: social / eo / wealth
+        against the fixed Table 1 thresholds (reward.CONSTRAINT_TARGETS),
+        the legacy constraint types against the status-quo baseline
+        (lambda += lr * (violation - baseline)), applied directly
         and additively to lambda itself, clamped positive (or to (0,1) for
         the two_sided alpha blend, whose signal is additionally normalised
         since it is a bounded weight) -- not through log-space autograd.
@@ -525,19 +527,19 @@ class PolicyGradientAgent:
             elif self.constraint_type in ("wealth", "social", "eo"):
                 # Table 1 Lagrangian dual: lambda <- clip(lambda + dual_lr * v),
                 # v = normalised violation of THIS reward function's constraint
-                # against the status quo measured at the end of the first
-                # episode (SW/RMM: wealth created / TPRs must not fall below
-                # it; FL: the gap must not exceed it). lambda rises while
-                # violated, decays toward 0 once satisfied. See
-                # reward.constraint_measure / dual_ascent_update.
+                # against its fixed threshold reward.CONSTRAINT_TARGETS[key]
+                # (SW/RMM: wealth created / TPRs must reach it; FL: the gap
+                # must stay under it). lambda rises while violated, decays
+                # toward eps once satisfied. See reward.constraint_measure /
+                # dual_ascent_update.
                 key, sense, C = constraint_measure(
                     self.env, self.reward_func_name,
                     "social" if self.constraint_type == "wealth" else self.constraint_type,
                     dW_R, dW_B,
                 )
-                base = self._baseline(key, C)
                 lw_new = dual_ascent_update(
-                    ll.lambda_wealth.item(), sense, C, base, self.dual_lr, self._lambda_max, eps
+                    ll.lambda_wealth.item(), sense, C, CONSTRAINT_TARGETS[key],
+                    self.dual_lr, self._lambda_max, eps
                 )
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
 
