@@ -220,6 +220,10 @@ echo "  agent    : $AGENT"
 echo "  mode     : $MODE"
 echo "  campaign : $CAMPAIGN"
 echo "  results  : $RESULTS"
+# Printed explicitly because a WEIGHTS_CAMPAIGN left exported from an earlier
+# deploy-only submission silently makes a fresh campaign skip Phase 1 and
+# deploy someone else's weights (happened once: fixpilot picked up run10's).
+echo "  weights  : $WEIGHTS  (WEIGHTS_CAMPAIGN=${WEIGHTS_CAMPAIGN})"
 echo "  host     : $(hostname)"
 echo "  started  : $(date)"
 echo "  python   : $PYTHON ($($PYTHON --version 2>&1))"
