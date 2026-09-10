@@ -65,11 +65,25 @@ from pg_run import (
 # ---------------------------------------------------------------------------
 
 def _default_lambdas(reward, constraint):
+    # fairness_lagrangian under social / eo: lambda < 1. The reward is now
+    # the per-step CHANGE of Phi = mu_R + mu_B - lambda|mu_R - mu_B|, whose
+    # per-group weights are (1 - lambda) for the richer group and (1 + lambda)
+    # for the poorer one. With the old default of 10 the richer group's
+    # weight was -9: the objective wanted to REDUCE that group's wealth,
+    # which lending cannot do, so the policy withheld from them entirely,
+    # overshot the gap, then flipped (fixpilot: gap +13 -> -175 in 500
+    # episodes, seeds scattered along the flip-flop). At 0.5 both weights
+    # stay positive (0.5 / 1.5): welfare with priority to the poorer group,
+    # a well-defined optimum, and a clean interpolation toward SW as
+    # lambda -> 0. The dual-ascent clip (2 x initial = 1.0) keeps it < 1.
+    # dm keeps 10.0: there lambda multiplies |r_R - r_B| in bank-profit
+    # units, a different quantity (and out of the current rerun's scope).
     lw = 0.5 if constraint == "two_sided" else (
         0.0 if reward == "utilitarian_profit" else
         2.0 if reward == "social_welfare" else
         5.0 if reward == "rawlsian_maximin" else
-        10.0  # fairness_lagrangian
+        0.5 if constraint in ("social", "eo") else  # fairness_lagrangian
+        10.0  # fairness_lagrangian / dm
     )
     la = (
         0.0 if reward == "utilitarian_profit" else

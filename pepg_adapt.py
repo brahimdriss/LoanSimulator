@@ -110,7 +110,9 @@ def _default_lambdas(reward, constraint):
     combos while pg_adapt returned 10.0 -- a 5x difference in the fairness
     penalty weight at episode 0. The values below match pg_adapt and also
     match reward.RewardFunction's own per-reward signature defaults
-    (social_welfare 2.0, rawlsian_maximin 5.0, fairness_lagrangian 10.0).
+    (social_welfare 2.0, rawlsian_maximin 5.0, fairness_lagrangian 10.0),
+    EXCEPT fairness_lagrangian under social / eo, which is 0.5 -- see the
+    comment in pg_adapt._default_lambdas for why lambda must be < 1 there.
 
     two_sided's lw is alpha, a blend weight in (0,1), initialised at 0.5.
     """
@@ -118,7 +120,8 @@ def _default_lambdas(reward, constraint):
         0.0 if reward == "utilitarian_profit" else
         2.0 if reward == "social_welfare" else
         5.0 if reward == "rawlsian_maximin" else
-        10.0  # fairness_lagrangian
+        0.5 if constraint in ("social", "eo") else  # fairness_lagrangian
+        10.0  # fairness_lagrangian / dm
     )
     la = (
         0.0 if reward == "utilitarian_profit" else
