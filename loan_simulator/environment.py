@@ -854,9 +854,13 @@ class IncomeEnvironment(gym.Env):
 
             default_probs_out = default_probs
             loan_amounts_out = loan_amounts
+            groups_out = S
+            wealth_gains_out = wealth_gains
         else:
             default_probs_out = np.zeros(0)
             loan_amounts_out = np.zeros(0)
+            groups_out = np.zeros(0, dtype=np.int64)
+            wealth_gains_out = np.zeros(0)
 
         info = {
             "time": self.current_time,
@@ -864,6 +868,11 @@ class IncomeEnvironment(gym.Env):
             "actions": actions,
             "default_probs": default_probs_out,
             "loan_amounts": loan_amounts_out,
+            # Per-applicant group (1 = R/male, 0 = B/female) and wealth gain
+            # on repayment -- what reward.compute_batched_rewards needs for
+            # the 'social' per-applicant wealth credit.
+            "groups": groups_out,
+            "wealth_gains": wealth_gains_out,
             "reward_snapshot": snap,
             "p_theta_R": self.timestep_data["p_theta_R"] if self.timestep_data else 0.0,
             "p_theta_B": self.timestep_data["p_theta_B"] if self.timestep_data else 0.0,

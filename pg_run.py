@@ -629,7 +629,7 @@ def main():
     parser.add_argument("--lambda-wealth",  type=float, default=2.0)
     parser.add_argument("--lambda-approval",type=float, default=2.0)
     parser.add_argument("--lambda-lr",      type=float, default=1e-3)
-    parser.add_argument("--entropy-coef",   type=float, default=0.01,
+    parser.add_argument("--entropy-coef",   type=float, default=1e-3,
                         help="Entropy bonus coefficient (default: 0.01)")
     parser.add_argument("--buffer-capacity", type=int, default=50,
                         help="PePG replay buffer capacity in episodes (default: 50)")

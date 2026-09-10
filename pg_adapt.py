@@ -140,7 +140,7 @@ def _train_worker(cfg):
             lambda_approval=cfg.get("lambda_approval", la),
             lambda_lr=cfg.get("lambda_lr", 1e-3),
             alpha_lr=cfg.get("alpha_lr", None),
-            entropy_coef=cfg.get("entropy_coef", 0.01),
+            entropy_coef=cfg.get("entropy_coef", 1e-3),
         )
 
         for _ in range(cfg.get("warmup_episodes", 0)):
@@ -211,15 +211,19 @@ def _deploy_worker(cfg):
             lambda_approval=la,
             lambda_lr=cfg.get("lambda_lr", 1e-3),
             alpha_lr=cfg.get("alpha_lr", None),
-            entropy_coef=cfg.get("entropy_coef", 0.01),
+            entropy_coef=cfg.get("entropy_coef", 1e-3),
         )
 
         # Load pre-trained weights from static training
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         saved = torch.load(weights_path, map_location=device, weights_only=False)
         agent.policy_net.load_state_dict(saved["policy_net_state_dict"])
-        if "lambda_state_dict" in saved and agent.learnable_lambdas is not None:
-            agent.learnable_lambdas.load_state_dict(saved["lambda_state_dict"])
+        # Key must match PolicyGradientAgent.save_model. It used to look for
+        # "lambda_state_dict", which save_model never writes, so every PG
+        # deploy silently restarted lambda at its default instead of the
+        # value Phase 1 had trained.
+        if "learnable_lambdas_state_dict" in saved and agent.learnable_lambdas is not None:
+            agent.learnable_lambdas.load_state_dict(saved["learnable_lambdas_state_dict"])
 
         # Continue training (fine-tune) on the performative environment
         deploy_eps = cfg["deploy_episodes"]
@@ -315,7 +319,10 @@ def main():
                              "Defaults to lambda_lr/4 -- alpha is bounded in (0,1) "
                              "and takes a normalised signal, so the rate that suits "
                              "the unbounded lambdas saturates it.")
-    parser.add_argument("--entropy-coef",     type=float, default=0.01)
+    parser.add_argument("--entropy-coef",     type=float, default=1e-3,
+                        help="Coefficient on the discounted per-timestep mean policy "
+                             "entropy -- the same quantity in both agents (see "
+                             "PolicyGradientAgent.train_episode / differentiable_episode_return).")
     parser.add_argument("--lambda-wealth",    type=float, default=None,
                         help="Override default lambda_wealth (default: per reward function)")
     parser.add_argument("--lambda-approval",  type=float, default=None)

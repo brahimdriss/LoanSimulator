@@ -12,6 +12,7 @@ from torch.distributions import Beta
 from tqdm import tqdm
 
 from ..agent import LearnableLambdas
+from ..policy_net import BetaPolicyNet, make_optimizer
 from ..reward import RewardFunction, compute_batched_rewards
 from .buffers import DecisionTracker, PerformativeReplayBuffer
 from .differentiable_gradient import RunningNormalizer, differentiable_episode_return
@@ -147,7 +148,7 @@ class PePGAgentV2:
 
         # Policy network (Beta distribution for approval probability)
         self.policy_net = self._build_policy_network(12, hidden_dim).to(self.device)
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
+        self.optimizer = make_optimizer(self.policy_net, lr)  # shared with PG
 
         # Persists across train_episode_reparam() calls -- see
         # RunningNormalizer's docstring for why this has to be owned once
@@ -164,6 +165,9 @@ class PePGAgentV2:
         self.alpha_lr = alpha_lr if alpha_lr is not None else lambda_lr / 4.0
         # Status-quo violation references for dual ascent; see _baseline().
         self._violation_baseline = {}
+        # Dual-ascent cap: lambda clipped to [eps, 2 x initial] (at least 1),
+        # same as PolicyGradientAgent -- see _dual_ascent_step.
+        self._lambda_max = max(2.0 * float(lambda_wealth), 1.0)
         if reward_function != "utilitarian_profit" or constraint_type == "two_sided":
             self.learnable_lambdas = LearnableLambdas(
                 constraint_type=constraint_type,
@@ -330,35 +334,12 @@ class PePGAgentV2:
         self._store_initial_env_state()
 
     def _build_policy_network(self, input_dim: int, hidden_dim: int) -> nn.Module:
-        """Build Beta distribution policy network."""
-
-        class PolicyNet(nn.Module):
-            def __init__(self, input_dim, hidden_dim):
-                super().__init__()
-                self.fc1 = nn.Linear(input_dim, hidden_dim)
-                self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-                self.alpha_head = nn.Linear(hidden_dim, 1)
-                self.beta_head = nn.Linear(hidden_dim, 1)
-
-            def forward(self, x):
-                x = F.relu(self.fc1(x))
-                x = F.relu(self.fc2(x))
-                # Same clip as agent.py's PolicyNet -- see its comment.
-                # alpha/beta are floored at 1.0 but unbounded above, and a
-                # reward pushing the policy toward near-certain approval
-                # (mean -> 1) can only do so by growing alpha without limit,
-                # since beta can't shrink below its floor. Confirmed this
-                # happens for real (fairness_lagrangian/eo): alpha climbed
-                # past 128 with no sign of slowing and eventually overflows
-                # Beta/Dirichlet's internal lgamma into NaN, permanently
-                # poisoning every parameter. The cap is far above anything a
-                # non-degenerate policy needs (alpha=1000, beta=1 is already
-                # mean=0.999, near-zero variance).
-                alpha = torch.clamp(F.softplus(self.alpha_head(x)) + 1.0, max=1000.0)
-                beta = torch.clamp(F.softplus(self.beta_head(x)) + 1.0, max=1000.0)
-                return alpha, beta
-
-        return PolicyNet(input_dim, hidden_dim)
+        """Build Beta distribution policy network -- the SAME class
+        PolicyGradientAgent uses (loan_simulator/policy_net.py), so the two
+        agents differ only in their gradient estimator, never in their
+        policy class. See that module for the input scaling and the
+        pre-activation clamp added after run10."""
+        return BetaPolicyNet(input_dim, hidden_dim)
 
     def _store_initial_env_state(self):
         """Store initial environment state."""
@@ -802,6 +783,8 @@ class PePGAgentV2:
                 constraint_type=self.constraint_type,
                 lambda_wealth=lambda_w,
                 lambda_approval=lambda_a,
+                groups=info["groups"],
+                wealth_gains=info["wealth_gains"],
             )
 
             for i in range(n):
@@ -1167,11 +1150,15 @@ class PePGAgentV2:
                 return -(alpha_new * wealth_gap)
 
             elif self.constraint_type in ("wealth", "social"):
-                base = self._baseline("wealth", wealth_gap)
+                # RELATIVE gap |mu_R - mu_B| / mean(mu), clipped to
+                # [eps, _lambda_max] -- same rule as PolicyGradientAgent.
+                # _update_lambdas; see its comment for the run10 divergence.
+                rel_gap = wealth_gap / max(0.5 * (self.env.mu_R + self.env.mu_B), eps)
+                base = self._baseline("wealth", rel_gap)
                 lw = ll.lambda_wealth.item()
-                lw_new = max(lw + lr * (wealth_gap - base), eps)
+                lw_new = float(np.clip(lw + lr * (rel_gap - base), eps, self._lambda_max))
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
-                return -(lw_new * wealth_gap)
+                return -(lw_new * rel_gap)
 
             elif self.constraint_type in ("approval_rate", "predictive"):
                 base = self._baseline("rate", rate_gap)
@@ -1212,7 +1199,7 @@ class PePGAgentV2:
                 tpr_gap = abs(tpr_R - tpr_B)
                 base = self._baseline("eo", tpr_gap)
                 lw = ll.lambda_wealth.item()
-                lw_new = max(lw + lr * (tpr_gap - base), eps)
+                lw_new = float(np.clip(lw + lr * (tpr_gap - base), eps, self._lambda_max))
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
                 return -(lw_new * tpr_gap)
 

@@ -391,6 +391,48 @@ def _group_tpr(snap: RewardSnapshot):
     return tpr_R, tpr_B
 
 
+def _wealth_credit_batch(a: np.ndarray, d: np.ndarray, kappa: np.ndarray) -> np.ndarray:
+    """Expected wealth created by approving applicant i with probability a_i:
+    a_i * (1 - d_i) * kappa_i. This is exactly the applicant's expected
+    contribution to (N_g * mu_g) this step in the real environment, which
+    adds kappa_i on approved-and-repaid and nothing otherwise
+    (environment.step_cohort). Total-wealth units, not per-capita."""
+    return a * (1.0 - d) * kappa
+
+
+def _social_group_weights(snap: RewardSnapshot, groups: np.ndarray, mode: str,
+                          lambda_wealth: float) -> np.ndarray:
+    """Per-applicant weight on the wealth credit that turns it into the
+    per-step CHANGE of the Table 1 'social' objective:
+        social_welfare      Phi = mu_R + mu_B                  -> w = 1
+        rawlsian_maximin    Phi = min(mu_R, mu_B)              -> w = 1[g is the poorer group]
+        fairness_lagrangian Phi = mu_R + mu_B - lam|mu_R-mu_B| -> w = 1 - lam*sign(mu_g - mu_other)
+    evaluated at the pre-cohort state `snap` (the group ordering never flips
+    within one step: the gap is O(10) while one step moves mu by O(1e-3))."""
+    is_R = groups == 1
+    mu_own = np.where(is_R, snap.mu_R, snap.mu_B)
+    mu_other = np.where(is_R, snap.mu_B, snap.mu_R)
+    if mode == "sw":
+        return np.ones_like(mu_own)
+    if mode == "rmm":
+        if snap.mu_R == snap.mu_B:
+            return np.full_like(mu_own, 0.5)
+        return (mu_own < mu_other).astype(np.float64)
+    if mode == "fl":
+        return 1.0 - lambda_wealth * np.sign(mu_own - mu_other)
+    raise ValueError(mode)
+
+
+def _require_credit_inputs(groups, wealth_gains, reward_function_name):
+    if groups is None or wealth_gains is None:
+        raise ValueError(
+            f"compute_batched_rewards({reward_function_name!r}, constraint_type='social') "
+            "needs groups= and wealth_gains= (from step_cohort's info['groups'] / "
+            "info['wealth_gains']): the social rewards are per-applicant wealth "
+            "credits, not the level of mu -- see the docstring."
+        )
+
+
 def compute_batched_rewards(
     reward_function_name: str,
     snap: RewardSnapshot,
@@ -400,12 +442,34 @@ def compute_batched_rewards(
     constraint_type: str,
     lambda_wealth: float,
     lambda_approval: float,
+    groups: np.ndarray = None,
+    wealth_gains: np.ndarray = None,
 ) -> np.ndarray:
     """
     Batched equivalent of RewardFunction.<name>(env, action, info,
     constraint_type=..., lambda_wealth=..., lambda_approval=...), called
     once per applicant. Returns one reward per applicant in the batch
     (shape matches `actions`).
+
+    'social' (Equality of Outcome) IS DIFFERENT FROM THE SCALAR FORM. The
+    scalar RewardFunction.* return the LEVEL of the Table 1 objective
+    Phi(mu_R, mu_B) each step. As a training signal that level is
+    action-independent: the snapshot is taken before the cohort's approvals
+    are applied, and one step's approvals move a group mean over 12,000
+    people by ~1e-5 relative, so approve-everyone and reject-everyone differ
+    by 0.3% of the episode return (measured). Every run10 social policy
+    therefore sat at the uninformative prior. Here the social branches
+    return instead each applicant's expected contribution to the per-step
+    CHANGE of Phi, in total-wealth units:
+        r_i = a_i (1 - d_i) kappa_i * w_g        (see _social_group_weights)
+    Summed over a step this is Delta Phi (times N, a constant), and summed
+    over the episode it telescopes to Phi_T - Phi_0: the same argmax as the
+    level objective (at gamma = 0.99 an affine rescaling of it plus a
+    terminal term of weight gamma^T), but action-dependent per applicant
+    and stationary when wealth is carried across episodes. The scalar
+    functions are left as the reporting/definition of Phi.
+
+    The 'eo', 'dm', 'predictive' and 'two_sided' branches are unchanged.
 
     TWO KINDS OF TERM, aggregated differently -- this distinction matters
     and was previously conflated:
@@ -459,7 +523,9 @@ def compute_batched_rewards(
         if constraint_type == "predictive":
             return np.full(n, (approval_rate_R + approval_rate_B) * inv_n)
         elif constraint_type == "social":
-            return np.full(n, (snap.mu_R + snap.mu_B) * inv_n)
+            _require_credit_inputs(groups, wealth_gains, reward_function_name)
+            return _wealth_credit_batch(a, d, wealth_gains) * _social_group_weights(
+                snap, groups, "sw", lambda_wealth)
         elif constraint_type == "eo":
             tpr_R, tpr_B = _group_tpr(snap)
             return np.full(n, (tpr_R + tpr_B) * inv_n)
@@ -475,7 +541,9 @@ def compute_batched_rewards(
         if constraint_type == "predictive":
             return np.full(n, min(approval_rate_R, approval_rate_B) * inv_n)
         elif constraint_type == "social":
-            return np.full(n, min(snap.mu_R, snap.mu_B) * inv_n)
+            _require_credit_inputs(groups, wealth_gains, reward_function_name)
+            return _wealth_credit_batch(a, d, wealth_gains) * _social_group_weights(
+                snap, groups, "rmm", lambda_wealth)
         elif constraint_type == "eo":
             tpr_R, tpr_B = _group_tpr(snap)
             return np.full(n, min(tpr_R, tpr_B) * inv_n)
@@ -498,8 +566,15 @@ def compute_batched_rewards(
             accuracy = _accuracy_batch(a, d)
             return accuracy - lambda_approval * abs(approval_rate_R - approval_rate_B) * inv_n
         elif constraint_type == "social":
-            val = snap.mu_R + snap.mu_B - lambda_wealth * abs(snap.mu_R - snap.mu_B)
-            return np.full(n, val * inv_n)
+            _require_credit_inputs(groups, wealth_gains, reward_function_name)
+            # Note: with lambda_wealth > 1 the richer group's weight is
+            # negative, so the optimum of this objective withholds credit
+            # from the richer group entirely. That is what Table 1's
+            # Phi = mu_R + mu_B - lam|mu_R - mu_B| already implies
+            # (dPhi/dmu_richer = 1 - lam); it just becomes reachable now that
+            # the gradient can see it.
+            return _wealth_credit_batch(a, d, wealth_gains) * _social_group_weights(
+                snap, groups, "fl", lambda_wealth)
         elif constraint_type == "eo":
             tpr_R, tpr_B = _group_tpr(snap)
             val = tpr_R + tpr_B - lambda_wealth * abs(tpr_R - tpr_B)

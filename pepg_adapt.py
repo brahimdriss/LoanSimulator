@@ -376,7 +376,7 @@ def _train_worker(cfg):
             wealth_weight=cfg.get("wealth_weight", 1.0),
             transition_weight=cfg.get("transition_weight", 1.0),
             reward_weight=cfg.get("reward_weight", 1.0),
-            entropy_coef=cfg.get("entropy_coef", 0.01),
+            entropy_coef=cfg.get("entropy_coef", 1e-3),
         )
 
         agent.train_reparam(num_episodes=cfg["train_episodes"])
@@ -455,7 +455,7 @@ def _deploy_worker(cfg):
             wealth_weight=cfg.get("wealth_weight", 1.0),
             transition_weight=cfg.get("transition_weight", 1.0),
             reward_weight=cfg.get("reward_weight", 1.0),
-            entropy_coef=cfg.get("entropy_coef", 0.01),
+            entropy_coef=cfg.get("entropy_coef", 1e-3),
         )
 
         # Load pre-trained weights
@@ -568,7 +568,7 @@ def main():
                              "Defaults to lambda_lr/4 -- alpha is bounded in (0,1) "
                              "and takes a normalised signal, so the rate that suits "
                              "the unbounded lambdas saturates it.")
-    parser.add_argument("--entropy-coef",     type=float, default=0.01,
+    parser.add_argument("--entropy-coef",     type=float, default=1e-3,
                         help="Exploration pressure on the shadow-rollout gradient. "
                              "Matches pg_adapt.py's default so PG/PePG aren't "
                              "compared under a hidden asymmetry.")

@@ -307,11 +307,23 @@ def compute_step_reward(
     tpr_R: torch.Tensor, tpr_B: torch.Tensor,
     const_R: GroupConstants, const_B: GroupConstants,
     interest_rate: float, lambda_wealth: float, lambda_approval: float,
+    dW_R: torch.Tensor = None, dW_B: torch.Tensor = None,
 ) -> torch.Tensor:
     """
     Differentiable, mean-field equivalent of summing compute_batched_rewards()
     over every applicant that arrives this timestep (both groups combined) --
     the shadow-rollout counterpart of reward.py's 16 formulas.
+
+    dW_R / dW_B: this step's expected change in TOTAL group wealth,
+    N_g * (mu_g_next - mu_g), differentiable in the sampled actions. The
+    'social' branches use these -- the per-step CHANGE of the Table 1
+    objective, mirroring reward.compute_batched_rewards' per-applicant
+    wealth credit -- instead of the level mu_R + mu_B etc. The level is
+    ~action-independent within a step (one step moves mu by ~1e-5
+    relative), so its pathwise gradient was O(1e-4) against an O(1)
+    entropy term and every PePG social policy sat at the max-entropy
+    prior. See compute_batched_rewards' docstring for the telescoping
+    argument; the argmax is unchanged.
 
     bank_profit_R/B are ALREADY the full per-timestep bank-profit sum for
     each group (n_arrivals * mean_i[a_i * profit_i], computed in
@@ -346,7 +358,7 @@ def compute_step_reward(
 
     if reward_function_name == "social_welfare":
         if constraint_type == "social":
-            return mu_R + mu_B
+            return dW_R + dW_B
         elif constraint_type == "eo":
             return tpr_R + tpr_B
         elif constraint_type == "dm":
@@ -358,7 +370,13 @@ def compute_step_reward(
 
     if reward_function_name == "rawlsian_maximin":
         if constraint_type == "social":
-            return torch.minimum(mu_R, mu_B)
+            # Delta min(mu_R, mu_B): credit only the currently-poorer group
+            # (ordering decided on detached levels -- it never flips within
+            # a step, the gap is O(10) vs a per-step move of O(1e-3)).
+            mu_R_d, mu_B_d = mu_R.detach(), mu_B.detach()
+            if bool(mu_R_d == mu_B_d):
+                return 0.5 * (dW_R + dW_B)
+            return dW_R if bool(mu_R_d < mu_B_d) else dW_B
         elif constraint_type == "eo":
             return torch.minimum(tpr_R, tpr_B)
         elif constraint_type == "dm":
@@ -378,7 +396,12 @@ def compute_step_reward(
 
     if reward_function_name == "fairness_lagrangian":
         if constraint_type == "social":
-            return mu_R + mu_B - lambda_wealth * torch.abs(mu_R - mu_B)
+            # Delta[mu_R + mu_B - lam|mu_R - mu_B|] = dW_R (1 - lam s) + dW_B (1 + lam s),
+            # s = sign(mu_R - mu_B) on detached levels. With lam > 1 the
+            # richer group's weight is negative -- see the matching note in
+            # reward.compute_batched_rewards.
+            s = torch.sign(mu_R.detach() - mu_B.detach())
+            return dW_R * (1.0 - lambda_wealth * s) + dW_B * (1.0 + lambda_wealth * s)
         elif constraint_type == "eo":
             return tpr_R + tpr_B - lambda_wealth * torch.abs(tpr_R - tpr_B)
         elif constraint_type == "dm":
@@ -500,7 +523,13 @@ def differentiable_group_step(
     # -- this is what lets the gradient credit approving a GOOD-risk
     # individual differently from a BAD-risk one.
     wealth_contrib = (a * (1 - d_i) * kappa_i).mean()
-    mu_next = mu + dt * p_apply * wealth_contrib
+    # p_apply is already a per-step probability (it contains dt, see above)
+    # and the real environment adds kappa per approval with no time factor
+    # (environment.step_cohort: np.add.at(current_X, ids, kappa)), so the
+    # expected per-capita gain this step is p_apply * E[a (1-d) kappa] --
+    # no second dt. An earlier version multiplied by dt again here, halving
+    # the shadow's wealth drift (and every social-reward gradient) at dt=0.5.
+    mu_next = mu + p_apply * wealth_contrib
 
     # Per-timestep bank-profit sum for this group, same per-individual
     # heterogeneity: n_arrivals * mean_i[a_i * profit_i], not
@@ -592,6 +621,10 @@ def differentiable_episode_return(
             reward_function_name, constraint_type,
             mu_R, mu_B, bp_R, bp_B, n_R, n_B, rho_R, rho_B, tpr_R, tpr_B,
             const_R, const_B, interest_rate, lambda_wealth, lambda_approval,
+            # This step's expected change in TOTAL group wealth (the 'social'
+            # rewards' per-step credit -- see compute_step_reward).
+            dW_R=const_R.N * (mu_R_next - mu_R),
+            dW_B=const_B.N * (mu_B_next - mu_B),
         )
         mean, std = reward_normalizer.update_and_get_stats(r.detach().item())
         r_norm = (r - mean) / std
@@ -604,7 +637,12 @@ def differentiable_episode_return(
         # concentration 4.7 -> 79, approval 0.79 -> 0.94, X-spread 0.216 ->
         # 0.0005. The structure here is correct; ENTROPY_COEF below is what
         # calibrates the strength.
-        step_value = r_norm + entropy_coef * (ent_R + ent_B)
+        #
+        # 0.5 * (ent_R + ent_B) = the mean per-step policy entropy, which is
+        # exactly what PolicyGradientAgent.train_episode now accumulates
+        # (mean entropy over each timestep's cohort, discounted per
+        # timestep), so entropy_coef means the same thing for both agents.
+        step_value = r_norm + entropy_coef * 0.5 * (ent_R + ent_B)
         total_return = total_return + discount * step_value
         discount *= gamma
 

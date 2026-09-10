@@ -250,6 +250,18 @@ class TestingIncomeEnvironment(gym.Env):
         self.episode_actual_approvals_F = 0
         self.episode_true_approvals_M = 0
         self.episode_true_approvals_F = 0
+        # Confusion matrix is PER EPISODE (like the static IncomeEnvironment's
+        # _reset_core). It feeds the 'eo' rewards (tp/(tp+fn) per group, via
+        # RewardSnapshot / RewardFunction._group_tpr) and the 'eo' dual
+        # ascent. Before this it was cumulative over the whole deploy, so
+        # after a few hundred episodes the per-step TPR reward was a
+        # near-constant ratio the policy could no longer move -- PG/eo had
+        # no deploy signal while PePG/eo (fresh per-step estimate in its
+        # shadow rollout) did. The logged true_positive_*/recall_* columns
+        # in the episode metrics are therefore per-episode from here on
+        # (they are recorded in _record_episode_metrics BEFORE this reset).
+        self.tp_M = self.fp_M = self.tn_M = self.fn_M = 0
+        self.tp_F = self.fp_F = self.tn_F = self.fn_F = 0
         # Per-episode unique loan recipients, for Reach Rate (paper metric
         # #5). Boolean masks rather than Python sets: O(1) vectorised
         # marking from step_cohort()'s index arrays, and cheap at large N.
@@ -981,9 +993,13 @@ class TestingIncomeEnvironment(gym.Env):
 
             default_probs_out = default_probs
             loan_amounts_out = loan_amounts
+            groups_out = S
+            wealth_gains_out = wealth_gains
         else:
             default_probs_out = np.zeros(0)
             loan_amounts_out = np.zeros(0)
+            groups_out = np.zeros(0, dtype=np.int64)
+            wealth_gains_out = np.zeros(0)
 
         info = {
             "time": self.current_time,
@@ -991,6 +1007,10 @@ class TestingIncomeEnvironment(gym.Env):
             "actions": actions,
             "default_probs": default_probs_out,
             "loan_amounts": loan_amounts_out,
+            # Per-applicant group (1 = M/R, 0 = F/B) and wealth gain on
+            # repayment -- see IncomeEnvironment.step_cohort.
+            "groups": groups_out,
+            "wealth_gains": wealth_gains_out,
             "reward_snapshot": snap,
             "p_theta_R": self.timestep_data["p_theta_R"] if self.timestep_data else 0.0,
             "p_theta_B": self.timestep_data["p_theta_B"] if self.timestep_data else 0.0,

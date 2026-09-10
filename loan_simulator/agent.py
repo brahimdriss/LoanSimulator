@@ -8,6 +8,7 @@ from torch.distributions import Beta
 from tqdm import tqdm
 
 from .reward import RewardFunction, compute_batched_rewards
+from .policy_net import BetaPolicyNet, make_optimizer
 
 
 class LearnableLambdas(nn.Module):
@@ -78,7 +79,7 @@ class PolicyGradientAgent:
         lambda_approval=2.0,
         lambda_lr=1e-3,
         alpha_lr=None,
-        entropy_coef=0.01,
+        entropy_coef=1e-3,
         use_amp=True,
     ):
         self.env = env
@@ -98,7 +99,7 @@ class PolicyGradientAgent:
 
         # Policy network
         self.policy_net = self._build_network(12, hidden_dim).to(self.device)
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
+        self.optimizer = make_optimizer(self.policy_net, lr)
 
         # Learnable lambdas for all modes except utilitarian_profit,
         # UNLESS constraint is two_sided (learnable alpha blend).
@@ -142,10 +143,19 @@ class PolicyGradientAgent:
         self.per_step_rewards = []
         self.lambda_history = {"wealth": [], "approval": []}
 
-        # Online reward normalisation (Welford's algorithm, across all steps/episodes)
+        # Online reward normalisation (Welford's algorithm) of the PER-TIMESTEP
+        # reward (the cohort sum), across all timesteps/episodes -- see
+        # train_episode for why it is per timestep and not per applicant.
         self._rew_ema_mean = 0.0
         self._rew_ema_var  = 1.0
         self._rew_ema_n    = 0
+        # Per-timestep-index baseline for the return-to-go (EMA across
+        # episodes) -- see train_episode.
+        self._rtg_baseline = []
+        self._baseline_ema = 0.9
+        # Dual-ascent cap: lambda is clipped to [eps, 2 x its initial value]
+        # (at least 1). See _update_lambdas.
+        self._lambda_max = max(2.0 * float(lambda_wealth), 1.0)
 
         # Episode-level metrics tracking
         self.episode_metrics = {
@@ -175,37 +185,10 @@ class PolicyGradientAgent:
         self.total_episodes_completed = 0
 
     def _build_network(self, input_dim, hidden_dim):
-        class PolicyNet(nn.Module):
-            def __init__(self, input_dim, hidden_dim):
-                super().__init__()
-                self.fc1 = nn.Linear(input_dim, hidden_dim)
-                self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-                self.alpha_head = nn.Linear(hidden_dim, 1)
-                self.beta_head = nn.Linear(hidden_dim, 1)
-
-            def forward(self, x):
-                x = F.relu(self.fc1(x))
-                x = F.relu(self.fc2(x))
-                # Floored at 1.0 (both), UNBOUNDED above -- a reward that
-                # pushes the policy toward near-certain approval (mean -> 1)
-                # has only one lever, since beta can't shrink below its
-                # floor: alpha grows without limit. Confirmed this actually
-                # happens (fairness_lagrangian/eo, whose recall-only formula
-                # has no penalty for approving unqualified applicants, so
-                # "approve everyone" is a genuine unconstrained optimum):
-                # alpha climbed 19->128+ over 600 episodes with no sign of
-                # slowing, and eventually overflows PyTorch's Beta/Dirichlet
-                # internals (lgamma, used for entropy/log_prob) into NaN,
-                # which then poisons every parameter permanently. Cap well
-                # above what any real decision needs (alpha=1000, beta=1 is
-                # already mean=0.999 with near-zero variance) but far inside
-                # lgamma's safe range -- this changes nothing for any policy
-                # that isn't already headed for this failure mode.
-                alpha = torch.clamp(F.softplus(self.alpha_head(x)) + 1.0, max=1000.0)
-                beta = torch.clamp(F.softplus(self.beta_head(x)) + 1.0, max=1000.0)
-                return alpha, beta
-
-        return PolicyNet(input_dim, hidden_dim)
+        # Shared with PePGAgentV2 -- one policy class for both agents. See
+        # loan_simulator/policy_net.py for the fixed input scaling, the
+        # pre-activation clamp and the alpha/beta cap, and why each exists.
+        return BetaPolicyNet(input_dim, hidden_dim)
 
     def get_action(self, obs):
         obs_tensor = torch.FloatTensor(obs).unsqueeze(0).to(self.device)
@@ -250,8 +233,10 @@ class PolicyGradientAgent:
             self.initial_mu_M = mu_M_start
             self.initial_mu_F = mu_F_start
 
-        states, actions, log_probs, entropies, rewards = [], [], [], [], []
-        raw_rewards = []  # unnormalized -- for episode_reward/logging only, see below
+        states, actions, log_probs, entropies = [], [], [], []
+        cohort_rewards_norm = []  # ONE normalised reward per timestep (cohort sum)
+        cohort_entropies = []     # mean policy entropy per timestep
+        raw_rewards = []  # unnormalized per-timestep sums -- for episode_reward/logging only
         cohort_sizes = []  # applicants per timestep, for per-timestep discounting
         done = False
 
@@ -289,33 +274,42 @@ class PolicyGradientAgent:
                 constraint_type=self.constraint_type,
                 lambda_wealth=lambda_w,
                 lambda_approval=lambda_a,
+                groups=info["groups"],
+                wealth_gains=info["wealth_gains"],
             )
+
+            # ONE reward per TIMESTEP: sum the cohort's per-applicant rewards
+            # first, then Welford-normalise that per-timestep value. The
+            # previous per-applicant normalisation of the state-based
+            # rewards (each applicant got mu/n) made the cohort's normalised
+            # sum (mu - n*m)/s -- DECREASING in the arrival count n -- so
+            # approvals, which raise future arrivals through the Hawkes
+            # term, were penalised far harder than the wealth they created
+            # (run10 post-mortem: ~100x). Summing first removes that artifact
+            # for every reward type; the cohort total is what the paper's
+            # per-timestep r_t is anyway.
+            cohort_reward = float(np.sum(reward_arr))
+            self._rew_ema_n += 1
+            delta = cohort_reward - self._rew_ema_mean
+            self._rew_ema_mean += delta / self._rew_ema_n
+            delta2 = cohort_reward - self._rew_ema_mean
+            self._rew_ema_var = (
+                (self._rew_ema_var * (self._rew_ema_n - 1) + delta * delta2)
+                / self._rew_ema_n
+            )
+            cohort_reward_norm = cohort_reward - self._rew_ema_mean
+            if self._rew_ema_n >= 2:  # n=1 has zero sample variance
+                cohort_reward_norm /= np.sqrt(max(self._rew_ema_var, 1e-8))
+            cohort_rewards_norm.append(cohort_reward_norm)
+            cohort_entropies.append(entropy.mean())
+            raw_rewards.append(cohort_reward)
+            self.per_step_rewards.append(cohort_reward)
 
             for i in range(n):
                 states.append(obs_tensor[i])
                 actions.append(action[i])
                 log_probs.append(log_prob[i])
                 entropies.append(entropy[i])
-
-                reward = float(reward_arr[i])
-                # Online reward normalisation (Welford) — removes scale differences
-                # across constraint types and amplifies within-episode variation for
-                # state-based rewards (e.g. mu_R + mu_B) that are otherwise near-constant.
-                # Updated per-decision (not per-cohort) to match the original statistics.
-                self._rew_ema_n += 1
-                delta = reward - self._rew_ema_mean
-                self._rew_ema_mean += delta / self._rew_ema_n
-                delta2 = reward - self._rew_ema_mean
-                self._rew_ema_var = (
-                    (self._rew_ema_var * (self._rew_ema_n - 1) + delta * delta2)
-                    / self._rew_ema_n
-                )
-                reward_norm = (reward - self._rew_ema_mean) / (
-                    np.sqrt(max(self._rew_ema_var, 1e-8))
-                )
-                rewards.append(reward_norm)
-                raw_rewards.append(reward)
-                self.per_step_rewards.append(reward)
 
             # Cohort boundary: every applicant in this cohort arrived at the
             # SAME env timestamp, so they must not be discounted against each
@@ -342,31 +336,52 @@ class PolicyGradientAgent:
         # paper's "T*dt decision points per episode" (= 200, per timestep).
         # Decision granularity is unchanged: the bank still evaluates every
         # applicant individually.
-        returns = []
-        R = 0
-        idx = len(rewards)
-        for n_c in reversed(cohort_sizes):
-            R *= self.gamma                      # one discount step per timestep
-            cohort_rewards = rewards[idx - n_c: idx]
-            R = R + sum(cohort_rewards)          # cohort's rewards are simultaneous
-            # every applicant in this cohort sees the same return-to-go
-            returns[0:0] = [R] * n_c
-            idx -= n_c
+        # Per-timestep return-to-go (one discount step per timestep), then a
+        # per-timestep-index BASELINE: the running (EMA) mean of the
+        # return-to-go at that index over past episodes. Without it the
+        # deterministic horizon trend of the return-to-go (large early,
+        # ~0 late) dominated the advantage -- run10 post-mortem: ~50x the
+        # action-driven part -- and the old per-episode mean/std
+        # normalisation could only rescale that trend, not remove it.
+        T_c = len(cohort_sizes)
+        rtg = np.zeros(T_c)
+        R = 0.0
+        for t in range(T_c - 1, -1, -1):
+            R = cohort_rewards_norm[t] + self.gamma * R
+            rtg[t] = R
+        if len(self._rtg_baseline) < T_c:
+            self._rtg_baseline.extend([None] * (T_c - len(self._rtg_baseline)))
+        rtg_mean = float(rtg.mean()) if T_c else 0.0
+        adv = np.zeros(T_c)
+        for t in range(T_c):
+            b = self._rtg_baseline[t]
+            # first visit to this index: centre on the episode mean instead
+            adv[t] = rtg[t] - (rtg_mean if b is None else b)
+            self._rtg_baseline[t] = rtg[t] if b is None else (
+                self._baseline_ema * b + (1.0 - self._baseline_ema) * rtg[t]
+            )
+        adv_std = float(adv.std()) if T_c > 1 else 0.0
+        if adv_std > 1e-6:
+            adv = adv / (adv_std + 1e-8)
+        # every applicant in a cohort sees the cohort's advantage
+        advantages = torch.tensor(
+            np.repeat(adv, cohort_sizes), device=self.device, dtype=torch.float32
+        )
 
-        returns = torch.tensor(returns, device=self.device, dtype=torch.float32)
-        if len(returns) > 1:
-            returns_std = returns.std()
-            if returns_std > 1e-6:
-                returns = (returns - returns.mean()) / (returns_std + 1e-8)
-            else:
-                returns = returns - returns.mean()  # centre only; avoid amplifying noise
-
-        # Compute policy loss + entropy bonus
-        policy_loss = []
-        for log_prob, R in zip(log_probs, returns):
-            policy_loss.append(-log_prob * R)
-        entropy_bonus = torch.stack(entropies).mean()
-        loss = torch.stack(policy_loss).sum() - self.entropy_coef * entropy_bonus
+        # Policy loss + entropy bonus. Entropy is the MEAN policy entropy per
+        # timestep, discounted per timestep like the reward -- the same
+        # quantity PePG's shadow rollout accumulates (0.5 * (ent_R + ent_B)
+        # per step), so entropy_coef means the same thing for both agents.
+        # The old form, a plain mean over all ~2000 decisions with no
+        # discount, was ~1e-5 of the policy-gradient term, i.e. inert.
+        policy_loss = torch.stack(
+            [-lp * A for lp, A in zip(log_probs, advantages)]
+        ).sum()
+        discounts = torch.tensor(
+            [self.gamma ** t for t in range(T_c)], device=self.device, dtype=torch.float32
+        )
+        entropy_bonus = (discounts * torch.stack(cohort_entropies)).sum()
+        loss = policy_loss - self.entropy_coef * entropy_bonus
 
         # Backward pass for policy
         self.optimizer.zero_grad()
@@ -498,9 +513,18 @@ class PolicyGradientAgent:
                 )
 
             elif self.constraint_type in ("wealth", "social"):
-                base = self._baseline("wealth", wealth_gap)
+                # RELATIVE gap |mu_R - mu_B| / mean(mu), clipped to
+                # [eps, _lambda_max]. In absolute dollars the gap grows
+                # ~13 -> ~1400 over a deploy from the Matthew dynamics alone,
+                # regardless of policy, so the additive unclipped update
+                # drove lambda 5 -> 1800 / 10 -> 3200 in run10 (reconstructed
+                # exactly from the traces). The relative gap is O(0.2) and
+                # is what the environment's own relative-standing dynamics
+                # respond to.
+                rel_gap = wealth_gap / max(0.5 * (self.env.mu_R + self.env.mu_B), eps)
+                base = self._baseline("wealth", rel_gap)
                 lw = ll.lambda_wealth.item()
-                lw_new = max(lw + lr * (wealth_gap - base), eps)
+                lw_new = float(np.clip(lw + lr * (rel_gap - base), eps, self._lambda_max))
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
 
             elif self.constraint_type in ("approval_rate", "predictive"):
@@ -539,7 +563,7 @@ class PolicyGradientAgent:
                 tpr_gap = abs(tpr_R - tpr_B)
                 base = self._baseline("eo", tpr_gap)
                 lw = ll.lambda_wealth.item()
-                lw_new = max(lw + lr * (tpr_gap - base), eps)
+                lw_new = float(np.clip(lw + lr * (tpr_gap - base), eps, self._lambda_max))
                 ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
 
     def save_model(self, filepath):

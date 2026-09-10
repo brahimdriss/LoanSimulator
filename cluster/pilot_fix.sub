@@ -1,0 +1,52 @@
+# Eutopia -- pilot of the post-run10 policy fixes (input scaling, pre-activation
+# clamp, head weight decay, clipped lambda), RL (pg) vs PERL (pepg), social + eo.
+#
+# 36 jobs = 2 agents x 3 seeds x 6 combos
+#   (rawlsian_maximin / fairness_lagrangian / social_welfare) x (social, eo)
+#
+# This pilot TRAINS from scratch: WEIGHTS_CAMPAIGN is deliberately NOT set, so
+# each job runs Phase 1 with the fixed loan_simulator/ code and then deploys.
+# Short episode budget (200 train / 500 deploy) -- the point is to confirm the
+# degenerate basins are gone before spending a full-scale campaign.
+#
+# Submit:
+#   export N_SEEDS=3 CAMPAIGN=fixpilot TRAIN_EPISODES=200 DEPLOY_EPISODES=500
+#   condor_submit_bid 25 cluster/pilot_fix.sub
+#
+# Verify when condor_q is empty (expect 18 checkpoints per agent):
+#   ~/eutopia-venv/bin/python3 cluster/verify_run.py --root ~/eutopia_runs/fixpilot --seeds 3 --diagnose
+#   ~/eutopia-venv/bin/python3 cluster/probe_policies.py --root ~/eutopia_runs/fixpilot
+#
+# Pass criteria (all four must hold before scaling up):
+#   1. verify_run --diagnose shows NO `x` cells (no seed at the 0.50/0.50 coin flip).
+#   2. per-combo spread of approval_rate_M_cumulative across the 3 seeds < 0.15
+#      (no spread WARNING from --diagnose).
+#   3. probe_policies reports NO FLAT policies (every net's Beta mean varies
+#      with its inputs; std across the synthetic batch >= 0.01). SAT rows are
+#      worth a look but a confident head near +7 can be legitimate.
+#   4. lambda stays bounded in the training traces (it is clipped now, so a
+#      trace hitting the clip every episode means the constraint is unsatisfiable,
+#      not that the fix failed).
+#
+# NOTE: verify_run.py's completeness check expects the full 13-combo grid, so
+# its "checkpoints complete" line will FAIL for this 6-combo pilot -- ignore
+# that one line; the --diagnose table and probe are what this pilot is for.
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) $(REWARD) $(CONSTRAINT)
+
+output = $ENV(HOME)/eutopia_logs/pilot_fix_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/pilot_fix_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/pilot_fix_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,REWARD,CONSTRAINT from $ENV(HOME)/LoanSimulator/cluster/pilot_fix_combos.txt
