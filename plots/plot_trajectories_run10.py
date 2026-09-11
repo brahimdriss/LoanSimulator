@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
 Trajectory (line) plots, RL (pg) vs PERL (pepg), one PDF per (agent,
-constraint, reward, metric): wealth gap, cumulative profit, inequality
-ratio, and approval-rate disparity, all OVER DEPLOY EPISODES (mean +/- 1
-std over seeds where that's well-defined -- see caveats below).
+reward, metric): wealth gap, cumulative profit, inequality ratio, and
+approval-rate disparity, all OVER DEPLOY EPISODES (mean +/- 1 std over
+seeds where that's well-defined -- see caveats below). Equality of
+Outcome (social) and Equality of Opportunity (eo) are OVERLAID on the
+same axes so the two constraint types are directly comparable for a
+given agent/reward/metric, rather than split across separate files.
 
 These are the full-trajectory counterparts of plot_radar_run10.py /
 plot_bars_run10.py's four final-episode snapshot metrics -- read from the
@@ -12,12 +15,8 @@ cumulative_profit, approval_rate_{M,F}_cumulative, mu_{M,F}_start/end), no
 re-run needed. This is the same {wealth_gap, approval_disparity,
 rho_cumulative} trio pg_adapt.py / pepg_adapt.py's own aggregate mode has
 always sketched (see their _plot_inequality), redone in the paper house
-style (see plots/paper_style.py): one figure per combo, no titles/subplot
-grids, larger legible fonts.
-
-House style, no subplot grids/titles; combine combos side by side in the
-LaTeX source. No cross-combo legend is needed here (one line per figure),
-so no standalone legend file is written.
+style (see plots/paper_style.py): one figure per (agent, reward, metric),
+no titles/subplot grids, larger legible fonts, standalone shared legend.
 
 Caveats, both inherited from the codebase's existing precedent for these
 derived quantities (post_process_rule_policies.py):
@@ -41,16 +40,17 @@ import os
 import sys
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from paper_style import set_paper_style, save_figure  # noqa: E402
+from paper_style import set_paper_style, save_figure, save_legend  # noqa: E402
 
 AGENTS = [("pg", "RL"), ("pepg", "PERL")]
 CONSTRAINTS = [("social", "Equality of Outcome"), ("eo", "Equality of Opportunity")]
 REWARDS = [("rawlsian_maximin", "RMM"), ("fairness_lagrangian", "FL"), ("social_welfare", "SW")]
-LINE_COLOR = "#4c4c4c"
+CONSTRAINT_COLORS = {"social": "#0072B2", "eo": "#D55E00"}   # Okabe-Ito blue / vermillion
 
 
 def load_mean_std(root, agent, reward, constraint):
@@ -94,27 +94,34 @@ METRICS = [
 ]
 
 
-def plot_one(root, agent, constraint, reward, stem_key, ylabel, series_fn, hline, out_dir, n_smooth):
+def plot_one(root, agent, reward, stem_key, ylabel, series_fn, hline, out_dir, n_smooth):
     fig, ax = plt.subplots(figsize=(4.6, 3.6))
-    mean_df, std_df = load_mean_std(root, agent, reward, constraint)
-    out = None
-    if mean_df is not None:
+    any_data = False
+    out = {}
+    for constraint, _ in CONSTRAINTS:
+        mean_df, std_df = load_mean_std(root, agent, reward, constraint)
+        if mean_df is None:
+            continue
+        any_data = True
+        color = CONSTRAINT_COLORS[constraint]
         ep = mean_df["episode"]
         mu, sd = series_fn(mean_df, std_df, n_smooth)
-        ax.plot(ep, mu, color=LINE_COLOR)
+        ax.plot(ep, mu, color=color)
         if sd is not None:
-            ax.fill_between(ep, mu - sd, mu + sd, color=LINE_COLOR, alpha=0.18, lw=0)
+            ax.fill_between(ep, mu - sd, mu + sd, color=color, alpha=0.18, lw=0)
+        out["episode"] = ep
+        out[f"{constraint}_mean"] = mu
+        if sd is not None:
+            out[f"{constraint}_std"] = sd
+    if any_data:
         ax.axhline(hline, color="k", lw=1.0, ls="--", alpha=0.6)
-        ax.set_xlim(ep.iloc[0], ep.iloc[-1])
-        out = {"episode": ep, "mean": mu}
-        if sd is not None:
-            out["std"] = sd
+        ax.set_xlim(mean_df["episode"].iloc[0], mean_df["episode"].iloc[-1])
     ax.set_xlabel("Episode")
     ax.set_ylabel(ylabel)
 
-    stem = f"traj_{stem_key}_{agent}_{constraint}_{reward}"
+    stem = f"traj_{stem_key}_{agent}_{reward}"
     save_figure(fig, out_dir, stem, pd.DataFrame(out) if out else None)
-    print(f"  saved -> {os.path.join(out_dir, stem + '.pdf')}" + ("" if out else "   (no data found)"))
+    print(f"  saved -> {os.path.join(out_dir, stem + '.pdf')}" + ("" if any_data else "   (no data found)"))
 
 
 def main():
@@ -130,10 +137,13 @@ def main():
 
     for stem_key, ylabel, series_fn, hline in METRICS:
         for agent, _ in AGENTS:
-            for constraint, _ in CONSTRAINTS:
-                for reward, _ in REWARDS:
-                    plot_one(args.root, agent, constraint, reward, stem_key, ylabel, series_fn,
-                             hline, args.out, args.smooth)
+            for reward, _ in REWARDS:
+                plot_one(args.root, agent, reward, stem_key, ylabel, series_fn,
+                         hline, args.out, args.smooth)
+
+    handles = [Line2D([0], [0], color=CONSTRAINT_COLORS[c], lw=2.5) for c, _ in CONSTRAINTS]
+    labels = [label for _, label in CONSTRAINTS]
+    save_legend(handles, labels, args.out, "trajectories_constraint")
     print("done.")
 
 
