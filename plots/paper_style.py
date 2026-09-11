@@ -62,7 +62,11 @@ def set_paper_style():
         "figure.dpi":        200,
         "savefig.dpi":       200,
         "savefig.bbox":      "tight",
-        "savefig.pad_inches": 0.02,
+        # 0.02 was too tight for a rotated y-axis label at this font size --
+        # matplotlib's tight-bbox estimate for rotated text is occasionally
+        # short, and 0.02" left no slack, clipping the top of the label
+        # (e.g. "...unique recipients / N)" losing its closing paren).
+        "savefig.pad_inches": 0.08,
         "axes.grid":         True,
         "grid.alpha":        0.30,
         "grid.linestyle":    "--",
@@ -93,6 +97,11 @@ def save_figure(fig, out_dir, stem, data: pd.DataFrame = None):
     Returns the list of paths written.
     """
     os.makedirs(out_dir, exist_ok=True)
+    # Force a full layout pass before computing the tight bbox -- without
+    # this, savefig's own internal draw() can compute the bbox from stale
+    # text extents (rotated axis labels especially), which is what was
+    # clipping the top of tall y-axis labels.
+    fig.canvas.draw()
     written = []
     for ext in ("pdf", "png"):
         path = os.path.join(out_dir, f"{stem}.{ext}")

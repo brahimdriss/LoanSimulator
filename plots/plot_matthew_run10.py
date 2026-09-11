@@ -50,7 +50,9 @@ def smooth(series, n):
 
 
 def plot_one(root, agent, constraint, reward, out_dir, n_smooth):
-    fig, ax = plt.subplots(figsize=(4.6, 3.6))
+    # 4.4" tall, not 3.6" -- see plot_reach_rate_run10.py's comment on the
+    # same fix (tight-bbox undercounting a rotated y-axis label's height).
+    fig, ax = plt.subplots(figsize=(4.6, 4.4))
     mean_df, std_df = load_mean_std(root, agent, reward, constraint)
     out = None
     if mean_df is not None:

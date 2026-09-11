@@ -111,7 +111,11 @@ METRICS = [
 
 
 def plot_one(root, agent, constraint, stem_key, ylabel, series_fn, hline, out_dir, n_smooth):
-    fig, ax = plt.subplots(figsize=(4.6, 3.6))
+    # 4.4" tall, not 3.6" -- see plot_reach_rate_run10.py's comment on the
+    # same fix (tight-bbox undercounting a rotated y-axis label's height,
+    # margin here is thin even for the shorter labels since some of these
+    # metrics also carry LaTeX like $\bar{R}$/$\rho(t)$).
+    fig, ax = plt.subplots(figsize=(4.6, 4.4))
     any_data = False
     out = {}
     for reward in GROUP_REWARDS:

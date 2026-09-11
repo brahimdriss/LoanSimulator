@@ -51,7 +51,10 @@ def smooth(series, n):
 
 
 def plot_one(root, agent, constraint, reward, out_dir, n_smooth):
-    fig, ax = plt.subplots(figsize=(4.6, 3.6))
+    # 4.4" tall, not 3.6": at 3.6" matplotlib's tight-bbox for this rotated
+    # y-axis label undercounts its true height and clips its top (verified
+    # directly against the label's rendered extent) -- 4.4" leaves it room.
+    fig, ax = plt.subplots(figsize=(4.6, 4.4))
     mean_df, std_df = load_mean_std(root, agent, reward, constraint)
     out = None
     if mean_df is not None:
