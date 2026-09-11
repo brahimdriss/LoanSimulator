@@ -1,0 +1,56 @@
+# Eutopia -- frozen-lambda* sweep for PERL / fairness_lagrangian / social
+# (PERL's one combo with a genuinely live, non-degenerate learned lambda;
+# see cluster/run_job.sh and pepg_adapt.py's --freeze-lambda for the
+# mechanism, and the session notes for why these particular lambda values).
+#
+# Full retrain (1000 train + 3000 deploy, matching run11's scale), lambda
+# held FIXED at LAMBDA_OVERRIDE for the whole run -- Phase 1 and deploy
+# both -- instead of the usual adaptive dual ascent. 10 seeds x 1 combo =
+# 10 jobs PER lambda value. Submit once per value (this file doesn't sweep
+# on its own; CAMPAIGN and LAMBDA_OVERRIDE are per-submission).
+#
+# Submit (repeat for each lambda value, with a DIFFERENT CAMPAIGN each
+# time -- same CAMPAIGN for two different lambda values would silently
+# overwrite each other's checkpoints, since the weights filename doesn't
+# encode lambda):
+#   cd ~/LoanSimulator && git pull   # need 77a36fe or later
+#   unset WEIGHTS_CAMPAIGN
+#   export N_SEEDS=10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000 FREEZE_LAMBDA=1
+#
+#   CAMPAIGN=lambda_187 LAMBDA_OVERRIDE=1.87 condor_submit_bid 25 cluster/lambda_sweep.sub
+#   CAMPAIGN=lambda_400 LAMBDA_OVERRIDE=4.0  condor_submit_bid 25 cluster/lambda_sweep.sub
+#   CAMPAIGN=lambda_800 LAMBDA_OVERRIDE=8.0  condor_submit_bid 25 cluster/lambda_sweep.sub
+#
+# Check ~1 min in that a job is training, not skipping, and that it's
+# actually frozen (lambda_wealth constant across the printed DEPLOY lines,
+# not adapting):
+#   grep -A12 "=== Eutopia" ~/eutopia_logs/lambda_*.0.out | head -20
+#
+# Aggregate each campaign separately once its 10 jobs finish:
+#   CONSTRAINT_FILTER=social REWARD_FILTER=fairness_lagrangian \
+#     CAMPAIGN=lambda_187 ~/LoanSimulator/cluster/run_job.sh pepg aggregate
+#   (repeat for lambda_400, lambda_800)
+#
+# Compare against the adaptive FL/social result already in run11
+# (profit 1.30M, |wealth gap| 71.9, rho 1.06) using the same metrics --
+# plots/best_combined_run11.csv has the adaptive numbers; read each sweep
+# campaign's mean_fairness_lagrangian__social_*.csv the same way.
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = pepg $(SEED) fairness_lagrangian social
+
+output = $ENV(HOME)/eutopia_logs/lambda_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/lambda_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/lambda_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue SEED in 0,1,2,3,4,5,6,7,8,9
