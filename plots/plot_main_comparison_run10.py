@@ -29,7 +29,7 @@ from matplotlib.lines import Line2D
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from paper_style import set_paper_style, save_figure, save_legend  # noqa: E402
+from paper_style import set_paper_style, save_figure, save_legend, figure_set_bbox  # noqa: E402
 from plot_radar_run10 import REWARD_COLORS  # noqa: E402
 from plot_best_vs_baselines_run10 import (  # noqa: E402
     METRICS, load_mean_std, POLICY_COLORS, POLICY_LABELS,
@@ -50,7 +50,10 @@ LINES = [
 ]
 
 
-def plot_one(root, stem_key, ylabel, series_fn, hline, out_dir, n_smooth):
+def plot_one(root, stem_key, ylabel, series_fn, hline, n_smooth):
+    """Builds the figure but does NOT save it -- main() saves every metric's
+    figure together at one shared bbox so the panels come out at identical
+    page dimensions in LaTeX (see paper_style.figure_set_bbox)."""
     fig, ax = plt.subplots(figsize=(4.6, 4.4))
     any_data = False
     out = {}
@@ -78,8 +81,7 @@ def plot_one(root, stem_key, ylabel, series_fn, hline, out_dir, n_smooth):
     ax.set_ylabel(ylabel)
 
     stem = f"main_{stem_key}"
-    save_figure(fig, out_dir, stem, pd.DataFrame(out) if out else None)
-    print(f"  saved -> {os.path.join(out_dir, stem + '.pdf')}" + ("" if any_data else "   (no data found)"))
+    return fig, stem, (pd.DataFrame(out) if out else None), any_data
 
 
 def main():
@@ -92,8 +94,12 @@ def main():
     os.makedirs(args.out, exist_ok=True)
     set_paper_style()
 
-    for stem_key, ylabel, series_fn, hline in METRICS:
-        plot_one(args.root, stem_key, ylabel, series_fn, hline, args.out, args.smooth)
+    built = [plot_one(args.root, stem_key, ylabel, series_fn, hline, args.smooth)
+             for stem_key, ylabel, series_fn, hline in METRICS]
+    shared_bbox = figure_set_bbox([fig for fig, _, _, _ in built])
+    for fig, stem, data, any_data in built:
+        save_figure(fig, args.out, stem, data, bbox=shared_bbox)
+        print(f"  saved -> {os.path.join(args.out, stem + '.pdf')}" + ("" if any_data else "   (no data found)"))
 
     handles = [Line2D([0], [0], color=color, lw=2.5) for _, _, _, _, color, _ in LINES]
     labels = [label for label, _, _, _, _, _ in LINES]
