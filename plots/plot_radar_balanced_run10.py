@@ -23,9 +23,12 @@ undersells how different the frozen variant is):
                                         point in the FL family, it's a
                                         different algorithm design.
 
-Scale is the zero-anchored ratio from plot_radar_run10.py, recomputed
-over just these 3 combos (not all 6) so the chart's own scale matches
-what's actually drawn on it.
+Scale is the SAME shared scale plot_radar_run10.py's normal 6-combo
+chart uses (max per metric across all 6 of PERL's RMM/FL/SW x
+social/eo combos, plus the balanced extra) -- RMM/SW are just not drawn,
+so this chart's proportions stay directly comparable to the full 6-combo
+one rather than being re-stretched to fill the frame using only the 3
+shown lines' own maxima.
 
 Reuses plot_radar_run10.py's load_final_row / raw_metrics / setup_axes /
 draw_line / METRIC_LABELS / HIGHER_IS_BETTER rather than re-deriving them.
@@ -42,7 +45,7 @@ from matplotlib.lines import Line2D
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from paper_style import set_paper_style, save_figure, save_legend  # noqa: E402
 from plot_radar_run10 import (  # noqa: E402
-    METRIC_LABELS, HIGHER_IS_BETTER, EPS, FLOOR,
+    METRIC_LABELS, HIGHER_IS_BETTER, EPS, FLOOR, GROUP_REWARDS, FAIRNESS_GROUPS,
     load_final_row, raw_metrics, setup_axes, draw_line,
 )
 
@@ -88,10 +91,16 @@ def main():
             for label, cons, *_ in LINES}
     balanced_row = load_final_row(args.extra_root, "pepg", "fairness_lagrangian", "social")
 
+    # Full 6-combo scale (RMM/FL/SW x social/eo), same as plot_radar_run10.py's
+    # normal chart, plus the balanced extra -- NOT just the 3 lines drawn here.
     scale = [0.0] * len(METRIC_LABELS)
-    for row in list(rows.values()) + [balanced_row]:
-        for i, v in enumerate(raw_metrics(row)):
-            scale[i] = max(scale[i], v)
+    for constraint, _ in FAIRNESS_GROUPS:
+        for reward in GROUP_REWARDS:
+            row = load_final_row(args.root, "pepg", reward, constraint)
+            for i, v in enumerate(raw_metrics(row)):
+                scale[i] = max(scale[i], v)
+    for i, v in enumerate(raw_metrics(balanced_row)):
+        scale[i] = max(scale[i], v)
 
     fig, ax = plt.subplots(figsize=(4.6, 4.6), subplot_kw={"projection": "polar"})
     setup_axes(ax, len(METRIC_LABELS))
