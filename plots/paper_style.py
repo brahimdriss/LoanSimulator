@@ -89,10 +89,19 @@ def set_paper_style():
     })
 
 
-def save_figure(fig, out_dir, stem, data: pd.DataFrame = None):
+def save_figure(fig, out_dir, stem, data: pd.DataFrame = None, bbox=None):
     """
     Save `fig` as both PDF and PNG under out_dir/stem, and (if given) the
     underlying data as out_dir/stem.csv.
+
+    bbox: an explicit matplotlib Bbox (in inches) to crop to, overriding
+    the default per-figure "tight" auto-crop. Pass this -- the same Bbox
+    for every figure in a related set -- whenever several figures share a
+    fixed width in LaTeX (e.g. a row/grid of subfigures): each figure's
+    own "tight" bbox depends on its own tick-label digit count, so panels
+    that are the SAME nominal figsize can still come out with different
+    page dimensions and visibly different heights once scaled to a common
+    width. See figure_set_bbox() to compute the shared bbox first.
 
     Returns the list of paths written.
     """
@@ -105,7 +114,10 @@ def save_figure(fig, out_dir, stem, data: pd.DataFrame = None):
     written = []
     for ext in ("pdf", "png"):
         path = os.path.join(out_dir, f"{stem}.{ext}")
-        fig.savefig(path)
+        if bbox is not None:
+            fig.savefig(path, bbox_inches=bbox)
+        else:
+            fig.savefig(path)
         written.append(path)
     if data is not None:
         path = os.path.join(out_dir, f"{stem}.csv")
@@ -113,6 +125,28 @@ def save_figure(fig, out_dir, stem, data: pd.DataFrame = None):
         written.append(path)
     plt.close(fig)
     return written
+
+
+def figure_set_bbox(figs):
+    """
+    The union of each figure's own tight bbox (in inches), so a batch of
+    same-figsize figures can all be saved at IDENTICAL page dimensions --
+    pass the result as save_figure(..., bbox=this) for every figure in
+    the set. Do this whenever the figures will sit side by side at a
+    shared width in LaTeX; each one's own auto "tight" crop depends on
+    its own tick-label width and otherwise won't match.
+
+    Does NOT close the figures -- close them yourself after saving.
+    """
+    x0 = y0 = np.inf
+    x1 = y1 = -np.inf
+    for fig in figs:
+        fig.canvas.draw()
+        tb = fig.get_tightbbox(fig.canvas.get_renderer())
+        x0, y0 = min(x0, tb.x0), min(y0, tb.y0)
+        x1, y1 = max(x1, tb.x1), max(y1, tb.y1)
+    from matplotlib.transforms import Bbox
+    return Bbox.from_extents(x0, y0, x1, y1)
 
 
 def save_legend(handles, labels, out_dir, stem, ncol=None):
