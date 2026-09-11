@@ -50,7 +50,7 @@ from plot_radar_run10 import REWARD_COLORS  # noqa: E402
 
 BEST_AGENT, BEST_REWARD, BEST_CONSTRAINT = "pepg", "fairness_lagrangian", "social"
 BEST_COLOR = REWARD_COLORS[BEST_REWARD]   # "#9467bd" -- reserved for this combo only
-BEST_LABEL = "PERL, Fairness Lagrangian (Equality of Outcome)"
+BEST_LABEL = "PERL"
 
 POLICY_LABELS = {
     "always_approve":             "Always Approve",
@@ -195,7 +195,7 @@ def main():
     for policy in POLICY_ORDER:
         handles.append(Line2D([0], [0], color=POLICY_COLORS[policy], lw=2.0))
         labels.append(POLICY_LABELS[policy])
-    save_legend(handles, labels, args.out, "best_vs_baselines", ncol=2)
+    save_legend(handles, labels, args.out, "best_vs_baselines", ncol=len(labels))
     print("done.")
 
 
