@@ -59,16 +59,17 @@ POLICY_LABELS = {
     "rich_becomes_richer":        "Rich Becomes Richer",
     "reverse_rich_becomes_richer": "Reverse Rich->Richer",
 }
-# Okabe-Ito colourblind-safe set, reddish-purple (#CC79A7) swapped for a
-# neutral grey so nothing competes with BEST_COLOR's purple.
+# Bright, maximally-distinguishable ColorBrewer "Set1" qualitative
+# palette, its purple entry dropped and pink swapped for cyan so nothing
+# reads as close to BEST_COLOR's reserved purple.
 POLICY_COLORS = {
-    "always_approve":              "#0072B2",  # blue
-    "always_reject":               "#D55E00",  # vermillion
-    "uniform_acceptance":          "#E69F00",  # orange
-    "oracle":                      "#009E73",  # bluish green
-    "pattern_prediction":          "#B8860B",  # muted gold
-    "rich_becomes_richer":         "#56B4E9",  # sky blue
-    "reverse_rich_becomes_richer": "#7F7F7F",  # grey
+    "always_approve":              "#E41A1C",  # red
+    "always_reject":                "#377EB8",  # blue
+    "uniform_acceptance":          "#4DAF4A",  # green
+    "oracle":                      "#FF7F00",  # orange
+    "pattern_prediction":          "#FFC300",  # yellow/gold
+    "rich_becomes_richer":         "#17BECF",  # cyan
+    "reverse_rich_becomes_richer": "#A65628",  # brown
 }
 POLICY_ORDER = list(POLICY_LABELS)
 
