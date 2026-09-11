@@ -84,10 +84,16 @@ FLOOR = 0.04
 
 
 def load_final_row(root, agent_dir, reward, constraint):
-    matches = glob.glob(os.path.join(root, agent_dir, f"mean_{reward}__{constraint}_*.csv"))
+    # sorted()[-1]: timestamps sort lexicographically = chronologically, so
+    # this is the MOST RECENT aggregate run. An unsorted matches[0] can pick
+    # an older, possibly-ragged run (e.g. one taken while a straggler seed's
+    # deploy was still writing its per-seed CSV) instead of the final,
+    # complete one -- same convention as plot_reach_rate_run10.py /
+    # plot_matthew_run10.py's load_mean_std.
+    matches = sorted(glob.glob(os.path.join(root, agent_dir, f"mean_{reward}__{constraint}_*.csv")))
     if not matches:
         raise FileNotFoundError(f"no mean_{reward}__{constraint}_*.csv under {root}/{agent_dir}")
-    df = pd.read_csv(matches[0])
+    df = pd.read_csv(matches[-1])
     row = df.iloc[-1].copy()
     first = df.iloc[0]
     d_F = row["mu_F_end"] - first["mu_F_start"]
