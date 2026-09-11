@@ -1,24 +1,37 @@
 #!/usr/bin/env python3
 """
-Final-episode radar plots, RL (pg) vs PERL (pepg), one figure per
-(agent, constraint): RMM/FL/SW under that fairness constraint, no
-utilitarian_profit/dm comparison line, a fixed colour per reward function
-(same colour in every figure -- reward identity is carried by colour, one
-standalone legend written once and reused across every figure, per house
-style in plots/paper_style.py).
+Final-episode radar plots, RL (pg) vs PERL (pepg), ONE figure per agent
+(not per agent+constraint): all 6 combos -- RMM/FL/SW under BOTH social
+(Outcome) and eo (Opportunity) -- drawn on the SAME axes. Colour carries
+the reward function (same colour scheme as every other script, see
+REWARD_COLORS), linestyle carries the perspective (solid = social/
+Outcome, dashed = eo/Opportunity). Two standalone legends (reward colour,
+perspective linestyle), written once and reused.
+
+This replaces an earlier version that drew social and eo as two SEPARATE
+files sharing one normalization scale. That made the two plots
+technically comparable in principle (the same combo landed at the same
+radial position in either file), but a reader looking at one image at a
+time has no way to tell that apart from genuine performance -- and in
+practice one perspective's own worst-case combo sets the scale, so the
+OTHER perspective's merely-mediocre combos can get pushed out near the
+rim and look deceptively strong purely because they're better than that
+outlier, not because they're actually good. Putting both perspectives on
+one chart removes the need to infer anything across files: the
+comparison is right there, at a glance.
 
 Axes: wealth gap, profit, inequality ratio, approval rate disparity,
 plotted on their raw (untransformed) scale -- no log.
 
-Normalization is a ZERO-ANCHORED RATIO shared across BOTH of an agent's
-constraints (social AND eo combined -- "normalized across both"), not
-per-figure. Scale is a fixed MAX per (agent, metric), computed once
-across the 6 combos that agent actually has (RMM/FL/SW x {social, eo} --
-still excluding invisible dm/two_sided so an unseen combo can't set the
-scale). For higher-is-better (profit): normalized = value / max. For
-lower-is-better (wealth_gap, |rho-1|, approval_rate_disparity), zero-
-anchored at the genuinely meaningful "0 = perfect" point:
-normalized = 1 - value / max.
+Normalization is a ZERO-ANCHORED RATIO: for higher-is-better (profit),
+normalized = value / max; for lower-is-better (wealth_gap, |rho-1|,
+approval_rate_disparity), zero-anchored at the genuinely meaningful
+"0 = perfect" point, normalized = 1 - value / max. Scale is a fixed MAX
+per (agent, metric), computed once across all 6 of that agent's combos
+(RMM/FL/SW x {social, eo} -- excluding invisible dm/two_sided so an
+unseen combo can't set the scale) -- since all 6 are now on one figure,
+this is the honest, non-artifactual use of a shared scale: everything
+drawn on this one image genuinely shares one yardstick.
 
 rho_cumulative (the inequality ratio) is NOT a column the aggregate mode
 writes -- it's computed here from mu_M_start/mu_F_start (deploy's first
@@ -33,15 +46,6 @@ final episode, which can sit in between two genuinely different regimes
 for a bimodal combo (e.g. a seed-dependent limit cycle) rather than
 describing either one. Check --diagnose's spread warning for the combo
 before reading a radar axis as "the" behaviour.
-
-Known, accepted consequence of the shared social/eo scale -- eo can render
-as a near-collapsed polygon on 3 of 4 axes (RMM/FL/SW under eo really do
-sit close to this agent's worst observed values there): that collapse is
-mathematically inherent to sharing scale between social and eo, not a bug.
-What this version buys back in exchange: a gap's visual size is
-proportionally honest (a small real gap renders small, not stretched to
-fill the axis), and the same combo lands at the same radial position in
-both of an agent's plots, so they're comparable side by side.
 """
 
 import argparse
@@ -154,25 +158,30 @@ def setup_axes(ax, n_axes):
     ax.grid(color="grey", linestyle="--", linewidth=0.5, alpha=0.55)
 
 
-def draw_line(ax, norm_vals, color):
+CONSTRAINT_STYLE = {"social": "-", "eo": "--"}
+CONSTRAINT_LABELS = {"social": "SP (Outcome)", "eo": "EO (Opportunity)"}
+
+
+def draw_line(ax, norm_vals, color, linestyle):
     n = len(norm_vals)
     angles = [2 * pi * i / n for i in range(n)] + [0]
     closed = list(norm_vals) + [norm_vals[0]]
-    ax.plot(angles, closed, color=color, linewidth=2.4)
-    ax.fill(angles, closed, color=color, alpha=0.15)
+    ax.plot(angles, closed, color=color, linestyle=linestyle, linewidth=2.4)
+    ax.fill(angles, closed, color=color, alpha=0.10)
 
 
-def make_figure(root, agent_dir, constraint, scale, out_dir, stem):
+def make_figure(root, agent_dir, scale, out_dir, stem):
     fig, ax = plt.subplots(figsize=(4.6, 4.6), subplot_kw={"projection": "polar"})
     setup_axes(ax, len(METRIC_LABELS))
     out = {"metric": METRIC_LABELS}
-    for reward in GROUP_REWARDS:
-        row = load_final_row(root, agent_dir, reward, constraint)
-        raw = raw_metrics(row)
-        norm_vals = normalize(raw, scale)
-        draw_line(ax, norm_vals, REWARD_COLORS[reward])
-        out[f"{reward}_raw"] = raw
-        out[f"{reward}_norm"] = norm_vals
+    for constraint, _ in FAIRNESS_GROUPS:
+        for reward in GROUP_REWARDS:
+            row = load_final_row(root, agent_dir, reward, constraint)
+            raw = raw_metrics(row)
+            norm_vals = normalize(raw, scale)
+            draw_line(ax, norm_vals, REWARD_COLORS[reward], CONSTRAINT_STYLE[constraint])
+            out[f"{reward}_{constraint}_raw"] = raw
+            out[f"{reward}_{constraint}_norm"] = norm_vals
     save_figure(fig, out_dir, stem, pd.DataFrame(out))
     print(f"  saved -> {os.path.join(out_dir, stem + '.pdf')}")
 
@@ -188,13 +197,16 @@ def main():
 
     for agent_tag, agent_dir in AGENTS:
         scale = compute_agent_scale(args.root, agent_dir)
-        for fairness_label, constraint in FAIRNESS_GROUPS:
-            make_figure(args.root, agent_dir, constraint, scale, args.out,
-                        f"radar_{agent_tag}_{fairness_label}")
+        make_figure(args.root, agent_dir, scale, args.out, f"radar_{agent_tag}")
 
     handles = [Line2D([0], [0], color=REWARD_COLORS[r], lw=2.5) for r in GROUP_REWARDS]
     labels = [REWARD_LABELS[r] for r in GROUP_REWARDS]
     save_legend(handles, labels, args.out, "radar_reward")
+
+    handles = [Line2D([0], [0], color="black", lw=2.5, linestyle=CONSTRAINT_STYLE[c])
+               for c, _ in FAIRNESS_GROUPS]
+    labels = [CONSTRAINT_LABELS[c] for c, _ in FAIRNESS_GROUPS]
+    save_legend(handles, labels, args.out, "radar_perspective")
     print("done.")
 
 
