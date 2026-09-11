@@ -2,15 +2,19 @@
 """
 Lorenz curves of cumulative loan concentration, RL (pg) vs PERL (pepg),
 under social (Equality of Outcome) and eo (Equality of Opportunity)
-fairness, at multiple deploy-episode checkpoints. Paper figure, in the
-style of Eutopia_2026.pdf Fig. 4 / Fig. 17: one figure per (agent,
-constraint), one panel per reward function (RMM, FL, SW), red = male,
-blue = female, curves light -> dark with episode, dashed diagonal =
-perfect equality.
+fairness, at multiple deploy-episode checkpoints. Paper figures, in the
+style of Eutopia_2026.pdf Fig. 4 / Fig. 17: red = male, blue = female,
+curves light -> dark with episode, dashed diagonal = perfect equality.
+
+One PDF per (agent, constraint, reward) combo -- no subplot grids, no
+titles (house style, see plots/paper_style.py); combine combos side by
+side in the LaTeX source instead. Two standalone legends are written once
+and reused across every combo: which colour is which group, and what
+episode each shade corresponds to.
 
 Data source: the per-seed deploy population.npz files written by
 pg_adapt.py / pepg_adapt.py. With --population-snapshot-episodes set at
-deploy time (cluster/lorenz.sub, campaign run10_lorenz) each file carries
+deploy time (cluster/lorenz.sub / full_fix.sub) each file carries
 loan_counts_{M,F}_ep{N} for every requested episode. Without it (the
 original run10 files) only the final-episode loan_counts_{M,F} exist, and
 the script falls back to a single-checkpoint curve labelled "final".
@@ -26,20 +30,24 @@ import argparse
 import glob
 import os
 import re
+import sys
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 
-plt.rcParams["font.family"] = "Times New Roman"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paper_style import set_paper_style, save_figure, save_legend  # noqa: E402
 
 AGENTS = [("pg", "RL"), ("pepg", "PERL")]
 CONSTRAINTS = [("social", "Equality of Outcome"), ("eo", "Equality of Opportunity")]
 REWARDS = [("rawlsian_maximin", "RMM"), ("fairness_lagrangian", "FL"), ("social_welfare", "SW")]
 GROUPS = [("M", "Male", cm.Reds), ("F", "Female", cm.Blues)]
+GROUP_SOLID = {"M": "#C0392B", "F": "#2980B9"}  # fixed swatch colour for the legend
 N_GRID = 200
 
 
@@ -99,43 +107,38 @@ def episode_sort_key(ep):
     return (1, 0) if ep == "final" else (0, ep)
 
 
-def plot_agent_constraint(root, agent, agent_label, constraint, constraint_label,
-                          out_dir, gini_rows):
-    fig, axes = plt.subplots(1, len(REWARDS), figsize=(3.2 * len(REWARDS), 3.2),
-                             sharex=True, sharey=True)
-    any_data = False
-    for ax, (reward, reward_label) in zip(axes, REWARDS):
-        curves = load_curves(root, agent, reward, constraint)
-        ax.plot([0, 1], [0, 1], "k--", lw=0.8)
-        ax.set_title(reward_label, fontsize=11)
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-        ax.set_aspect("equal")
-        ax.grid(True, lw=0.4, color="gray", alpha=0.35)
-        if not curves:
-            ax.text(0.5, 0.5, "no data", ha="center", va="center", fontsize=9, color="gray")
-            continue
-        any_data = True
-        eps = sorted(curves, key=episode_sort_key)
+def plot_one(root, agent, constraint, reward, reward_label, out_dir, gini_rows):
+    """One combo -> one standalone Lorenz-curve figure. Returns the sorted
+    episode list actually drawn (for the shared shade legend)."""
+    fig, ax = plt.subplots(figsize=(4.4, 4.4))
+    ax.plot([0, 1], [0, 1], "k--", lw=1.2)
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1)
+    ax.set_aspect("equal")
+
+    curves = load_curves(root, agent, reward, constraint)
+    eps = sorted(curves, key=episode_sort_key)
+    out = {}
+    if curves:
         shades = np.linspace(0.35, 0.95, len(eps))
         for g, g_label, cmap in GROUPS:
             for shade, ep in zip(shades, eps):
                 if g not in curves[ep]:
                     continue
                 pop, loan, n = curves[ep][g]
-                ax.plot(pop, loan, color=cmap(shade), lw=1.4)
+                ax.plot(pop, loan, color=cmap(shade), lw=2.0)
+                out[f"pop"] = pop
+                out[f"{g}_loan_ep{ep}"] = loan
                 gini_rows.append({
-                    "agent": agent_label, "constraint": constraint, "reward": reward_label,
+                    "agent": agent, "constraint": constraint, "reward": reward,
                     "group": g_label, "episode": ep, "gini": gini(pop, loan), "n_seeds": n,
                 })
-    axes[0].set_ylabel("Cumulative loan fraction", fontsize=10)
-    for ax in axes:
-        ax.set_xlabel("Cumulative population fraction", fontsize=10)
-    fig.suptitle(f"{agent_label}, {constraint_label}", fontsize=12, y=1.02)
-    fig.tight_layout()
-    out = os.path.join(out_dir, f"lorenz_{agent}_{constraint}.pdf")
-    fig.savefig(out, format="pdf", dpi=200, bbox_inches="tight", pad_inches=0.02)
-    plt.close(fig)
-    print(f"  saved -> {out}" + ("" if any_data else "   (no data found)"))
+
+    ax.set_xlabel("Cumulative population fraction")
+    ax.set_ylabel("Cumulative loan fraction")
+    stem = f"lorenz_{agent}_{constraint}_{reward}"
+    save_figure(fig, out_dir, stem, pd.DataFrame(out) if out else None)
+    print(f"  saved -> {os.path.join(out_dir, stem + '.pdf')}" + ("" if curves else "   (no data found)"))
+    return eps
 
 
 def main():
@@ -145,12 +148,29 @@ def main():
     ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "lorenz_run10"))
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
+    set_paper_style()
 
     gini_rows = []
-    for agent, agent_label in AGENTS:
-        for constraint, constraint_label in CONSTRAINTS:
-            plot_agent_constraint(args.root, agent, agent_label, constraint, constraint_label,
-                                  args.out, gini_rows)
+    all_eps = set()
+    for agent, _ in AGENTS:
+        for constraint, _ in CONSTRAINTS:
+            for reward, reward_label in REWARDS:
+                eps = plot_one(args.root, agent, constraint, reward, reward_label, args.out, gini_rows)
+                all_eps.update(e for e in eps if e != "final")
+
+    # Shared standalone legends, written once.
+    group_handles = [Line2D([0], [0], color=GROUP_SOLID[g], lw=2.5) for g, _, _ in GROUPS]
+    group_labels = [lbl for _, lbl, _ in GROUPS]
+    save_legend(group_handles, group_labels, args.out, "lorenz_group")
+
+    if all_eps:
+        eps_sorted = sorted(all_eps)
+        shades = np.linspace(0.35, 0.95, len(eps_sorted))
+        ep_handles = [Line2D([0], [0], color=cm.Greys(s), lw=2.5) for s in shades]
+        ep_labels = [f"ep {e}" for e in eps_sorted]
+        save_legend(ep_handles, ep_labels, args.out, "lorenz_episode_shade",
+                    ncol=min(len(ep_labels), 7))
+
     if gini_rows:
         gdf = pd.DataFrame(gini_rows)
         gpath = os.path.join(args.out, "gini_table.csv")

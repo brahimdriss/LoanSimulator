@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
 """
-Reach-rate curves, RL (pg) vs PERL (pepg), under social (Equality of
-Outcome) and eo (Equality of Opportunity) fairness. Paper figures, in the
-style of Eutopia_2026.pdf Fig. 5: red = male, blue = female, line = mean
-over seeds, band = +/- 1 std over seeds.
+Matthew-effect curves, RL (pg) vs PERL (pepg), under social (Equality of
+Outcome) and eo (Equality of Opportunity) fairness: mean group wealth
+mu_M(t), mu_F(t) over deploy episodes, mean over seeds +/- 1 std, showing
+whether/how much each policy accelerates or mitigates the population's own
+"rich get richer" wealth divergence (the environment compounds wealth on
+every approved, non-defaulted loan; nothing bounds it).
 
 One PDF per (agent, constraint, reward) combo -- no subplot grids, no
 titles, no inline legend (house style, see plots/paper_style.py); combine
 combos side by side in the LaTeX source instead. A standalone Male/Female
 legend is written once and reused across every combo.
 
-reach_rate_g(t) = unique individuals in group g who received a loan in
-episode t / N_g. Read straight from the aggregated mean_*.csv and
-std_*.csv (columns reach_rate_M / reach_rate_F) -- no re-run needed.
-
---smooth N applies a centred rolling mean of N episodes to the mean line
-and band (default 1 = raw per-episode values).
+Read straight from the aggregated mean_*.csv / std_*.csv (columns
+mu_M_end / mu_F_end) -- no re-run needed, same files plot_reach_rate_run10.py
+reads. --smooth N applies a centred rolling mean of N episodes.
 """
 
 import argparse
@@ -58,27 +57,26 @@ def plot_one(root, agent, constraint, reward, out_dir, n_smooth):
         ep = mean_df["episode"]
         out = {"episode": ep}
         for g, _, color in GROUPS:
-            mu = smooth(mean_df[f"reach_rate_{g}"], n_smooth)
-            sd = smooth(std_df[f"reach_rate_{g}"], n_smooth)
+            mu = smooth(mean_df[f"mu_{g}_end"], n_smooth)
+            sd = smooth(std_df[f"mu_{g}_end"], n_smooth)
             ax.plot(ep, mu, color=color)
             ax.fill_between(ep, mu - sd, mu + sd, color=color, alpha=0.18, lw=0)
-            out[f"reach_rate_{g}_mean"] = mu
-            out[f"reach_rate_{g}_std"] = sd
+            out[f"mu_{g}_mean"] = mu
+            out[f"mu_{g}_std"] = sd
         ax.set_xlim(ep.iloc[0], ep.iloc[-1])
-    ax.set_ylim(bottom=0)
     ax.set_xlabel("Episode")
-    ax.set_ylabel("Reach rate (unique recipients / N)")
+    ax.set_ylabel("Mean group wealth")
 
-    stem = f"reach_rate_{agent}_{constraint}_{reward}"
+    stem = f"matthew_{agent}_{constraint}_{reward}"
     save_figure(fig, out_dir, stem, pd.DataFrame(out) if out else None)
     print(f"  saved -> {os.path.join(out_dir, stem + '.pdf')}" + ("" if out else "   (no data found)"))
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default=os.path.expanduser("~/run10_full_eo_results"),
+    ap.add_argument("--root", required=True,
                     help="dir containing {pg,pepg}/mean_*.csv and std_*.csv")
-    ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "reach_rate_run10"))
+    ap.add_argument("--out", default=os.path.join(os.path.dirname(__file__), "matthew_run10"))
     ap.add_argument("--smooth", type=int, default=1,
                     help="centred rolling-mean window in episodes (1 = raw)")
     args = ap.parse_args()
@@ -92,7 +90,7 @@ def main():
 
     handles = [Line2D([0], [0], color=color, lw=2.5) for _, _, color in GROUPS]
     labels = [label for _, label, _ in GROUPS]
-    save_legend(handles, labels, args.out, "reach_rate_group")
+    save_legend(handles, labels, args.out, "matthew_group")
     print("done.")
 
 

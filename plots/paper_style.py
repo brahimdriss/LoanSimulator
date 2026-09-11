@@ -2,15 +2,22 @@
 Publication plotting style and helpers.
 
 House rules (fixed, do not override per-figure):
-  * Times New Roman throughout
-  * gridlines on
+  * Times New Roman throughout (Liberation Serif fallback on the cluster)
+  * ONE axes per figure -- no subplot grids, no fig.suptitle. Each
+    (agent, constraint, reward) combo is its own file; group multiple
+    combos in the LaTeX source (subfigure/minipage), not in matplotlib.
+  * gridlines on, top/right spines off (open axes)
   * saved as BOTH .pdf and .png
-  * NO legend drawn on the axes
-  * NO axes title
+  * NO legend drawn on the axes, NO axes title
   * x-axis and y-axis labels only
+  * fonts sized to stay legible once the PDF is placed at column width or
+    smaller in LaTeX -- err large, not "looks right at native matplotlib
+    size"
 
 Legends are emitted as a SEPARATE standalone file (`*_legend.pdf/.png`) so the
 series can still be identified in the paper without cluttering the panel.
+Reuse ONE legend file across every figure that shares the same series
+(e.g. Male/Female) rather than re-emitting it per combo.
 
 Every figure also writes the exact data behind it to CSV next to the image, so
 any number in the paper can be traced back without re-running the experiment.
@@ -30,7 +37,12 @@ import pandas as pd
 # --------------------------------------------------------------------------
 
 def set_paper_style():
-    """Apply the house style. Call once before plotting."""
+    """Apply the house style. Call once before plotting.
+
+    Sizes are picked for a figure that gets shrunk to ~half or a third of
+    its native size once placed in LaTeX (multiple combos side by side),
+    not for how it looks at matplotlib's native render size -- err large.
+    """
     plt.rcParams.update({
         # Times New Roman, with fallbacks so this still renders on the cluster
         # (where the MS font may be absent) rather than silently erroring.
@@ -38,12 +50,12 @@ def set_paper_style():
         "font.serif":        ["Times New Roman", "Times", "Nimbus Roman",
                               "Liberation Serif", "DejaVu Serif"],
         "mathtext.fontset":  "stix",          # matching serif math
-        "font.size":         11,
-        "axes.labelsize":    12,
-        "xtick.labelsize":   10,
-        "ytick.labelsize":   10,
-        "legend.fontsize":   10,
-        "axes.titlesize":    12,      # unused (no titles) but keeps mpl quiet
+        "font.size":         15,
+        "axes.labelsize":    17,
+        "xtick.labelsize":   14,
+        "ytick.labelsize":   14,
+        "legend.fontsize":   16,
+        "axes.titlesize":    17,      # unused (no titles) but keeps mpl quiet
         # 200/200 to match the repo's existing plotting convention
         # (plots/post_process_rule_policies.py, test_rule_based_policies.py).
         # Only affects the PNG raster; the PDF stays vector regardless.
@@ -56,10 +68,18 @@ def set_paper_style():
         "grid.linestyle":    "--",
         "grid.linewidth":    0.6,
         "axes.axisbelow":    True,    # grid behind the data
-        "axes.linewidth":    0.8,
-        "lines.linewidth":   1.6,
+        "axes.linewidth":    1.0,
+        "axes.spines.top":   False,   # open axes (Zucchet-style: no boxed
+        "axes.spines.right": False,   # panel, direct left/bottom frame only)
+        "lines.linewidth":   2.2,
+        "lines.markersize":  6,
         "legend.frameon":    True,
         "legend.framealpha": 0.9,
+        "legend.handlelength": 2.2,
+        "legend.markerscale":  1.4,
+        "legend.borderpad":    0.6,
+        "xtick.major.width":  1.0,
+        "ytick.major.width":  1.0,
         "pdf.fonttype":      42,      # embed TrueType, not Type3 -- required
         "ps.fonttype":       42,      # by most publishers
     })
@@ -113,7 +133,7 @@ def save_legend(handles, labels, out_dir, stem, ncol=None):
 # --------------------------------------------------------------------------
 
 def line_panel(x, series, xlabel, ylabel, out_dir, stem,
-               bands=None, hlines=(), figsize=(4.2, 3.2), ylim=None):
+               bands=None, hlines=(), figsize=(4.6, 3.6), ylim=None):
     """
     One single-axes figure: several labelled lines, optional +/- std bands.
 
