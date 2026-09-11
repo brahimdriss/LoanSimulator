@@ -361,6 +361,8 @@ def _train_worker(cfg):
         )
 
         lw, la = _default_lambdas(reward, constraint)
+        if cfg.get("lambda_wealth_override") is not None:
+            lw = cfg["lambda_wealth_override"]
         agent = PePGAgentV2(
             env,
             hidden_dim=cfg.get("hidden_dim", 128),
@@ -373,6 +375,7 @@ def _train_worker(cfg):
             alpha_lr=cfg.get("alpha_lr", None),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=cfg.get("warmup_episodes", 0),
+            freeze_lambda=cfg.get("freeze_lambda", False),
             alpha_R=env.alpha_R,
             alpha_B=env.alpha_B,
             beta_R=env.beta_R,
@@ -440,6 +443,8 @@ def _deploy_worker(cfg):
         )
 
         lw, la = _default_lambdas(reward, constraint)
+        if cfg.get("lambda_wealth_override") is not None:
+            lw = cfg["lambda_wealth_override"]
         agent = PePGAgentV2(
             env,
             hidden_dim=cfg.get("hidden_dim", 128),
@@ -452,6 +457,7 @@ def _deploy_worker(cfg):
             alpha_lr=cfg.get("alpha_lr", None),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=0,
+            freeze_lambda=cfg.get("freeze_lambda", False),
             alpha_R=env.alpha_R,
             alpha_B=env.alpha_B,
             beta_R=env.beta_R,
@@ -586,6 +592,18 @@ def main():
     parser.add_argument("--wealth-weight",    type=float, default=1.0)
     parser.add_argument("--transition-weight",type=float, default=1.0)
     parser.add_argument("--reward-weight",    type=float, default=1.0)
+    parser.add_argument("--lambda-wealth-override", type=float, default=None,
+                        help="Fix lambda_wealth at this value for the whole run (Phase 1 "
+                             "and deploy) instead of the reward function's usual init + "
+                             "learned dual ascent -- requires --freeze-lambda too, otherwise "
+                             "this only changes the starting value and dual ascent still "
+                             "adapts it away from here.")
+    parser.add_argument("--freeze-lambda", action="store_true",
+                        help="Disable the dual-ascent lambda update entirely -- lambda_wealth "
+                             "stays exactly at its init (--lambda-wealth-override, or the "
+                             "reward function's usual default if that's not set) for the "
+                             "whole run. For the frozen-lambda* sweep experiment; no normal "
+                             "campaign combo uses this.")
 
     # Deployment (TestingIncomeEnvironment)
     parser.add_argument("--deploy-episodes",  type=int,   default=1000)  # paper: 1000-episode axis
@@ -690,6 +708,8 @@ def main():
                     "wealth_weight":    args.wealth_weight,
                     "transition_weight":args.transition_weight,
                     "reward_weight":    args.reward_weight,
+                    "lambda_wealth_override": args.lambda_wealth_override,
+                    "freeze_lambda":    args.freeze_lambda,
                     "data_filepath":    args.data,
                     "run_id":           len(train_configs) + 1,
                     "total_runs":       len(seeds) * len(combos),
@@ -822,6 +842,8 @@ def main():
             "wealth_weight":    args.wealth_weight,
             "transition_weight":args.transition_weight,
             "reward_weight":    args.reward_weight,
+            "lambda_wealth_override": args.lambda_wealth_override,
+            "freeze_lambda":    args.freeze_lambda,
             "deploy_artifacts_dir": os.path.join(args.results_dir, "deploy_artifacts"),
             "theta":            test_theta,
             "male_X":           _male_X,

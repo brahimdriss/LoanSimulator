@@ -66,6 +66,7 @@ class PePGAgentV2:
         hawkes_weight: float = 1.0,
         wealth_weight: float = 1.0,
         entropy_coef: float = 0.0,
+        freeze_lambda: bool = False,
     ):
         """
         Initialize PePG Agent V2.
@@ -124,6 +125,13 @@ class PePGAgentV2:
         self.hawkes_weight = hawkes_weight
         self.wealth_weight = wealth_weight
         self.entropy_coef = entropy_coef
+        # When True, _dual_ascent_step() is a no-op: lambda_wealth stays
+        # exactly at its init value (the constructor's lambda_wealth arg)
+        # for the whole run, Phase 1 and deploy both -- for the frozen-
+        # lambda* sweep experiment (see reward.CONSTRAINT_TARGETS module
+        # docstring / session notes), not used by any of the campaign's
+        # normal (adaptive-lambda) combos.
+        self.freeze_lambda = freeze_lambda
 
         # Performative settings
         self.buffer_capacity = buffer_capacity
@@ -1143,6 +1151,21 @@ class PePGAgentV2:
         Returns a lambda_loss value (for logging only) -- not used to drive
         any gradient.
         """
+        if self.freeze_lambda:
+            # No-op: lambda_wealth stays exactly at its init value for the
+            # whole run. Still return a loss value (for the training_trace
+            # CSV's episode_reward column, which some callers combine with
+            # this) computed at the CURRENT (frozen) lambda, not zero.
+            lw = self.learnable_lambdas.lambda_wealth.item()
+            if self.constraint_type in ("wealth", "social", "eo"):
+                _, sense, C = constraint_measure(
+                    self.env, self.reward_func_name,
+                    "social" if self.constraint_type == "wealth" else self.constraint_type,
+                    dW_R, dW_B,
+                )
+                return -(lw * C)
+            return 0.0
+
         ll = self.learnable_lambdas
         lr = self.lambda_lr
         eps = 1e-4

@@ -176,6 +176,16 @@ COMMON=(
 if [ -n "${SNAPSHOT_EPISODES:-}" ]; then
   COMMON+=( --population-snapshot-episodes "$SNAPSHOT_EPISODES" )
 fi
+# Frozen-lambda* sweep experiment only (pepg_adapt.py; not implemented for
+# pg_adapt.py -- unset/leave FREEZE_LAMBDA empty for every normal campaign
+# combo, adaptive dual ascent is what every reported result in the paper
+# uses).
+if [ -n "${LAMBDA_OVERRIDE:-}" ]; then
+  COMMON+=( --lambda-wealth-override "$LAMBDA_OVERRIDE" )
+fi
+if [ "${FREEZE_LAMBDA:-}" = "1" ]; then
+  COMMON+=( --freeze-lambda )
+fi
 N_SEEDS="${N_SEEDS:-20}"
 
 case "$AGENT" in
