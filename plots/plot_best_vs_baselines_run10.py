@@ -121,7 +121,7 @@ METRICS = [
     ("wealth_gap", "Wealth Gap", series_wealth_gap, 0.0),
     ("profit", "Cumulative Profit", series_profit, 0.0),
     ("approval_disparity", "Approval Rate Disparity", series_approval_disparity, 0.0),
-    ("social_welfare", r"Female Long-Term Social Welfare $R_F$", series_social_welfare, 0.0),
+    ("social_welfare", r"Female Welfare $R_F$", series_social_welfare, 0.0),
     ("inequality_ratio", r"Inequality Ratio $\rho(t)$", series_inequality_ratio, 1.0),
 ]
 
