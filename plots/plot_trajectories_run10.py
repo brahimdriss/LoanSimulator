@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
 Trajectory (line) plots, one PDF per (agent, constraint, metric): wealth
-gap, cumulative profit, approval-rate disparity, long-term social welfare
-R_bar, and inequality ratio rho(t), all OVER DEPLOY EPISODES (mean +/- 1
-std over seeds where that's well-defined -- see caveats below). Within
+gap, cumulative profit, approval-rate disparity, FEMALE long-term social
+welfare R_F, and inequality ratio rho(t), all OVER DEPLOY EPISODES (mean
++/- 1 std over seeds where that's well-defined -- see caveats below).
+Deliberately R_F alone, not the N-weighted R_bar average pepg_adapt.py's
+own plots use: R_bar lets an overtly male-preferring policy's high R_M
+mask a poor R_F behind a decent-looking weighted mean. Within
 each figure the three reward functions (RMM, FL, SW) are OVERLAID with a
 fixed colour each -- same axis/overlay structure as pg_adapt.py /
 pepg_adapt.py's own aggregate-mode plots (_plot_inequality,
@@ -27,12 +30,8 @@ derived quantities:
     in quadrature (sqrt(std_M^2 + std_F^2)) -- an approximation (treats
     the two groups' seed-to-seed noise as independent), not an exact
     propagation.
-  * long-term social welfare R_bar(t) = (N_M(t)*R_M(t) + N_F(t)*R_F(t)) /
-    (N_M(t)+N_F(t)), N_g = total_applications_g -- and its std band --
-    are computed with the EXACT formula pepg_adapt.py's own
-    _plot_social_welfare already uses (verbatim, not a new derivation),
-    including that formula's own std approximation
-    (sqrt((N_M*std_M)^2+(N_F*std_F)^2)/total).
+  * female long-term social welfare is R_F(t) read straight off the
+    aggregated mean_/std_ columns, no derived formula involved.
   * inequality ratio rho_cumulative(t) = (mu_M_end(t) - mu_M_start(ep 1))
     / (mu_F_end(t) - mu_F_start(ep 1)) is a RATIO of two already-averaged
     quantities, not a proper per-seed ratio then averaged, and has NO std
@@ -86,12 +85,12 @@ def series_approval_disparity(mdf, sdf, n):
 
 
 def series_social_welfare(mdf, sdf, n):
-    """R_bar(t), verbatim formula from pepg_adapt.py's _plot_social_welfare."""
-    N_M, N_F = mdf["total_applications_M"], mdf["total_applications_F"]
-    total = (N_M + N_F).replace(0, np.nan)
-    r_bar = (N_M * mdf["R_M"] + N_F * mdf["R_F"]) / total
-    r_bar_std = np.sqrt((N_M * sdf["R_M"]) ** 2 + (N_F * sdf["R_F"]) ** 2) / total
-    return smooth(r_bar, n), smooth(r_bar_std, n)
+    """R_F(t), the FEMALE group's own long-term social welfare -- not the
+    N-weighted R_bar average (dropped deliberately: R_bar lets an overtly
+    male-preferring policy's high R_M mask a poor R_F behind a decent-
+    looking weighted mean, exactly the failure mode this whole project is
+    about; R_F alone can't be hidden that way)."""
+    return smooth(mdf["R_F"], n), smooth(sdf["R_F"], n)
 
 
 def series_inequality_ratio(mdf, sdf, n):
@@ -105,7 +104,7 @@ METRICS = [
     ("wealth_gap", "Wealth Gap", series_wealth_gap, 0.0),
     ("profit", "Cumulative Profit", series_profit, 0.0),
     ("approval_disparity", "Approval Rate Disparity", series_approval_disparity, 0.0),
-    ("social_welfare", r"Long-Term Social Welfare $\bar{R}$", series_social_welfare, 0.0),
+    ("social_welfare", r"Female Long-Term Social Welfare $R_F$", series_social_welfare, 0.0),
     ("inequality_ratio", r"Inequality Ratio $\rho(t)$", series_inequality_ratio, 1.0),
 ]
 

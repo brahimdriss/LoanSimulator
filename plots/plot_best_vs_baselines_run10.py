@@ -2,8 +2,10 @@
 """
 Best learned combo vs. the 7 non-learning rule-based baselines, overlaid
 on one figure per metric: wealth gap, cumulative profit, approval-rate
-disparity, long-term social welfare R_bar, and inequality ratio rho(t),
-all over deploy episodes.
+disparity, FEMALE long-term social welfare R_F, and inequality ratio
+rho(t), all over deploy episodes. R_F alone, deliberately, not the
+N-weighted R_bar average: R_bar lets an overtly male-preferring policy's
+high R_M mask a poor R_F behind a decent-looking weighted mean.
 
 The "best combo" is fixed as PePG / fairness_lagrangian / social
 (Equality of Outcome) -- picked by inspecting the final-episode radar/bars
@@ -15,9 +17,9 @@ different combo instead.
 
 Colour: the best combo is drawn in the SAME purple as fairness_lagrangian
 in plot_radar_run10.py's REWARD_COLORS (imported, not duplicated) --
-purple is reserved for it alone. The 7 baselines use a colourblind-safe
-Okabe-Ito-derived palette with the reddish-purple entry swapped for a
-neutral grey specifically so nothing collides with that reserved purple.
+purple is reserved for it alone. The 7 baselines use ColorBrewer's bright
+"Set1" qualitative palette, its purple dropped and pink swapped for cyan
+so nothing collides with that reserved purple.
 
 Data: the best combo's mean_*.csv/std_*.csv under <root>/<agent>/, and
 the baselines' mean_{policy}__baseline_*.csv/std_..._*.csv under
@@ -101,11 +103,11 @@ def series_approval_disparity(mdf, sdf, n):
 
 
 def series_social_welfare(mdf, sdf, n):
-    N_M, N_F = mdf["total_applications_M"], mdf["total_applications_F"]
-    total = (N_M + N_F).replace(0, np.nan)
-    r_bar = (N_M * mdf["R_M"] + N_F * mdf["R_F"]) / total
-    r_bar_std = np.sqrt((N_M * sdf["R_M"]) ** 2 + (N_F * sdf["R_F"]) ** 2) / total
-    return smooth(r_bar, n), smooth(r_bar_std, n)
+    """R_F(t), the FEMALE group's own long-term social welfare -- not the
+    N-weighted R_bar average (dropped deliberately: R_bar lets an overtly
+    male-preferring policy's high R_M mask a poor R_F behind a decent-
+    looking weighted mean)."""
+    return smooth(mdf["R_F"], n), smooth(sdf["R_F"], n)
 
 
 def series_inequality_ratio(mdf, sdf, n):
@@ -119,7 +121,7 @@ METRICS = [
     ("wealth_gap", "Wealth Gap", series_wealth_gap, 0.0),
     ("profit", "Cumulative Profit", series_profit, 0.0),
     ("approval_disparity", "Approval Rate Disparity", series_approval_disparity, 0.0),
-    ("social_welfare", r"Long-Term Social Welfare $\bar{R}$", series_social_welfare, 0.0),
+    ("social_welfare", r"Female Long-Term Social Welfare $R_F$", series_social_welfare, 0.0),
     ("inequality_ratio", r"Inequality Ratio $\rho(t)$", series_inequality_ratio, 1.0),
 ]
 
