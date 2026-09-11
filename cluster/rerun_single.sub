@@ -1,0 +1,48 @@
+# Eutopia -- resubmit ONE (agent, seed, reward, constraint) job by hand,
+# e.g. to replace a job stuck on a bad node (see run_job.sh's dispatch:
+# arguments below is exactly what a HTCondor `condor_q -long` command line
+# shows for the original job -- copy those four fields from the stuck row).
+#
+# IMPORTANT: getenv = True means this job's environment is a snapshot of
+# YOUR CURRENT SHELL at submit time, not the environment the original batch
+# job ran under. Before submitting, re-export the SAME campaign variables
+# you used for the original submission (CAMPAIGN, WEIGHTS_CAMPAIGN if used,
+# N_SEEDS, TRAIN_EPISODES, DEPLOY_EPISODES, SNAPSHOT_EPISODES, any
+# REWARD_FILTER/CONSTRAINT_FILTER/FREEZE_LAMBDA/LAMBDA_OVERRIDE) -- otherwise
+# this job silently falls back to run_job.sh's defaults and writes into the
+# wrong campaign or with the wrong episode counts.
+#
+# Usage:
+#   export CAMPAIGN=run11 N_SEEDS=10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000 \
+#          SNAPSHOT_EPISODES=100,500,1000,1500,2000,2500,3000
+#   export RR_AGENT=sac RR_SEED=6 RR_REWARD=social_welfare RR_CONSTRAINT=social
+#   condor_submit_bid 25 cluster/rerun_single.sub
+#
+# Check it landed on a different (working) node and is training:
+#   condor_q -af RemoteHost JobStatus
+#   grep -A12 "=== Eutopia" ~/eutopia_logs/rerun_*.out | head -20
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $ENV(RR_AGENT) $ENV(RR_SEED) $ENV(RR_REWARD) $ENV(RR_CONSTRAINT)
+
+output = $ENV(HOME)/eutopia_logs/rerun_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/rerun_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/rerun_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+# g136 has now produced two stuck jobs on two different slots (slot1_5
+# earlier in this project, slot1_7 for job 17545051.38) -- treated as a bad
+# node, not a bad slot, so it's excluded outright rather than left to
+# HTCondor's matchmaking to avoid by chance.
+requirements = (Machine != "g136.internal.cluster.is.localnet")
+
+getenv = True
+max_retries = 3
+
+queue 1
