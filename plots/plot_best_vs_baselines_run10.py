@@ -89,7 +89,10 @@ def smooth(series, n):
 
 
 def series_wealth_gap(mdf, sdf, n):
-    return smooth(mdf["wealth_gap"], n), smooth(sdf["wealth_gap"], n)
+    """|wealth_gap| on the mean, same convention plot_bars_run10.py and
+    post_process_rule_policies.py already use (abs on the mean only, std
+    left as the raw column -- not recomputed for the abs transform)."""
+    return smooth(mdf["wealth_gap"].abs(), n), smooth(sdf["wealth_gap"], n)
 
 
 def series_profit(mdf, sdf, n):
