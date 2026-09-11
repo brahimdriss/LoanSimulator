@@ -1,0 +1,65 @@
+# Eutopia -- SAC baseline (soft actor-critic, NOT performative) on the same
+# six Table 1 cells as run11, at run11's scale, so it slots in as a third
+# agent next to RL (pg) and PERL (pepg).
+#
+# 60 jobs = 1 agent x 10 seeds x 6 combos
+#   (social_welfare / rawlsian_maximin / fairness_lagrangian) x (social, eo)
+# The combo list is cluster/sac_combos.txt (run11's pg rows with the agent
+# swapped to sac).
+#
+# What runs: sac_adapt.py = pg_adapt.py's two-phase pipeline (Phase 1 on the
+# static env, deploy fine-tuning on the performative env, same lambda dual
+# ascent against CONSTRAINT_TARGETS, same lambda reset at deploy) with
+# loan_simulator/sac_agent.py's SACAgent in place of REINFORCE. Same Beta
+# actor as PG, plus twin Q critics / Polyak targets / auto-tuned temperature
+# trained from a cohort-level replay buffer. Artefacts carry the "sac_"
+# prefix (weights AND deploy_artifacts), under $CAMPAIGN/sac/.
+#
+# Results land in the SAME campaign dir as run11 so every downstream script
+# (verify_run, probe_policies, the plots' --root) sees all three agents at
+# once. Nothing in run11/pg or run11/pepg is touched: the agent dir is
+# separate and the filenames are prefixed.
+#
+# TRAINS from scratch: WEIGHTS_CAMPAIGN must NOT be set (see full_fix.sub).
+#
+# Submit:
+#   cd ~/LoanSimulator && git pull      # needs the SAC commit
+#   unset WEIGHTS_CAMPAIGN REWARD_FILTER CONSTRAINT_FILTER FREEZE_LAMBDA LAMBDA_OVERRIDE
+#   export N_SEEDS=10 CAMPAIGN=run11 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000 \
+#          SNAPSHOT_EPISODES=100,500,1000,1500,2000,2500,3000
+#   mkdir -p ~/eutopia_logs
+#   condor_submit_bid 25 cluster/sac_run.sub
+#
+# Check ~1 min in that a job is TRAINING (progress bar reads "SAC <reward>/<constraint>"):
+#   grep -A12 "=== Eutopia" ~/eutopia_logs/sac_*.0.out | head -20
+#
+# Verify / probe when condor_q is empty (60 checkpoints under run11/sac):
+#   ~/eutopia-venv/bin/python3 cluster/verify_run.py    --root ~/eutopia_runs/run11 --seeds 10 --diagnose --agents sac
+#   ~/eutopia-venv/bin/python3 cluster/probe_policies.py --root ~/eutopia_runs/run11 --agents sac
+#
+# Aggregate (one login-node-safe pass per constraint, as for run11):
+#   for C in social eo; do
+#     CONSTRAINT_FILTER=$C ~/LoanSimulator/cluster/run_job.sh sac aggregate
+#   done
+#
+# Pull locally into C:\Users\vedan\Downloads\run11_data\sac (mean_*/std_*
+# CSVs + deploy_artifacts), same layout as run11_data\pg.
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) $(REWARD) $(CONSTRAINT)
+
+output = $ENV(HOME)/eutopia_logs/sac_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/sac_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/sac_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,REWARD,CONSTRAINT from $ENV(HOME)/LoanSimulator/cluster/sac_combos.txt

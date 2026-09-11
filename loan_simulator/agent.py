@@ -137,6 +137,7 @@ class PolicyGradientAgent:
                 self.learnable_lambdas.parameters(), lr=lambda_lr
             )
 
+        self.agent_label = "PG"   # progress-bar label; subclasses override
         self.gamma = 0.99
         self.entropy_coef = entropy_coef
         self.episode_rewards = []
@@ -410,6 +411,13 @@ class PolicyGradientAgent:
                 dW_B=self.env.N_female * (self.env.mu_B - mu_F_start),
             )
 
+        return self._finish_episode(mu_M_start, mu_F_start, raw_rewards)
+
+    def _finish_episode(self, mu_M_start, mu_F_start, raw_rewards):
+        """Per-episode bookkeeping shared by every agent built on this class
+        (SACAgent reuses it verbatim): record the raw episode reward, the
+        lambda trace and the episode-level metrics. Pure extraction of what
+        used to be the tail of train_episode -- behaviour is unchanged."""
         # Raw (unnormalized) sum -- comparable across reward types AND across
         # agents (PePGAgent's episode_reward is likewise raw; see
         # pepg/agent.py's _collect_episode). The training signal itself still
@@ -666,7 +674,7 @@ class PolicyGradientAgent:
         return checkpoint
 
     def train(self, num_episodes=100):
-        desc = f"PG {self.reward_func_name}/{self.constraint_type}"
+        desc = f"{self.agent_label} {self.reward_func_name}/{self.constraint_type}"
         pbar = tqdm(range(num_episodes), desc=desc, unit="ep")
         for episode in pbar:
             episode_reward = self.train_episode()

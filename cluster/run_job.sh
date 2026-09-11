@@ -1,10 +1,10 @@
 #!/bin/bash
 # Wrapper executed by HTCondor for the Eutopia experiments.
 #
-#   run_job.sh <pepg|pg>                       -> all seeds in one job, then aggregate
-#   run_job.sh <pepg|pg> <seed>                -> ONE seed, all 13 combos, no plots
-#   run_job.sh <pepg|pg> <seed> <r> <c>        -> ONE (seed, combo) pair only
-#   run_job.sh <pepg|pg> aggregate             -> aggregate + plot from existing checkpoints
+#   run_job.sh <pepg|pg|sac>                       -> all seeds in one job, then aggregate
+#   run_job.sh <pepg|pg|sac> <seed>                -> ONE seed, all 13 combos, no plots
+#   run_job.sh <pepg|pg|sac> <seed> <r> <c>        -> ONE (seed, combo) pair only
+#   run_job.sh <pepg|pg|sac> aggregate             -> aggregate + plot from existing checkpoints
 #   run_job.sh shard <index>                   -> array shard; maps a flat 0..2N-1
 #                                                  index onto (agent, seed) -- 13 combos/job
 #   run_job.sh combo <index>                   -> array shard; maps a flat 0..2*13N-1
@@ -87,7 +87,7 @@ if [ "${1:-}" = "pair" ]; then
   if [ "$_IDX" -eq 0 ]; then set -- pepg "$_MODE"; else set -- pg "$_MODE"; fi
 fi
 
-AGENT="${1:?usage: run_job.sh <pepg|pg> [seed|aggregate]  |  shard <index>  |  combo <index>  |  pair <0|1> <mode>}"
+AGENT="${1:?usage: run_job.sh <pepg|pg|sac> [seed|aggregate]  |  shard <index>  |  combo <index>  |  pair <0|1> <mode>}"
 MODE="${2:-all}"
 REWARD="${3:-}"
 CONSTRAINT="${4:-}"
@@ -191,7 +191,8 @@ N_SEEDS="${N_SEEDS:-20}"
 case "$AGENT" in
   pepg) SCRIPT=pepg_adapt.py ;;
   pg)   SCRIPT=pg_adapt.py ;;
-  *)    echo "unknown agent '$AGENT' (expected pepg|pg)" >&2; exit 2 ;;
+  sac)  SCRIPT=sac_adapt.py ;;   # pg_adapt's pipeline with the SAC agent (non-performative)
+  *)    echo "unknown agent '$AGENT' (expected pepg|pg|sac)" >&2; exit 2 ;;
 esac
 
 # --- mode-specific args ---------------------------------------------------

@@ -42,11 +42,28 @@ from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
 from loan_simulator.agent import PolicyGradientAgent
+from loan_simulator.sac_agent import SACAgent
 # See SAMPLE_SIZE note in pepg_adapt.py -- 20000 rows gives only 6439
 # female records, far short of --N-female=12000.
 SAMPLE_SIZE = 100000
 
-AGENT_TAG = "pg"
+# Which learner runs through this pipeline. "pg" (default) is REINFORCE
+# (PolicyGradientAgent); "sac" is soft actor-critic (SACAgent), selected by
+# sac_adapt.py via the EUTOPIA_PG_AGENT environment variable. Read at import
+# so the multiprocessing workers (spawn re-imports this module) agree with
+# the parent. Everything else in the pipeline is shared; only the class and
+# the artefact prefix differ.
+_AGENT_KIND = os.environ.get("EUTOPIA_PG_AGENT", "pg").lower()
+_AGENT_CLASSES = {"pg": PolicyGradientAgent, "sac": SACAgent}
+if _AGENT_KIND not in _AGENT_CLASSES:
+    raise SystemExit(f"EUTOPIA_PG_AGENT={_AGENT_KIND!r}: expected one of {sorted(_AGENT_CLASSES)}")
+AgentClass = _AGENT_CLASSES[_AGENT_KIND]
+AGENT_TAG = _AGENT_KIND
+# Phase-1 weights: PG keeps its historical unprefixed filename (run11 and
+# every earlier campaign's checkpoints); any other agent is prefixed so the
+# two never collide in a shared --weights-dir. cluster/verify_run.py's
+# _phase1_lambda assumes exactly this convention.
+WEIGHTS_PREFIX = "" if AGENT_TAG == "pg" else f"{AGENT_TAG}_"
 
 from run_multi_seed import add_derived_columns, aggregate_across_seeds
 from pg_run import (
@@ -144,7 +161,7 @@ def _train_worker(cfg):
         )
 
         lw, la = _default_lambdas(reward, constraint)
-        agent = PolicyGradientAgent(
+        agent = AgentClass(
             env,
             hidden_dim=cfg.get("hidden_dim", 128),
             lr=cfg.get("lr", 1e-3),
@@ -215,7 +232,7 @@ def _deploy_worker(cfg):
         )
 
         lw, la = _default_lambdas(reward, constraint)
-        agent = PolicyGradientAgent(
+        agent = AgentClass(
             env,
             hidden_dim=cfg.get("hidden_dim", 128),
             lr=cfg.get("lr", 1e-3),
@@ -232,6 +249,13 @@ def _deploy_worker(cfg):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         saved = torch.load(weights_path, map_location=device, weights_only=False)
         agent.policy_net.load_state_dict(saved["policy_net_state_dict"])
+        # SACAgent also carries twin critics, their Polyak targets, the
+        # temperature and the reward normaliser; deploy fine-tuning must
+        # continue from those, not from freshly initialised critics (which
+        # would drag the loaded actor toward random Q-values for the first
+        # few hundred updates). No-op for PolicyGradientAgent.
+        if hasattr(agent, "load_extra_state"):
+            agent.load_extra_state(saved)
         # Key must match PolicyGradientAgent.save_model. Under the Table 1
         # cells (social / eo) lambda is deliberately NOT carried over: deploy
         # restarts the multiplier at its init (_default_lambdas) and the dual
@@ -426,7 +450,7 @@ def main():
                     "reward_function": reward,
                     "constraint_type": constraint,
                     "weights_path":    os.path.join(
-                        args.weights_dir, f"{reward}__{constraint}__seed{seed}.pt"
+                        args.weights_dir, f"{WEIGHTS_PREFIX}{reward}__{constraint}__seed{seed}.pt"
                     ),
                     "train_episodes":  args.train_episodes,
                     "warmup_episodes": args.warmup,
@@ -463,7 +487,7 @@ def main():
         train_results = []
         for seed in seeds:
             for reward, constraint in combos:
-                wp = os.path.join(args.weights_dir, f"{reward}__{constraint}__seed{seed}.pt")
+                wp = os.path.join(args.weights_dir, f"{WEIGHTS_PREFIX}{reward}__{constraint}__seed{seed}.pt")
                 exists = os.path.exists(wp)
                 if not exists:
                     print(f"  MISSING: {wp}")
