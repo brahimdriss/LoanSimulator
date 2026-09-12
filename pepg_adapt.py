@@ -41,6 +41,7 @@ from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
 from loan_simulator.pepg import PePGAgentV2
+from loan_simulator.ablation import scale_wealth_gap
 # Rows to read from adult.csv. Must be large enough that the FEMALE
 # count (the binding one -- Adult is ~2/3 male) covers --N-female.
 # 20000 rows yields only 6439 female; the full 45222 yields 14695.
@@ -347,10 +348,14 @@ def _train_worker(cfg):
                     "constraint": constraint, "weights_path": weights_path,
                     "train_df": train_df}
 
+        X_male, X_female = scale_wealth_gap(
+            loader.male_data["X"].values, loader.female_data["X"].values,
+            cfg["N_male"], cfg["N_female"], cfg.get("wealth_gap_scale", 1.0))
         env = TestingIncomeEnvironment(
             theta_params=theta,
-            initial_wealth_male=loader.male_data["X"].values,
-            initial_wealth_female=loader.female_data["X"].values,
+            performative_scale=cfg.get("performative_scale", 1.0),
+            initial_wealth_male=X_male,
+            initial_wealth_female=X_female,
             ground_truth_male=loader.male_data["ground_truth_approval"].values,
             ground_truth_female=loader.female_data["ground_truth_approval"].values,
             N_male=cfg["N_male"],
@@ -429,10 +434,14 @@ def _deploy_worker(cfg):
         random.seed(seed)
         torch.manual_seed(seed)
 
+        X_male, X_female = scale_wealth_gap(
+            cfg["male_X"], cfg["female_X"],
+            cfg["N_male"], cfg["N_female"], cfg.get("wealth_gap_scale", 1.0))
         env = TestingIncomeEnvironment(
             theta_params=cfg["theta"],
-            initial_wealth_male=cfg["male_X"],
-            initial_wealth_female=cfg["female_X"],
+            performative_scale=cfg.get("performative_scale", 1.0),
+            initial_wealth_male=X_male,
+            initial_wealth_female=X_female,
             ground_truth_male=cfg["gt_male"],
             ground_truth_female=cfg["gt_female"],
             N_male=cfg["N_male"],
@@ -588,6 +597,17 @@ def main():
                              "Matches pg_adapt.py's default so PG/PePG aren't "
                              "compared under a hidden asymmetry.")
     parser.add_argument("--buffer-capacity",  type=int,   default=50)
+    # Ablations (loan_simulator/ablation.py; 1.0 = main campaign for both).
+    # Applied to BOTH phases so the policy is trained and deployed under the
+    # same ablated environment. Same flags/semantics as pg_adapt.py.
+    parser.add_argument("--performative-scale", type=float, default=1.0,
+                        help="Scale the population's response to decisions: multiplies "
+                             "the per-loan wealth gain kappa and the Hawkes excitation "
+                             "alpha in both environments (0 = non-performative).")
+    parser.add_argument("--wealth-gap-scale", type=float, default=1.0,
+                        help="Scale the INITIAL mean wealth gap mu_M - mu_F to this "
+                             "multiple of its empirical value, holding the population "
+                             "mean wealth and each group's distribution shape fixed.")
     parser.add_argument("--hawkes-weight",    type=float, default=1.0)
     parser.add_argument("--wealth-weight",    type=float, default=1.0)
     parser.add_argument("--transition-weight",type=float, default=1.0)
@@ -668,6 +688,8 @@ def main():
     print(f"  Workers         : {args.workers}")
     print(f"  Population      : {args.N_male}M + {args.N_female}F")
     print(f"  Buffer capacity : {args.buffer_capacity}")
+    print(f"  Performative scale : {args.performative_scale}  (1.0 = main campaign)")
+    print(f"  Wealth-gap scale   : {args.wealth_gap_scale}  (1.0 = main campaign)")
     print(f"  Weights dir     : {args.weights_dir}")
     print(f"  Results dir     : {args.results_dir}")
     print("=" * 70)
@@ -710,6 +732,8 @@ def main():
                     "reward_weight":    args.reward_weight,
                     "lambda_wealth_override": args.lambda_wealth_override,
                     "freeze_lambda":    args.freeze_lambda,
+                    "performative_scale": args.performative_scale,
+                    "wealth_gap_scale":   args.wealth_gap_scale,
                     "data_filepath":    args.data,
                     "run_id":           len(train_configs) + 1,
                     "total_runs":       len(seeds) * len(combos),
@@ -844,6 +868,8 @@ def main():
             "reward_weight":    args.reward_weight,
             "lambda_wealth_override": args.lambda_wealth_override,
             "freeze_lambda":    args.freeze_lambda,
+            "performative_scale": args.performative_scale,
+            "wealth_gap_scale":   args.wealth_gap_scale,
             "deploy_artifacts_dir": os.path.join(args.results_dir, "deploy_artifacts"),
             "theta":            test_theta,
             "male_X":           _male_X,

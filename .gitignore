@@ -18,3 +18,9 @@ stable/
 *.err
 results_*/
 weights_*/.DS_Store
+
+# local plotting/smoke-test venvs (this Mac only)
+.plot-venv*/
+# raw campaign data pulled from the cluster (not versioned; the rendered plots are)
+run11_data/
+ablation_data/

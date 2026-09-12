@@ -186,6 +186,15 @@ fi
 if [ "${FREEZE_LAMBDA:-}" = "1" ]; then
   COMMON+=( --freeze-lambda )
 fi
+# Ablation knobs (cluster/ablation.sub; loan_simulator/ablation.py). Both
+# adapters accept these; leave unset for every normal campaign (1.0 is the
+# main-campaign value, so passing nothing and passing 1 are identical).
+if [ -n "${PERFORMATIVE_SCALE:-}" ]; then
+  COMMON+=( --performative-scale "$PERFORMATIVE_SCALE" )
+fi
+if [ -n "${WEALTH_GAP_SCALE:-}" ]; then
+  COMMON+=( --wealth-gap-scale "$WEALTH_GAP_SCALE" )
+fi
 N_SEEDS="${N_SEEDS:-20}"
 
 case "$AGENT" in
@@ -194,6 +203,11 @@ case "$AGENT" in
   sac)  SCRIPT=sac_adapt.py ;;   # pg_adapt's pipeline with the SAC agent (non-performative)
   *)    echo "unknown agent '$AGENT' (expected pepg|pg|sac)" >&2; exit 2 ;;
 esac
+# PERL's replay buffer only exists in pepg_adapt.py (pg_adapt/sac_adapt have
+# no such flag and would reject it), so this passthrough is pepg-only.
+if [ -n "${BUFFER_CAPACITY:-}" ] && [ "$AGENT" = "pepg" ]; then
+  COMMON+=( --buffer-capacity "$BUFFER_CAPACITY" )
+fi
 
 # --- mode-specific args ---------------------------------------------------
 if [ "$MODE" = "aggregate" ]; then

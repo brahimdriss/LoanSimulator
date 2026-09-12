@@ -75,8 +75,19 @@ class IncomeEnvironment(gym.Env):
         seed: int = None,
         ground_truth_male: Optional[np.ndarray] = None,
         ground_truth_female: Optional[np.ndarray] = None,
+        performative_scale: float = 1.0,
     ):
         super().__init__()
+
+        # Ablation knob: how strongly the population responds to the
+        # policy's decisions. Multiplies the two channels through which a
+        # decision feeds back into the population -- the wealth gain kappa
+        # an approved borrower receives (which drives mu, and through mu
+        # the arrival rate) and the Hawkes excitation alpha (approvals
+        # spurring further applications). 1.0 = the main campaign; 0.0 =
+        # decisions leave the population unchanged (non-performative).
+        # beta (excitation decay) is a timescale, not a strength: untouched.
+        self.performative_scale = float(performative_scale)
 
         self.theta_params = theta_params
         self.N_male = N_male
@@ -86,8 +97,8 @@ class IncomeEnvironment(gym.Env):
         self.interest_rate = interest_rate
         self.seed = seed
 
-        self.alpha_R = alpha_R
-        self.alpha_B = alpha_B
+        self.alpha_R = alpha_R * self.performative_scale
+        self.alpha_B = alpha_B * self.performative_scale
         self.beta_R = beta_R
         self.beta_B = beta_B
 
@@ -520,7 +531,7 @@ class IncomeEnvironment(gym.Env):
                     "loan_amount": self.theta_params.get_loan_amount("male", idx),
                     "wealth_gain": self.theta_params.get_wealth_gain(
                         "male", idx, defaulted=False
-                    ),
+                    ) * self.performative_scale,
                     "theta_approval_prob": approval_probs_R[idx],
                     "ground_truth": (
                         self.ground_truth_male[idx]
@@ -567,7 +578,7 @@ class IncomeEnvironment(gym.Env):
                     "loan_amount": self.theta_params.get_loan_amount("female", idx),
                     "wealth_gain": self.theta_params.get_wealth_gain(
                         "female", idx, defaulted=False
-                    ),
+                    ) * self.performative_scale,
                     "theta_approval_prob": approval_probs_B[idx],
                     "ground_truth": (
                         self.ground_truth_female[idx]

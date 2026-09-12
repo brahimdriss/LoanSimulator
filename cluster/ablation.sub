@@ -1,0 +1,79 @@
+# Eutopia -- ablations for RL (pg) and PERL (pepg), FL/social only, run11's
+# scale (1000 train + 3000 deploy), 4 seeds. 40 jobs, all from scratch:
+#
+#   performative strength  s_perf in {0.5, 2}   pg + pepg   16 jobs
+#   initial wealth gap     s_gap  in {0.5, 2}   pg + pepg   16 jobs
+#   PERL replay buffer     cap    in {10, 200}  pepg only    8 jobs
+#
+# The 1x / cap=50 point of every axis is run11's FL/social result (seeds
+# 0-3 of it), which already exists -- it is NOT re-run here. Each ablation
+# value gets its own CAMPAIGN (ablation_perf05, ablation_perf2,
+# ablation_gap05, ablation_gap2, ablation_buf10, ablation_buf200) so nothing
+# overwrites anything: the checkpoint filenames don't encode the knob.
+#
+# What the knobs mean (loan_simulator/ablation.py, the env classes'
+# `performative_scale`):
+#   PERFORMATIVE_SCALE  multiplies the per-loan wealth gain kappa AND the
+#                       Hawkes excitation alpha -- the two channels through
+#                       which a decision feeds back into the population.
+#                       0.5 = half as responsive a population, 2 = twice.
+#                       (0 would make FL/social's wealth constraint
+#                       unsatisfiable -- no wealth is ever created -- so the
+#                       sweep is 0.5/1/2, symmetric in log scale.)
+#   WEALTH_GAP_SCALE    rescales the INITIAL mean wealth gap mu_M - mu_F to
+#                       this multiple of the empirical Adult-data gap,
+#                       holding the population-mean wealth and each group's
+#                       distribution shape fixed (creditworthiness untouched).
+#   BUFFER_CAPACITY     PERL's PerformativeReplayBuffer, in episodes
+#                       (pepg_adapt.py --buffer-capacity; default 50).
+# Both scales are applied in BOTH phases (Phase 1 training and deploy), so
+# at every setting the policy is trained and deployed under the same
+# environment, exactly like the main campaign.
+#
+# Per-row knobs travel through the `environment` line below, so ONE
+# submission covers all 40 jobs. EVERYTHING run_job.sh reads for these
+# jobs (CAMPAIGN, episode counts, N_SEEDS, the three knobs) is on that
+# line; getenv=True is kept only for HOME/PATH. So that nothing in your
+# shell can shadow a per-row value whichever way HTCondor resolves a
+# clash, UNSET those variables before submitting (the unset line below).
+#
+# Submit:
+#   cd ~/LoanSimulator && git pull
+#   unset WEIGHTS_CAMPAIGN REWARD_FILTER CONSTRAINT_FILTER FREEZE_LAMBDA LAMBDA_OVERRIDE \
+#         SNAPSHOT_EPISODES PERFORMATIVE_SCALE WEALTH_GAP_SCALE BUFFER_CAPACITY CAMPAIGN \
+#         N_SEEDS TRAIN_EPISODES DEPLOY_EPISODES
+#   mkdir -p ~/eutopia_logs
+#   condor_submit_bid 25 cluster/ablation.sub
+#
+# Check ~1 min in that the per-row knobs arrived (banner prints campaign +
+# full args; then the adapter banner prints the two scales):
+#   grep -h "campaign \|performative-scale\|Performative scale\|Wealth-gap scale\|Buffer capacity" \
+#        ~/eutopia_logs/ablation_*.out | sort | uniq -c
+#
+# Aggregate when condor_q is empty (login-node-safe, loads checkpoints only):
+#   cluster/ablation_aggregate.sh
+#
+# Then pull (see ablation_aggregate.sh's tail for the exact rsync list).
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) fairness_lagrangian social
+environment = "CAMPAIGN=$(CAMPAIGN) PERFORMATIVE_SCALE=$(PSCALE) WEALTH_GAP_SCALE=$(GSCALE) BUFFER_CAPACITY=$(BUFCAP) N_SEEDS=4 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000"
+
+output = $ENV(HOME)/eutopia_logs/ablation_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/ablation_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/ablation_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+# g136 has stalled jobs twice on two different slots (see rerun_single.sub).
+requirements = (Machine != "g136.internal.cluster.is.localnet")
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,CAMPAIGN,PSCALE,GSCALE,BUFCAP from $ENV(HOME)/LoanSimulator/cluster/ablation_combos.txt

@@ -40,8 +40,15 @@ class TestingIncomeEnvironment(gym.Env):
         beta_R: float = 2.0,
         beta_B: float = 2.0,
         seed: int = None,
+        performative_scale: float = 1.0,
     ):
         super().__init__()
+
+        # Ablation knob, same semantics as environment.IncomeEnvironment:
+        # scales the wealth gain kappa per approved loan and the Hawkes
+        # excitation alpha -- the two channels through which decisions feed
+        # back into the population. 1.0 = main campaign.
+        self.performative_scale = float(performative_scale)
 
         self.theta_params = theta_params
         self.N_male = N_male
@@ -51,8 +58,8 @@ class TestingIncomeEnvironment(gym.Env):
         self.interest_rate = interest_rate
         self.seed = seed
 
-        self.alpha_R = alpha_R
-        self.alpha_B = alpha_B
+        self.alpha_R = alpha_R * self.performative_scale
+        self.alpha_B = alpha_B * self.performative_scale
         self.beta_R = beta_R
         self.beta_B = beta_B
 
@@ -687,7 +694,7 @@ class TestingIncomeEnvironment(gym.Env):
                     "X": X_male[idx],
                     "default_prob": self.theta_params.individual_default_probs["male"][idx],
                     "loan_amount": self.theta_params.individual_loan_amounts["male"][idx],
-                    "wealth_gain": self.theta_params.individual_wealth_gains["male"][idx],
+                    "wealth_gain": self.theta_params.individual_wealth_gains["male"][idx] * self.performative_scale,
                     "theta_approval_prob": approval_probs_M[idx],
                     "ground_truth": self.ground_truth_male[idx],
                 }
@@ -726,7 +733,7 @@ class TestingIncomeEnvironment(gym.Env):
                     "X": X_female[idx],
                     "default_prob": self.theta_params.individual_default_probs["female"][idx],
                     "loan_amount": self.theta_params.individual_loan_amounts["female"][idx],
-                    "wealth_gain": self.theta_params.individual_wealth_gains["female"][idx],
+                    "wealth_gain": self.theta_params.individual_wealth_gains["female"][idx] * self.performative_scale,
                     "theta_approval_prob": approval_probs_F[idx],
                     "ground_truth": self.ground_truth_female[idx],
                 }
