@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Aggregate every ablation campaign submitted by cluster/ablation.sub
-# (mean/std CSVs across the 4 seeds, FL/social only). Login-node-safe: with
-# CAMPAIGN and the knobs set per campaign, run_job.sh's aggregate pass finds
-# every existing checkpoint and never trains or deploys anything. Each
-# campaign's knob is re-exported for that pass on purpose -- if a checkpoint
-# were missing, the pass would otherwise deploy it under the DEFAULT
-# environment and silently mix a 1x run into an ablation campaign.
+# Aggregate every ablation campaign submitted by cluster/ablation.sub +
+# cluster/ablation_extra.sub (mean/std CSVs across all 10 seeds now that
+# ablation_extra.sub brought each campaign from 4 to 10, FL/social only).
+# Login-node-safe: with CAMPAIGN and the knobs set per campaign,
+# run_job.sh's aggregate pass finds every existing checkpoint and never
+# trains or deploys anything. Each campaign's knob is re-exported for that
+# pass on purpose -- if a checkpoint were missing, the pass would otherwise
+# deploy it under the DEFAULT environment and silently mix a 1x run into an
+# ablation campaign.
 #
-# Run when condor_q is empty:
+# Run when condor_q is empty (both ablation.sub's and ablation_extra.sub's
+# jobs finished):
 #   cd ~/LoanSimulator && cluster/ablation_aggregate.sh
 #
 # Expect, per campaign/agent, one mean_fairness_lagrangian__social_*.csv and
@@ -17,7 +20,7 @@ cd "$(dirname "$0")/.."
 
 unset WEIGHTS_CAMPAIGN LAMBDA_OVERRIDE FREEZE_LAMBDA SNAPSHOT_EPISODES \
       PERFORMATIVE_SCALE WEALTH_GAP_SCALE BUFFER_CAPACITY
-export N_SEEDS=4 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
+export N_SEEDS=10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000
 export REWARD_FILTER=fairness_lagrangian CONSTRAINT_FILTER=social
 
 # campaign | agents | knob assignment for that campaign

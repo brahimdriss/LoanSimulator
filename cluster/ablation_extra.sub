@@ -1,0 +1,49 @@
+# Eutopia -- extra seeds (4-9) for the ablation campaigns started by
+# cluster/ablation.sub, bringing every ablation from 4 to 10 seeds (matching
+# run11's scale, tightening the ablation_run11 bar-chart error bars that
+# were too wide to distinguish signal from noise at 4 seeds). 60 jobs:
+#
+#   performative strength  s_perf in {0.5, 2}   pg + pepg   24 jobs
+#   initial wealth gap     s_gap  in {0.5, 2}   pg + pepg   24 jobs
+#   PERL replay buffer     cap    in {10, 200}  pepg only   12 jobs
+#
+# Same CAMPAIGNs as ablation.sub (ablation_perf05/perf2/gap05/gap2/buf10/
+# buf200) -- these are ADDITIONAL seeds into the SAME campaign dirs, not a
+# new campaign, so nothing needs re-running for seeds 0-3. run11's own
+# FL/social baseline is already at 10 seeds and needs no extra jobs.
+#
+# Submit:
+#   cd ~/LoanSimulator && git pull
+#   unset WEIGHTS_CAMPAIGN REWARD_FILTER CONSTRAINT_FILTER FREEZE_LAMBDA LAMBDA_OVERRIDE \
+#         SNAPSHOT_EPISODES PERFORMATIVE_SCALE WEALTH_GAP_SCALE BUFFER_CAPACITY CAMPAIGN \
+#         N_SEEDS TRAIN_EPISODES DEPLOY_EPISODES
+#   mkdir -p ~/eutopia_logs
+#   condor_submit_bid 25 cluster/ablation_extra.sub
+#
+# Check progress the same way as ablation.sub:
+#   grep -l "DEPLOY OK" ~/eutopia_logs/ablation_extra_*.out | wc -l     # 60 when done
+#
+# Then re-aggregate (now sweeps 10 seeds, not 4) and re-pull -- see
+# cluster/ablation_aggregate.sh, already updated to N_SEEDS=10.
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) fairness_lagrangian social
+environment = "CAMPAIGN=$(CAMPAIGN) PERFORMATIVE_SCALE=$(PSCALE) WEALTH_GAP_SCALE=$(GSCALE) BUFFER_CAPACITY=$(BUFCAP) N_SEEDS=10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000"
+
+output = $ENV(HOME)/eutopia_logs/ablation_extra_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/ablation_extra_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/ablation_extra_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+requirements = (Machine != "g136.internal.cluster.is.localnet")
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,CAMPAIGN,PSCALE,GSCALE,BUFCAP from $ENV(HOME)/LoanSimulator/cluster/ablation_combos_extra.txt
