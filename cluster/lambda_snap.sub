@@ -24,11 +24,14 @@
 #   mkdir -p ~/eutopia_logs
 #   condor_submit_bid 25 cluster/lambda_snap.sub
 #
-# Check ~1 min in: every job must print TRAIN SKIP (weights exist), then
-# DEPLOY lines with lw=1.870 constant (the freeze), and the banner must
-# show weights under lambda_187 and results under lambda_187_snap:
+# Check ~1 min in: every job must print TRAIN SKIP (weights exist), and
+# the banner must show weights under lambda_187 and results under
+# lambda_187_snap (10 of each):
 #   grep -h "TRAIN SKIP\|weights  :\|results  :" ~/eutopia_logs/lambda_snap_*.out | sort | uniq -c
-#   grep -h "DEPLOY  seed=0" ~/eutopia_logs/lambda_snap_*.out | head -3
+# The freeze is verified after the fact from the lambda trace (must be
+# 1.87 on every row; the DEPLOY progress lines don't print lambda):
+#   awk -F, 'NR>1 && $3+0 != 1.87 {bad++} END {print (bad ? bad " rows not 1.87" : "lambda frozen at 1.87 OK")}' \
+#     ~/eutopia_runs/lambda_187_snap/pepg/deploy_artifacts/pepg_fairness_lagrangian__social__seed0_training_trace.csv
 #
 # When condor_q is empty, aggregate (login-node-safe; loads the 10
 # checkpoints, trains/deploys nothing because everything exists):
