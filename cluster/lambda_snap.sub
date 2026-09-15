@@ -1,0 +1,66 @@
+# Eutopia -- DEPLOY-ONLY re-run of the frozen lambda* = 1.87 policy (PERL,
+# fairness_lagrangian / social) with POPULATION SNAPSHOTS, so the Lorenz /
+# reach-rate / Matthew figures can be drawn for it at the same episodes as
+# run11's six cells. The original lambda_187 campaign (cluster/
+# lambda_sweep.sub) ran without SNAPSHOT_EPISODES, so its population.npz
+# holds only the final state.
+#
+# 10 jobs, one per seed. Phase 1 is SKIPPED: WEIGHTS_CAMPAIGN=lambda_187
+# points --weights-dir at the sweep's existing Phase-1 weights, which
+# pepg_adapt finds and does not retrain; CAMPAIGN=lambda_187_snap is a new,
+# empty results dir, so deploy actually re-executes (3000 episodes) and
+# writes its checkpoints there. lambda_187 itself is not touched. Same
+# freeze (LAMBDA_OVERRIDE=1.87, FREEZE_LAMBDA=1) as the original, so the
+# deployed policy is the same experiment, now with snapshots.
+#
+# Everything run_job.sh reads is on the `environment` line below, so the
+# shell's exports cannot shadow it (unset them anyway, as for ablation.sub).
+#
+# Submit:
+#   cd ~/LoanSimulator && git pull
+#   unset WEIGHTS_CAMPAIGN REWARD_FILTER CONSTRAINT_FILTER FREEZE_LAMBDA LAMBDA_OVERRIDE \
+#         SNAPSHOT_EPISODES PERFORMATIVE_SCALE WEALTH_GAP_SCALE BUFFER_CAPACITY CAMPAIGN \
+#         N_SEEDS TRAIN_EPISODES DEPLOY_EPISODES
+#   mkdir -p ~/eutopia_logs
+#   condor_submit_bid 25 cluster/lambda_snap.sub
+#
+# Check ~1 min in: every job must print TRAIN SKIP (weights exist), then
+# DEPLOY lines with lw=1.870 constant (the freeze), and the banner must
+# show weights under lambda_187 and results under lambda_187_snap:
+#   grep -h "TRAIN SKIP\|weights  :\|results  :" ~/eutopia_logs/lambda_snap_*.out | sort | uniq -c
+#   grep -h "DEPLOY  seed=0" ~/eutopia_logs/lambda_snap_*.out | head -3
+#
+# When condor_q is empty, aggregate (login-node-safe; loads the 10
+# checkpoints, trains/deploys nothing because everything exists):
+#   CONSTRAINT_FILTER=social REWARD_FILTER=fairness_lagrangian \
+#   CAMPAIGN=lambda_187_snap WEIGHTS_CAMPAIGN=lambda_187 \
+#   FREEZE_LAMBDA=1 LAMBDA_OVERRIDE=1.87 N_SEEDS=10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000 \
+#     ~/LoanSimulator/cluster/run_job.sh pepg aggregate
+#
+# Then pull to the Mac (population.npz included -- that is the point):
+#   mkdir -p ~/Desktop/LoanSimulator/lambda_sweep_data/lambda_187_snap
+#   rsync -avz --progress --exclude '*_deployed.pt' \
+#     vpalit@login.cluster.is.localnet:~/eutopia_runs/lambda_187_snap/ \
+#     ~/Desktop/LoanSimulator/lambda_sweep_data/lambda_187_snap/
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = pepg $(SEED) fairness_lagrangian social
+environment = "CAMPAIGN=lambda_187_snap WEIGHTS_CAMPAIGN=lambda_187 FREEZE_LAMBDA=1 LAMBDA_OVERRIDE=1.87 SNAPSHOT_EPISODES=100,500,1000,1500,2000,2500,3000 N_SEEDS=10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000"
+
+output = $ENV(HOME)/eutopia_logs/lambda_snap_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/lambda_snap_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/lambda_snap_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+requirements = (Machine != "g136.internal.cluster.is.localnet")
+
+getenv = True
+max_retries = 3
+
+queue SEED in 0,1,2,3,4,5,6,7,8,9

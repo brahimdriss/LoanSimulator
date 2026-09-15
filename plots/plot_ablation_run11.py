@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """
-Robustness-check plots for the three ablations (loan_simulator/ablation.py,
-cluster/ablation.sub): performative strength, initial wealth-gap scale,
-and PERL's replay buffer capacity. FL/social only (the one combo with a
-genuinely live lambda), 4 seeds per ablated setting; the 1x / buffer=50
-point at every axis is run11's FL/social result (10 seeds) and is treated
-as the BASELINE these bars are measured against, not re-run.
+Robustness-check plots for the two ablations (loan_simulator/ablation.py,
+cluster/ablation.sub): performative strength and initial wealth-gap scale.
+FL/social only (the one combo with a genuinely live lambda), 10 seeds per
+ablated setting; the 1x point of each axis is run11's FL/social result
+(10 seeds) and is treated as the BASELINE these bars are measured against,
+not re-run.
+
+NOT plotted: the buffer-capacity campaigns (ablation_buf10/buf200). Both
+pepg_adapt.py phases run PePGAgentV2.train_episode_reparam(), whose
+gradient comes from the differentiable shadow rollout
+(pepg/differentiable_gradient.py); the PerformativeReplayBuffer is only
+written for logging there and never read, so buffer capacity cannot
+affect the trained policy. The campaigns exist but measure nothing.
 
 Encoding, chosen over a 3-point dot-and-whisker line after that version
 looked misleading -- three discrete multiplicative settings connected by a
@@ -15,7 +22,7 @@ hundreds of thousands) meant the baseline's seed-to-seed noise dwarfed any
 real shift, making every panel just look like three overlapping error
 bars:
 
-  * y-axis is PERCENT CHANGE FROM THE 1x/buffer=50 BASELINE, not the
+  * y-axis is PERCENT CHANGE FROM THE 1x BASELINE, not the
     metric's absolute value. This is the actual question a robustness
     check asks ("did perturbing this knob move the result much?") and it
     strips out each metric's absolute scale so the y-range only ever
@@ -135,13 +142,6 @@ AXES = {
         "agents": ["pg", "pepg"],
         "xlabel": "Initial Wealth-Gap Scale",
         "tick_fmt": lambda k: f"{k:g}x",
-    },
-    "buffer": {
-        "baseline": 50,
-        "knobs": {10: "ablation_buf10", 200: "ablation_buf200"},
-        "agents": ["pepg"],
-        "xlabel": "PERL Buffer Capacity (episodes)",
-        "tick_fmt": lambda k: f"{int(k)}",
     },
 }
 
