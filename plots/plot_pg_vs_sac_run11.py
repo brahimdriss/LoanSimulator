@@ -36,7 +36,7 @@ from paper_style import set_paper_style, save_figure, save_legend  # noqa: E402
 from plot_radar_run10 import REWARD_COLORS, REWARD_LABELS, GROUP_REWARDS  # noqa: E402
 from plot_trajectories_run10 import load_mean_std, METRICS, CONSTRAINTS  # noqa: E402
 
-AGENTS = [("pg", "RL"), ("sac", "SAC")]
+AGENTS = [("pg", "PG"), ("sac", "SAC")]
 AGENT_STYLE = {"pg": "-", "sac": "--"}
 
 

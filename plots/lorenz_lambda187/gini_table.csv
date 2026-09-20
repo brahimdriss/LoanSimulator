@@ -1,0 +1,15 @@
+agent,constraint,reward,group,episode,gini,n_seeds
+pepg,social,fairness_lagrangian,Male,100,0.6457431554944457,10
+pepg,social,fairness_lagrangian,Male,500,0.6348424815097864,10
+pepg,social,fairness_lagrangian,Male,1000,0.6075587558990196,10
+pepg,social,fairness_lagrangian,Male,1500,0.5404123252925099,10
+pepg,social,fairness_lagrangian,Male,2000,0.5000204647508766,10
+pepg,social,fairness_lagrangian,Male,2500,0.4320780909565177,10
+pepg,social,fairness_lagrangian,Male,3000,0.38358853500673595,10
+pepg,social,fairness_lagrangian,Female,100,0.5353001264028894,10
+pepg,social,fairness_lagrangian,Female,500,0.28553211236778786,10
+pepg,social,fairness_lagrangian,Female,1000,0.3763676998381543,10
+pepg,social,fairness_lagrangian,Female,1500,0.4175694260289188,10
+pepg,social,fairness_lagrangian,Female,2000,0.4067027292274925,10
+pepg,social,fairness_lagrangian,Female,2500,0.3761982175808243,10
+pepg,social,fairness_lagrangian,Female,3000,0.35894366174656256,10

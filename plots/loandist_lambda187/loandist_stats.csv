@@ -1,0 +1,3 @@
+agent,constraint,reward,group,n_seeds,mean,median,p10,p90,zero_share,top10pct_share
+pepg,social,fairness_lagrangian,Male,10,173.733725,142.0,17.0,338.0,0.013383333333333334,0.2065367541118864
+pepg,social,fairness_lagrangian,Female,10,161.147175,137.0,17.0,311.0,0.007466666666666666,0.20165990317354204
