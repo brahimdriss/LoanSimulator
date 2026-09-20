@@ -1,0 +1,69 @@
+# Eutopia -- MAX-UTILITY agents: PERL (pepg) and RL (pg) trained on the bank
+# profit term r_t^pi ALONE. --reward utilitarian_profit --constraint dm is
+# the pure-profit branch in both agents (reward.compute_batched_rewards and
+# pepg/differentiable_gradient.compute_reward): per applicant
+#     a_i * l_i * (tau_interest * (1 - d_i) - d_i),
+# the SAME _bank_profit_batch / bank_profit that every social / eo cell adds
+# its +-lambda*C term to. Under this combo learnable_lambdas is None, so no
+# dual ascent, no multiplier, no constraint runs anywhere (all
+# _update_lambdas calls are guarded on it). Do NOT use utilitarian_profit
+# with social or eo: those branches return ZERO reward ("undefined" cell).
+# The 'dm' tag is legacy naming only; files come out as
+#     *_utilitarian_profit__dm_*
+#
+# 20 jobs: pepg x seeds 0-9, pg x seeds 0-9. Fresh CAMPAIGN=maxutil, so
+# Phase 1 (1000 static pretraining episodes) TRAINS (must NOT print
+# TRAIN SKIP), then Phase 2 deploys 3000 performative episodes with
+# population snapshots at run11's seven episodes, so Lorenz / reach-rate /
+# loan-distribution figures can be drawn on the same axes as the six cells.
+# Everything run_job.sh reads is on the `environment` line, so the shell's
+# exports cannot shadow it (unset them anyway).
+#
+# Submit:
+#   cd ~/LoanSimulator && git pull
+#   unset WEIGHTS_CAMPAIGN REWARD_FILTER CONSTRAINT_FILTER FREEZE_LAMBDA LAMBDA_OVERRIDE \
+#         SNAPSHOT_EPISODES PERFORMATIVE_SCALE WEALTH_GAP_SCALE BUFFER_CAPACITY CAMPAIGN \
+#         N_SEEDS TRAIN_EPISODES DEPLOY_EPISODES
+#   mkdir -p ~/eutopia_logs
+#   condor_submit_bid 25 cluster/maxutil.sub
+#
+# Check ~2 min in: 20 banners, results under maxutil, weights under maxutil,
+# and NO "TRAIN SKIP" anywhere (a skip means stale weights were found):
+#   grep -h "results  :\|weights  :" ~/eutopia_logs/maxutil_*.out | sort | uniq -c
+#   grep -l "TRAIN SKIP" ~/eutopia_logs/maxutil_*.out | wc -l     # expect 0
+#
+# When condor_q is empty, aggregate each agent (login-node-safe: loads the
+# 10 checkpoints, trains/deploys nothing because everything exists):
+#   for A in pepg pg; do
+#     CONSTRAINT_FILTER=dm REWARD_FILTER=utilitarian_profit CAMPAIGN=maxutil \
+#     N_SEEDS=10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000 \
+#       ~/LoanSimulator/cluster/run_job.sh $A aggregate
+#   done
+#
+# Pull to the Mac (population.npz with snapshots included):
+#   mkdir -p ~/Desktop/LoanSimulator/maxutil_data
+#   rsync -avz --progress --exclude '*_deployed.pt' \
+#     vpalit@login.cluster.is.localnet:~/eutopia_runs/maxutil/ \
+#     ~/Desktop/LoanSimulator/maxutil_data/
+
+executable = $ENV(HOME)/LoanSimulator/cluster/run_job.sh
+arguments  = $(AGENT) $(SEED) $(REWARD) $(CONSTRAINT)
+environment = "CAMPAIGN=maxutil N_SEEDS=10 TRAIN_EPISODES=1000 DEPLOY_EPISODES=3000 SNAPSHOT_EPISODES=100,500,1000,1500,2000,2500,3000"
+
+output = $ENV(HOME)/eutopia_logs/maxutil_$(ClusterId).$(ProcId).out
+error  = $ENV(HOME)/eutopia_logs/maxutil_$(ClusterId).$(ProcId).err
+log    = $ENV(HOME)/eutopia_logs/maxutil_$(ClusterId).log
+
+initialdir = $ENV(HOME)/LoanSimulator
+
+request_cpus   = 2
+request_memory = 8192
+request_disk   = 5242880
+request_gpus   = 0
+
+requirements = (Machine != "g136.internal.cluster.is.localnet")
+
+getenv = True
+max_retries = 3
+
+queue AGENT,SEED,REWARD,CONSTRAINT from $ENV(HOME)/LoanSimulator/cluster/maxutil_combos.txt

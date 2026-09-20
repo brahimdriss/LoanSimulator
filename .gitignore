@@ -24,3 +24,5 @@ weights_*/.DS_Store
 # raw campaign data pulled from the cluster (not versioned; the rendered plots are)
 run11_data/
 ablation_data/
+maxutil_data/
+ua_data/
