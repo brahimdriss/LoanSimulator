@@ -21,7 +21,7 @@ def run_pepg_v2_experiment(
     constraint_type: str = "wealth",
     lambda_wealth: float = 2.0,
     lambda_approval: float = 2.0,
-    lambda_lr: float = 1e-2,
+    lambda_lr: float = 1e-3,
     buffer_capacity: int = 50,
     warmup_episodes: int = 0,
     hawkes_weight: float = 1.0,

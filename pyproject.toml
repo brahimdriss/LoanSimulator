@@ -1,7 +1,7 @@
 [project]
 name = "loan-approval-based-fairness-simulator"
 version = "0.1.0"
-description = "Add your description here"
+description = "Eutopia: a performative lending simulator with PeRL and RL agents"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,4 +12,5 @@ dependencies = [
     "scikit-learn>=1.8.0",
     "torch>=2.9.1",
     "torchvision>=0.24.1",
+    "tqdm>=4.66.0",
 ]

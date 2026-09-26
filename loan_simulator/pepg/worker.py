@@ -84,7 +84,7 @@ def pepg_train_worker(config: dict) -> dict:
             constraint_type=config["constraint_type"],
             lambda_wealth=config.get("lambda_wealth", 2.0),
             lambda_approval=config.get("lambda_approval", 2.0),
-            lambda_lr=config.get("lambda_lr", 1e-2),
+            lambda_lr=config.get("lambda_lr", 1e-3),
             buffer_capacity=config.get("buffer_capacity", 50),
             warmup_episodes=config.get("warmup_episodes", 0),
             alpha_R=env.alpha_R,

@@ -5,8 +5,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Beta
+from tqdm import tqdm
 
-from .reward import RewardFunction
+from .reward import RewardFunction, compute_batched_rewards, constraint_measure, dual_ascent_update, CONSTRAINT_TARGETS
+from .policy_net import BetaPolicyNet, make_optimizer
 
 
 class LearnableLambdas(nn.Module):
@@ -18,27 +20,34 @@ class LearnableLambdas(nn.Module):
         super().__init__()
         self.constraint_type = constraint_type
 
+        # Floor before log(): callers legitimately pass 0.0 for lambdas that
+        # the chosen constraint_type doesn't use (e.g. utilitarian_profit
+        # passes lambda_approval=0.0), and log(0) = -inf poisons the tensor.
+        _FLOOR = 1e-4
+
         # Use log-space for positivity (exp recovery), logit-space for two_sided (sigmoid recovery)
-        if constraint_type in ["wealth", "both", "social", "dm", "two_sided"]:
+        if constraint_type in ["wealth", "both", "social", "dm", "eo", "two_sided"]:
             if constraint_type == "two_sided":
                 # init_lambda_wealth is the desired starting alpha ∈ (0, 1); store as logit
-                alpha0 = float(np.clip(init_lambda_wealth, 1e-4, 1 - 1e-4))
+                alpha0 = float(np.clip(init_lambda_wealth, _FLOOR, 1 - _FLOOR))
                 init_val = float(np.log(alpha0 / (1.0 - alpha0)))
             else:
-                init_val = float(np.log(init_lambda_wealth))
+                init_val = float(np.log(max(init_lambda_wealth, _FLOOR)))
             self.log_lambda_wealth = nn.Parameter(torch.tensor(init_val))
         else:
             self.register_buffer(
-                "log_lambda_wealth", torch.tensor(np.log(init_lambda_wealth))
+                "log_lambda_wealth",
+                torch.tensor(np.log(max(init_lambda_wealth, _FLOOR))),
             )
 
         if constraint_type in ["approval_rate", "both", "predictive"]:
             self.log_lambda_approval = nn.Parameter(
-                torch.tensor(np.log(init_lambda_approval))
+                torch.tensor(np.log(max(init_lambda_approval, _FLOOR)))
             )
         else:
             self.register_buffer(
-                "log_lambda_approval", torch.tensor(np.log(init_lambda_approval))
+                "log_lambda_approval",
+                torch.tensor(np.log(max(init_lambda_approval, _FLOOR))),
             )
 
     @property
@@ -68,8 +77,9 @@ class PolicyGradientAgent:
         constraint_type="wealth",
         lambda_wealth=2.0,
         lambda_approval=2.0,
-        lambda_lr=1e-2,
-        entropy_coef=0.01,
+        lambda_lr=1e-3,
+        alpha_lr=None,
+        entropy_coef=1e-3,
         use_amp=True,
     ):
         self.env = env
@@ -89,32 +99,70 @@ class PolicyGradientAgent:
 
         # Policy network
         self.policy_net = self._build_network(12, hidden_dim).to(self.device)
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr)
+        self.optimizer = make_optimizer(self.policy_net, lr)
 
         # Learnable lambdas for all modes except utilitarian_profit,
         # UNLESS constraint is two_sided (learnable alpha blend).
         self.learnable_lambdas = None
         self.lambda_optimizer = None
+        self.lambda_lr = lambda_lr
+        # alpha (two_sided blend weight) needs its own rate -- see __init__ docs
+        # and _dual_ascent_step. Bounded in (0,1) + normalised signal, so a
+        # shared lambda_lr saturates it while barely moving the unbounded lambdas.
+        self.alpha_lr = alpha_lr if alpha_lr is not None else lambda_lr / 4.0
+        # Status-quo violation references for dual ascent; see _baseline().
+        self._violation_baseline = {}
         if reward_function != "utilitarian_profit" or constraint_type == "two_sided":
             self.learnable_lambdas = LearnableLambdas(
                 constraint_type=constraint_type,
                 init_lambda_wealth=lambda_wealth,
                 init_lambda_approval=lambda_approval,
             ).to(self.device)
-            self.lambda_optimizer = optim.Adam(
+            # NOT used for the actual lambda update anymore (kept only so
+            # save_model/load_model's optimizer-state checkpointing doesn't
+            # need a schema change) -- see _update_lambdas(). Differentiating
+            # a (lambda * violation) loss w.r.t. log_lambda gives a gradient
+            # proportional to lambda itself (chain rule through
+            # lambda=exp(log_lambda)), so ANY gradient-based optimizer
+            # applied there -- Adam, SGD, doesn't matter -- turns the
+            # intended additive dual-ascent step lambda += lr*violation into
+            # a multiplicative, compounding-in-lambda one, causing unbounded
+            # (Adam: exponential; raw SGD: worse, near finite-time-blowup)
+            # growth regardless of how small the actual violation is.
+            # Verified directly on a 500-episode run. _update_lambdas() now
+            # applies the textbook additive update directly to lambda,
+            # bypassing this optimizer and the log-space autograd path
+            # entirely.
+            self.lambda_optimizer = optim.SGD(
                 self.learnable_lambdas.parameters(), lr=lambda_lr
             )
 
+        self.agent_label = "PG"   # progress-bar label; subclasses override
         self.gamma = 0.99
         self.entropy_coef = entropy_coef
         self.episode_rewards = []
         self.per_step_rewards = []
         self.lambda_history = {"wealth": [], "approval": []}
 
-        # Online reward normalisation (Welford's algorithm, across all steps/episodes)
+        # Online reward normalisation (Welford's algorithm) of the PER-TIMESTEP
+        # reward (the cohort sum), across all timesteps/episodes -- see
+        # train_episode for why it is per timestep and not per applicant.
         self._rew_ema_mean = 0.0
         self._rew_ema_var  = 1.0
         self._rew_ema_n    = 0
+        # Per-timestep-index baseline for the return-to-go (EMA across
+        # episodes) -- see train_episode.
+        self._rtg_baseline = []
+        self._baseline_ema = 0.9
+        # Table 1 Lagrangian dual (social / eo): lambda <- clip(lambda +
+        # dual_lr * normalised violation, eps, _lambda_max) once per episode
+        # -- see reward.constraint_measure / dual_ascent_update. dual_lr is
+        # deliberately much larger than lambda_lr (used by the other, absolute-
+        # unit constraint types): the violation is dimensionless, so at 0.1
+        # lambda can cross its whole range in ~100 episodes instead of being
+        # pinned at its initial value for the entire run (run10 / fixpilot).
+        self.dual_lr = 0.1
+        self._lambda_max = max(10.0, 2.0 * float(lambda_wealth))
 
         # Episode-level metrics tracking
         self.episode_metrics = {
@@ -144,22 +192,10 @@ class PolicyGradientAgent:
         self.total_episodes_completed = 0
 
     def _build_network(self, input_dim, hidden_dim):
-        class PolicyNet(nn.Module):
-            def __init__(self, input_dim, hidden_dim):
-                super().__init__()
-                self.fc1 = nn.Linear(input_dim, hidden_dim)
-                self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-                self.alpha_head = nn.Linear(hidden_dim, 1)
-                self.beta_head = nn.Linear(hidden_dim, 1)
-
-            def forward(self, x):
-                x = F.relu(self.fc1(x))
-                x = F.relu(self.fc2(x))
-                alpha = F.softplus(self.alpha_head(x)) + 1.0
-                beta = F.softplus(self.beta_head(x)) + 1.0
-                return alpha, beta
-
-        return PolicyNet(input_dim, hidden_dim)
+        # Shared with PePGAgentV2 -- one policy class for both agents. See
+        # loan_simulator/policy_net.py for the fixed input scaling, the
+        # pre-activation clamp and the alpha/beta cap, and why each exists.
+        return BetaPolicyNet(input_dim, hidden_dim)
 
     def get_action(self, obs):
         obs_tensor = torch.FloatTensor(obs).unsqueeze(0).to(self.device)
@@ -184,7 +220,18 @@ class PolicyGradientAgent:
         return self.lambda_wealth, self.lambda_approval
 
     def train_episode(self):
-        obs, _ = self.env.reset()
+        """
+        Batched: one policy_net forward pass per timestep-cohort (all
+        applicants arriving that step decided in one call), not one per
+        applicant -- see PePGAgentV2._collect_episode for the matching
+        design on the PePG side, and environment.py's step_cohort() for
+        the environment-side interface both agents now share. Everything
+        downstream of the flat per-decision states/actions/log_probs/
+        entropies/rewards lists is unchanged: they're populated in the
+        same chronological order, just filled in per-cohort instead of
+        per-applicant.
+        """
+        obs, _ = self.env.reset_cohort()
 
         mu_M_start = self.env.mu_R
         mu_F_start = self.env.mu_B
@@ -193,80 +240,155 @@ class PolicyGradientAgent:
             self.initial_mu_M = mu_M_start
             self.initial_mu_F = mu_F_start
 
-        states, actions, log_probs, entropies, rewards = [], [], [], [], []
+        states, actions, log_probs, entropies = [], [], [], []
+        cohort_rewards_norm = []  # ONE normalised reward per timestep (cohort sum)
+        cohort_entropies = []     # mean policy entropy per timestep
+        raw_rewards = []  # unnormalized per-timestep sums -- for episode_reward/logging only
+        cohort_sizes = []  # applicants per timestep, for per-timestep discounting
         done = False
 
         lambda_w, lambda_a = self._get_current_lambdas()
 
         while not done:
+            n = obs.shape[0]
+            if n == 0:
+                next_obs, terminated, truncated, info = self.env.step_cohort(np.zeros(0))
+                done = terminated or truncated
+                obs = next_obs
+                continue
+
             obs_tensor = torch.from_numpy(obs).float().to(self.device)
-            states.append(obs_tensor)
 
             with torch.amp.autocast("cuda", enabled=self.use_amp):
-                alpha, beta = self.policy_net(obs_tensor.unsqueeze(0))
+                alpha, beta = self.policy_net(obs_tensor)
 
-            dist = Beta(alpha, beta)
+            dist = Beta(alpha.squeeze(-1), beta.squeeze(-1))
             action = dist.sample()
             log_prob = dist.log_prob(action)
-            entropy  = dist.entropy()
+            entropy = dist.entropy()
 
-            actions.append(action)
-            log_probs.append(log_prob)
-            entropies.append(entropy)
-
-            next_obs, _, terminated, truncated, info = self.env.step(
+            next_obs, terminated, truncated, info = self.env.step_cohort(
                 action.detach().cpu().numpy()
             )
             done = terminated or truncated
 
-            reward = self.reward_function(
-                self.env,
-                action.cpu().item(),
-                info,
+            reward_arr = compute_batched_rewards(
+                self.reward_func_name,
+                info["reward_snapshot"],
+                info["actions"],
+                info["default_probs"],
+                info["loan_amounts"],
                 constraint_type=self.constraint_type,
                 lambda_wealth=lambda_w,
                 lambda_approval=lambda_a,
+                groups=info["groups"],
+                wealth_gains=info["wealth_gains"],
             )
-            # Online reward normalisation (Welford) — removes scale differences
-            # across constraint types and amplifies within-episode variation for
-            # state-based rewards (e.g. mu_R + mu_B) that are otherwise near-constant.
+
+            # ONE reward per TIMESTEP: sum the cohort's per-applicant rewards
+            # first, then Welford-normalise that per-timestep value. The
+            # previous per-applicant normalisation of the state-based
+            # rewards (each applicant got mu/n) made the cohort's normalised
+            # sum (mu - n*m)/s -- DECREASING in the arrival count n -- so
+            # approvals, which raise future arrivals through the Hawkes
+            # term, were penalised far harder than the wealth they created
+            # (run10 post-mortem: ~100x). Summing first removes that artifact
+            # for every reward type; the cohort total is what the paper's
+            # per-timestep r_t is anyway.
+            cohort_reward = float(np.sum(reward_arr))
             self._rew_ema_n += 1
-            delta = reward - self._rew_ema_mean
+            delta = cohort_reward - self._rew_ema_mean
             self._rew_ema_mean += delta / self._rew_ema_n
-            delta2 = reward - self._rew_ema_mean
+            delta2 = cohort_reward - self._rew_ema_mean
             self._rew_ema_var = (
                 (self._rew_ema_var * (self._rew_ema_n - 1) + delta * delta2)
                 / self._rew_ema_n
             )
-            reward_norm = (reward - self._rew_ema_mean) / (
-                np.sqrt(max(self._rew_ema_var, 1e-8))
-            )
-            rewards.append(reward_norm)
-            self.per_step_rewards.append(reward)
+            cohort_reward_norm = cohort_reward - self._rew_ema_mean
+            if self._rew_ema_n >= 2:  # n=1 has zero sample variance
+                cohort_reward_norm /= np.sqrt(max(self._rew_ema_var, 1e-8))
+            cohort_rewards_norm.append(cohort_reward_norm)
+            cohort_entropies.append(entropy.mean())
+            raw_rewards.append(cohort_reward)
+            self.per_step_rewards.append(cohort_reward)
+
+            for i in range(n):
+                states.append(obs_tensor[i])
+                actions.append(action[i])
+                log_probs.append(log_prob[i])
+                entropies.append(entropy[i])
+
+            # Cohort boundary: every applicant in this cohort arrived at the
+            # SAME env timestamp, so they must not be discounted against each
+            # other -- see the returns computation below.
+            cohort_sizes.append(n)
 
             obs = next_obs
 
-        # Compute returns with discount
-        returns = []
-        R = 0
-        for r in reversed(rewards):
-            R = r + self.gamma * R
-            returns.insert(0, R)
+        # Compute returns, discounting ONCE PER TIMESTEP (cohort) rather than
+        # once per applicant.
+        #
+        # Every applicant in a cohort shares the same self.current_time
+        # (_generate_timestep_applications stamps them identically), so
+        # discounting the 15th against the 1st would discount across zero
+        # elapsed time. Worse, per-applicant discounting makes the effective
+        # horizon depend on things it must not:
+        #   - arrival volume (stochastic, driven by lambda), so the bank's
+        #     time preference would vary with how busy the day was; and
+        #   - POPULATION SIZE, since arrivals now scale with N. At gamma=0.99
+        #     a ~100-decision horizon is ~20 timesteps at N=3000 but only ~5
+        #     at N=12000 -- scaling the population would silently make the
+        #     agent 4x more myopic.
+        # Per-timestep discounting has neither problem, and matches the
+        # paper's "T*dt decision points per episode" (= 200, per timestep).
+        # Decision granularity is unchanged: the bank still evaluates every
+        # applicant individually.
+        # Per-timestep return-to-go (one discount step per timestep), then a
+        # per-timestep-index BASELINE: the running (EMA) mean of the
+        # return-to-go at that index over past episodes. Without it the
+        # deterministic horizon trend of the return-to-go (large early,
+        # ~0 late) dominated the advantage -- run10 post-mortem: ~50x the
+        # action-driven part -- and the old per-episode mean/std
+        # normalisation could only rescale that trend, not remove it.
+        T_c = len(cohort_sizes)
+        rtg = np.zeros(T_c)
+        R = 0.0
+        for t in range(T_c - 1, -1, -1):
+            R = cohort_rewards_norm[t] + self.gamma * R
+            rtg[t] = R
+        if len(self._rtg_baseline) < T_c:
+            self._rtg_baseline.extend([None] * (T_c - len(self._rtg_baseline)))
+        rtg_mean = float(rtg.mean()) if T_c else 0.0
+        adv = np.zeros(T_c)
+        for t in range(T_c):
+            b = self._rtg_baseline[t]
+            # first visit to this index: centre on the episode mean instead
+            adv[t] = rtg[t] - (rtg_mean if b is None else b)
+            self._rtg_baseline[t] = rtg[t] if b is None else (
+                self._baseline_ema * b + (1.0 - self._baseline_ema) * rtg[t]
+            )
+        adv_std = float(adv.std()) if T_c > 1 else 0.0
+        if adv_std > 1e-6:
+            adv = adv / (adv_std + 1e-8)
+        # every applicant in a cohort sees the cohort's advantage
+        advantages = torch.tensor(
+            np.repeat(adv, cohort_sizes), device=self.device, dtype=torch.float32
+        )
 
-        returns = torch.tensor(returns, device=self.device, dtype=torch.float32)
-        if len(returns) > 1:
-            returns_std = returns.std()
-            if returns_std > 1e-6:
-                returns = (returns - returns.mean()) / (returns_std + 1e-8)
-            else:
-                returns = returns - returns.mean()  # centre only; avoid amplifying noise
-
-        # Compute policy loss + entropy bonus
-        policy_loss = []
-        for log_prob, R in zip(log_probs, returns):
-            policy_loss.append(-log_prob * R)
-        entropy_bonus = torch.stack(entropies).mean()
-        loss = torch.stack(policy_loss).sum() - self.entropy_coef * entropy_bonus
+        # Policy loss + entropy bonus. Entropy is the MEAN policy entropy per
+        # timestep, discounted per timestep like the reward -- the same
+        # quantity PePG's shadow rollout accumulates (0.5 * (ent_R + ent_B)
+        # per step), so entropy_coef means the same thing for both agents.
+        # The old form, a plain mean over all ~2000 decisions with no
+        # discount, was ~1e-5 of the policy-gradient term, i.e. inert.
+        policy_loss = torch.stack(
+            [-lp * A for lp, A in zip(log_probs, advantages)]
+        ).sum()
+        discounts = torch.tensor(
+            [self.gamma ** t for t in range(T_c)], device=self.device, dtype=torch.float32
+        )
+        entropy_bonus = (discounts * torch.stack(cohort_entropies)).sum()
+        loss = policy_loss - self.entropy_coef * entropy_bonus
 
         # Backward pass for policy
         self.optimizer.zero_grad()
@@ -281,11 +403,27 @@ class PolicyGradientAgent:
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 1.0)
             self.optimizer.step()
 
-        # Update learnable lambdas
+        # Update learnable lambdas (this episode's wealth created per group,
+        # N_g * delta mu_g, feeds the Outcome constraints' dual update)
         if self.learnable_lambdas is not None:
-            self._update_lambdas()
+            self._update_lambdas(
+                dW_R=self.env.N_male * (self.env.mu_R - mu_M_start),
+                dW_B=self.env.N_female * (self.env.mu_B - mu_F_start),
+            )
 
-        episode_reward = sum(rewards)
+        return self._finish_episode(mu_M_start, mu_F_start, raw_rewards)
+
+    def _finish_episode(self, mu_M_start, mu_F_start, raw_rewards):
+        """Per-episode bookkeeping shared by every agent built on this class
+        (SACAgent reuses it verbatim): record the raw episode reward, the
+        lambda trace and the episode-level metrics. Pure extraction of what
+        used to be the tail of train_episode -- behaviour is unchanged."""
+        # Raw (unnormalized) sum -- comparable across reward types AND across
+        # agents (PePGAgent's episode_reward is likewise raw; see
+        # pepg/agent.py's _collect_episode). The training signal itself still
+        # uses the normalized `rewards`/`returns` computed above -- only what
+        # gets recorded/displayed/plotted changes here.
+        episode_reward = sum(raw_rewards)
         self.episode_rewards.append(episode_reward)
 
         # Track lambda history
@@ -351,46 +489,99 @@ class PolicyGradientAgent:
         """Return episode-level metrics as a pandas DataFrame."""
         return pd.DataFrame(self.episode_metrics)
 
-    def _update_lambdas(self):
-        """Update learnable lambdas to maximize constraint satisfaction."""
+    def _baseline(self, key: str, value: float) -> float:
+        """Status-quo violation reference, captured on first use --
+        see PePGAgentV2._baseline for the full rationale (identical
+        semantics, kept in sync so PG and PePG are comparable)."""
+        if key not in self._violation_baseline:
+            self._violation_baseline[key] = float(value)
+        return self._violation_baseline[key]
+
+    def _update_lambdas(self, dW_R=None, dW_B=None):
+        """
+        Update learnable lambdas via dual ascent: social / eo / wealth
+        against the fixed Table 1 thresholds (reward.CONSTRAINT_TARGETS),
+        the legacy constraint types against the status-quo baseline
+        (lambda += lr * (violation - baseline)), applied directly
+        and additively to lambda itself, clamped positive (or to (0,1) for
+        the two_sided alpha blend, whose signal is additionally normalised
+        since it is a bounded weight) -- not through log-space autograd.
+        See __init__'s comment on self.lambda_optimizer for why the
+        autograd path is broken regardless of which optimizer applies it,
+        and PePGAgentV2._baseline for why the baseline is needed.
+        """
         approval_rate_M = self.env.total_loans_R / max(self.env.total_applications_R, 1)
         approval_rate_F = self.env.total_loans_B / max(self.env.total_applications_B, 1)
 
         wealth_gap = abs(self.env.mu_R - self.env.mu_B)
         rate_gap = abs(approval_rate_M - approval_rate_F)
+        ll = self.learnable_lambdas
+        lr = self.lambda_lr
 
-        self.lambda_optimizer.zero_grad()
+        eps = 1e-4
+        with torch.no_grad():
+            if self.constraint_type == "two_sided":
+                base = self._baseline("wealth", wealth_gap)
+                signal = (wealth_gap - base) / max(abs(base), eps)  # dimensionless
+                # alpha uses alpha_lr, NOT lambda_lr: it is bounded in (0,1)
+                # and takes a normalised signal, so the shared rate that suits
+                # the unbounded lambdas exhausts alpha's whole range.
+                alpha = ll.lambda_wealth.item()
+                alpha_new = float(np.clip(alpha + self.alpha_lr * signal, eps, 1 - eps))
+                ll.log_lambda_wealth.copy_(
+                    torch.log(torch.tensor(alpha_new / (1 - alpha_new)))
+                )
 
-        if self.constraint_type in ["wealth", "social", "two_sided"]:
-            lambda_wealth_tensor = self.learnable_lambdas.lambda_wealth
-            lambda_loss = -(lambda_wealth_tensor * wealth_gap)
+            elif self.constraint_type in ("wealth", "social", "eo"):
+                # Table 1 Lagrangian dual: lambda <- clip(lambda + dual_lr * v),
+                # v = normalised violation of THIS reward function's constraint
+                # against its fixed threshold reward.CONSTRAINT_TARGETS[key]
+                # (SW/RMM: wealth created / TPRs must reach it; FL: the gap
+                # must stay under it). lambda rises while violated, decays
+                # toward eps once satisfied. See reward.constraint_measure /
+                # dual_ascent_update.
+                key, sense, C = constraint_measure(
+                    self.env, self.reward_func_name,
+                    "social" if self.constraint_type == "wealth" else self.constraint_type,
+                    dW_R, dW_B,
+                )
+                lw_new = dual_ascent_update(
+                    ll.lambda_wealth.item(), sense, C, CONSTRAINT_TARGETS[key],
+                    self.dual_lr, self._lambda_max, eps
+                )
+                ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
 
-        elif self.constraint_type in ["approval_rate", "predictive"]:
-            lambda_approval_tensor = self.learnable_lambdas.lambda_approval
-            lambda_loss = -(lambda_approval_tensor * rate_gap)
+            elif self.constraint_type in ("approval_rate", "predictive"):
+                base = self._baseline("rate", rate_gap)
+                la = ll.lambda_approval.item()
+                la_new = max(la + lr * (rate_gap - base), eps)
+                ll.log_lambda_approval.copy_(torch.log(torch.tensor(la_new)))
 
-        elif self.constraint_type == "both":
-            lambda_wealth_tensor = self.learnable_lambdas.lambda_wealth
-            lambda_approval_tensor = self.learnable_lambdas.lambda_approval
-            lambda_loss = -(
-                lambda_wealth_tensor * wealth_gap + lambda_approval_tensor * rate_gap
-            )
+            elif self.constraint_type == "both":
+                bw = self._baseline("wealth", wealth_gap)
+                br = self._baseline("rate", rate_gap)
+                lw = ll.lambda_wealth.item()
+                la = ll.lambda_approval.item()
+                lw_new = max(lw + lr * (wealth_gap - bw), eps)
+                la_new = max(la + lr * (rate_gap - br), eps)
+                ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
+                ll.log_lambda_approval.copy_(torch.log(torch.tensor(la_new)))
 
-        elif self.constraint_type == "dm":
-            rho_R = self.env.total_defaults_R / max(self.env.total_loans_R, 1)
-            rho_B = self.env.total_defaults_B / max(self.env.total_loans_B, 1)
-            r_R = self.env.interest_rate * (1 - rho_R) - rho_R
-            r_B = self.env.interest_rate * (1 - rho_B) - rho_B
-            profit_rate_gap = abs(r_R - r_B)
-            lambda_wealth_tensor = self.learnable_lambdas.lambda_wealth
-            lambda_loss = -(lambda_wealth_tensor * profit_rate_gap)
+            elif self.constraint_type == "dm":
+                # Same function the "dm" reward itself uses (RewardFunction.
+                # _group_profit_rates) -- previously duplicated inline here
+                # without the mean_loan scaling or the loss coefficient the
+                # reward actually uses, so this dual-ascent step was tuning
+                # lambda against a ~30x-smaller, differently-signed quantity
+                # than what the reward was penalizing.
+                r_R, r_B = RewardFunction._group_profit_rates(self.env)
+                profit_rate_gap = abs(r_R - r_B)
+                base = self._baseline("dm", profit_rate_gap)
+                lw = ll.lambda_wealth.item()
+                lw_new = max(lw + lr * (profit_rate_gap - base), eps)
+                ll.log_lambda_wealth.copy_(torch.log(torch.tensor(lw_new)))
 
-        else:
-            return
-
-        lambda_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.learnable_lambdas.parameters(), 1.0)
-        self.lambda_optimizer.step()
+            # ("eo" is handled together with "social" above.)
 
     def save_model(self, filepath):
         """Save policy network weights and lambda parameters."""
@@ -483,58 +674,33 @@ class PolicyGradientAgent:
         return checkpoint
 
     def train(self, num_episodes=100):
-        print(
-            f"Training with {self.reward_func_name} ({self.constraint_type} constraint)..."
-        )
-
-        for episode in range(num_episodes):
+        desc = f"{self.agent_label} {self.reward_func_name}/{self.constraint_type}"
+        pbar = tqdm(range(num_episodes), desc=desc, unit="ep")
+        for episode in pbar:
             episode_reward = self.train_episode()
 
-            if episode % 20 == 0:
-                avg_reward = (
-                    np.mean(self.episode_rewards[-20:])
-                    if len(self.episode_rewards) >= 20
-                    else episode_reward
-                )
-                lambda_w, lambda_a = self._get_current_lambdas()
-
-                rho = (
-                    self.episode_metrics["rho_episode"][-1]
-                    if self.episode_metrics["rho_episode"]
-                    else 0
-                )
-                R_M = (
-                    self.episode_metrics["R_M"][-1]
-                    if self.episode_metrics["R_M"]
-                    else 0
-                )
-                R_F = (
-                    self.episode_metrics["R_F"][-1]
-                    if self.episode_metrics["R_F"]
-                    else 0
-                )
-
-                if episode % 10 == 0 or episode == num_episodes - 1:
-                    if self.learnable_lambdas is not None:
-                        if self.constraint_type == "wealth":
-                            print(
-                                f"  Episode {episode}: Reward={episode_reward:.3f}, Avg={avg_reward:.3f}, "
-                                f"λ_w={lambda_w:.4f}, ρ={rho:.3f}, R_M={R_M:.4f}, R_F={R_F:.4f}"
-                            )
-                        elif self.constraint_type == "approval_rate":
-                            print(
-                                f"  Episode {episode}: Reward={episode_reward:.3f}, Avg={avg_reward:.3f}, "
-                                f"λ_a={lambda_a:.4f}, ρ={rho:.3f}, R_M={R_M:.4f}, R_F={R_F:.4f}"
-                            )
-                        else:
-                            print(
-                                f"  Episode {episode}: Reward={episode_reward:.3f}, Avg={avg_reward:.3f}, "
-                                f"λ_w={lambda_w:.4f}, λ_a={lambda_a:.4f}, ρ={rho:.3f}"
-                            )
-                    else:
-                        print(
-                            f"  Episode {episode}: Reward={episode_reward:.3f}, Avg={avg_reward:.3f}, "
-                            f"ρ={rho:.3f}, R_M={R_M:.4f}, R_F={R_F:.4f}"
-                        )
+            avg_reward = (
+                np.mean(self.episode_rewards[-20:])
+                if len(self.episode_rewards) >= 20
+                else episode_reward
+            )
+            lambda_w, lambda_a = self._get_current_lambdas()
+            rho = (
+                self.episode_metrics["rho_episode"][-1]
+                if self.episode_metrics["rho_episode"]
+                else 0
+            )
+            wealth_gap = (
+                self.episode_metrics["wealth_gap"][-1]
+                if self.episode_metrics["wealth_gap"]
+                else 0
+            )
+            pbar.set_postfix(
+                R=f"{episode_reward:.1f}",
+                avgR=f"{avg_reward:.1f}",
+                rho=f"{rho:.2f}",
+                gap=f"{wealth_gap:.2f}",
+                lw=f"{lambda_w:.3f}",
+            )
 
         return self.episode_rewards

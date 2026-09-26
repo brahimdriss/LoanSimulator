@@ -33,22 +33,30 @@ from test_rule_based_policies import setup_plot_style
 # Valid (reward_function, constraint_type) combos
 # ---------------------------------------------------------------------------
 
+# NOTE: the four ("*", "predictive") combos are ON HOLD. `predictive` is not
+# one of the three fairness columns in the paper's Table 1 (Outcome / DM /
+# alpha-Two-sided), and including it here made the PG pipeline run 14 combos
+# against PePG's 10 -- so any cross-agent table was not comparing like with
+# like. This list now matches pepg_adapt.PEPG_COMBOS exactly. The
+# `predictive` branches remain implemented in reward.py; re-add the entries
+# here to bring them back.
 VALID_COMBOS = [
-    ("utilitarian_profit",  "predictive"),
     ("utilitarian_profit",  "dm"),
     ("utilitarian_profit",  "two_sided"),
-    ("social_welfare",      "predictive"),
     ("social_welfare",      "social"),
     ("social_welfare",      "two_sided"),
-    ("rawlsian_maximin",    "predictive"),
+    ("social_welfare",      "eo"),
     ("rawlsian_maximin",    "social"),
     ("rawlsian_maximin",    "dm"),
     ("rawlsian_maximin",    "two_sided"),
-    ("fairness_lagrangian", "predictive"),
+    ("rawlsian_maximin",    "eo"),
     ("fairness_lagrangian", "social"),
     ("fairness_lagrangian", "dm"),
     ("fairness_lagrangian", "two_sided"),
+    ("fairness_lagrangian", "eo"),
 ]
+# utilitarian_profit/eo is not included -- undefined, same as utilitarian_profit/social
+# (utilitarian_profit has no fairness term in either formula).
 
 # colour = reward function
 REWARD_COLORS = {
@@ -62,6 +70,7 @@ REWARD_COLORS = {
 CONSTRAINT_STYLES = {
     "predictive": "-",
     "social":     "--",
+    "eo":         (0, (3, 1, 1, 1)),  # densely dashdotted -- distinct from dm's ":"
     "dm":         ":",
     "two_sided":  "-.",
 }
@@ -76,6 +85,7 @@ REWARD_LABELS = {
 CONSTRAINT_LABELS = {
     "predictive": "Predictive",
     "social":     "Social",
+    "eo":         "Equality of Opportunity",
     "dm":         "DM",
     "two_sided":  "Two-Sided",
 }
@@ -191,7 +201,7 @@ def _train_worker(cfg):
             constraint_type=constraint,
             lambda_wealth=cfg.get("lambda_wealth", 0.5 if constraint == "two_sided" else 2.0),
             lambda_approval=cfg.get("lambda_approval", 2.0),
-            lambda_lr=cfg.get("lambda_lr", 1e-2),
+            lambda_lr=cfg.get("lambda_lr", 1e-3),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=cfg.get("warmup_episodes", 0),
             alpha_R=env.alpha_R,
@@ -466,6 +476,13 @@ def plot_social_welfare_agg(aggregated, results_dir, timestamp, n_seeds, constra
             y_min = min(y_min, (mean - std).min())
             y_max = max(y_max, (mean + std).max())
 
+    if not plot_data:
+        # constraint_filter matched no combo (e.g. a stale filter value) --
+        # nothing to plot, and y_min/y_max are still their +-inf sentinels,
+        # which set_ylim() below would reject.
+        plt.close(fig)
+        return
+
     margin = (y_max - y_min) * 0.05
     ylim = (y_min - margin, y_max + margin)
 
@@ -611,8 +628,8 @@ def main():
     parser.add_argument("--hidden-dim",     type=int,   default=128)
     parser.add_argument("--lambda-wealth",  type=float, default=2.0)
     parser.add_argument("--lambda-approval",type=float, default=2.0)
-    parser.add_argument("--lambda-lr",      type=float, default=1e-2)
-    parser.add_argument("--entropy-coef",   type=float, default=0.01,
+    parser.add_argument("--lambda-lr",      type=float, default=1e-3)
+    parser.add_argument("--entropy-coef",   type=float, default=1e-3,
                         help="Entropy bonus coefficient (default: 0.01)")
     parser.add_argument("--buffer-capacity", type=int, default=50,
                         help="PePG replay buffer capacity in episodes (default: 50)")
@@ -783,7 +800,7 @@ def main():
     test_loader.load_data()
     test_loader.preprocess()
     test_theta = TransitionParameterLearner(
-        default_rate_min=0.14, default_rate_max=0.16
+        default_rate_min=0.05, default_rate_max=0.25
     )
     test_theta.fit(test_loader.data)
     _male_X  = test_loader.male_data["X"].values
@@ -874,7 +891,7 @@ def main():
 
     if not args.no_plots:
         print("  Generating aggregated plots…")
-        for ct in ["predictive", "social", "dm", "two_sided"]:
+        for ct in ["social", "eo", "dm", "two_sided"]:
             plot_comparison_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
             plot_wealth_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
             plot_social_welfare_agg(aggregated, args.results_dir, timestamp, n_complete, ct)
@@ -894,7 +911,7 @@ def main():
             mdf.to_csv(os.path.join(args.results_dir, f"train_mean_{key}_{timestamp}.csv"), index=False)
             sdf.to_csv(os.path.join(args.results_dir, f"train_std_{key}_{timestamp}.csv"), index=False)
         if not args.no_plots:
-            for ct in ["predictive", "social", "dm", "two_sided"]:
+            for ct in ["social", "eo", "dm", "two_sided"]:
                 plot_comparison_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
                 plot_wealth_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
                 plot_social_welfare_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
@@ -918,7 +935,7 @@ def main():
             mdf.to_csv(os.path.join(args.results_dir, f"combined_mean_{key}_{timestamp}.csv"), index=False)
             sdf.to_csv(os.path.join(args.results_dir, f"combined_std_{key}_{timestamp}.csv"), index=False)
         if not args.no_plots:
-            for ct in ["predictive", "social", "dm", "two_sided"]:
+            for ct in ["social", "eo", "dm", "two_sided"]:
                 plot_comparison_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
                 plot_wealth_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)
                 plot_social_welfare_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.train_episodes)

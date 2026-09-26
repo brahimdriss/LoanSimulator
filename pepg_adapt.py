@@ -1,3 +1,26 @@
+"""Entry point: PeRL (performative policy gradient) pre-training and deployment."""
+
+# --- BLAS thread guard -----------------------------------------------------
+# MUST run before numpy/torch/matplotlib are imported: the BLAS backend reads
+# these at load time and cannot be reconfigured afterwards.
+#
+# OpenBLAS defaults to one thread per visible core (32 on a typical compute node).
+# With multiprocessing's "spawn" start method every worker re-imports this
+# module and does the same, so N workers try to create 32*N threads. On the
+# shared login node -- capped at ~100 processes/threads per user -- that fails
+# immediately with "blas_thread_init: pthread_create failed ... Resource
+# temporarily unavailable". On an exec node it silently oversubscribes the
+# slot, and CPU limits there are HARD-enforced, so it runs slower rather than
+# faster.
+#
+# One BLAS thread per worker is right for this workload: parallelism comes
+# from the (seed, combo) process pool, and the per-cohort tensors are small.
+# Set these in the environment beforehand to override.
+import os as _os
+for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    _os.environ.setdefault(_v, "1")
+
 import argparse
 import multiprocessing as mp
 import os
@@ -10,10 +33,22 @@ import numpy as np
 import pandas as pd
 import torch
 
+# Cap torch intra-op threads too, honouring the guard set at the top.
+torch.set_num_threads(int(_os.environ["OMP_NUM_THREADS"]))
+from tqdm import tqdm
+
 from loan_simulator.testing.data_loader import TestingAdultIncomeDataLoader
 from loan_simulator.testing.environment import TestingIncomeEnvironment
 from loan_simulator.transition_learner import TransitionParameterLearner
 from loan_simulator.pepg import PePGAgentV2
+from loan_simulator.ablation import scale_wealth_gap
+# Rows to read from adult.csv. Must be large enough that the FEMALE
+# count (the binding one -- Adult is ~2/3 male) covers --N-female.
+# 20000 rows yields only 6439 female; the full 45222 yields 14695.
+SAMPLE_SIZE = 100000  # i.e. "all of it"; the loader caps at file size
+
+AGENT_TAG = "pepg"
+
 from run_multi_seed import add_derived_columns, aggregate_across_seeds
 from pg_run import (
     REWARD_COLORS,
@@ -40,16 +75,22 @@ PEPG_COMBOS = [
     ("utilitarian_profit",  "two_sided"),
     ("social_welfare",      "social"),
     ("social_welfare",      "two_sided"),
+    ("social_welfare",      "eo"),
     ("rawlsian_maximin",    "social"),
     ("rawlsian_maximin",    "dm"),
     ("rawlsian_maximin",    "two_sided"),
+    ("rawlsian_maximin",    "eo"),
     ("fairness_lagrangian", "social"),
     ("fairness_lagrangian", "dm"),
     ("fairness_lagrangian", "two_sided"),
+    ("fairness_lagrangian", "eo"),
 ]
+# utilitarian_profit/eo is not included -- undefined, same as utilitarian_profit/social
+# (utilitarian_profit has no fairness term in either formula).
 
 PEPG_CONSTRAINT_LABELS = {
     "social":     "Social",
+    "eo":         "Equality of Opportunity",
     "dm":         "DM",
     "two_sided":  "Two-Sided",
 }
@@ -60,14 +101,37 @@ def _pepg_combo_label(reward, constraint):
 
 
 def _default_lambdas(reward, constraint):
-    if reward == "utilitarian_profit":
-        # two_sided gets a learnable alpha initialised at 0.5; others have no penalty
-        lw = 0.5 if constraint == "two_sided" else 0.0
-        return lw, 0.0
+    """Initial lambda / alpha per combo.
+
+    MUST stay byte-for-byte equivalent to pg_adapt._default_lambdas: these
+    are the STARTING values of the dual variables, and PG and PePG have to
+    begin from the same point or a cross-agent comparison is confounded by
+    initialisation rather than measuring the learning algorithm. A previous
+    version of this function returned 2.0 for all three fairness_lagrangian
+    combos while pg_adapt returned 10.0 -- a 5x difference in the fairness
+    penalty weight at episode 0. The values below match pg_adapt and also
+    match reward.RewardFunction's own per-reward signature defaults
+    (social_welfare 2.0, rawlsian_maximin 5.0, fairness_lagrangian 10.0),
+    EXCEPT fairness_lagrangian under social / eo, which starts at 0.5 -- see
+    the comment in pg_adapt._default_lambdas. Under social / eo these are
+    only INITIAL values: lambda is a learnable multiplier updated by dual
+    ascent each episode (reward.constraint_measure / dual_ascent_update).
+
+    two_sided's lw is alpha, a blend weight in (0,1), initialised at 0.5.
+    """
     lw = 0.5 if constraint == "two_sided" else (
-        5.0 if reward == "rawlsian_maximin" else 2.0
+        0.0 if reward == "utilitarian_profit" else
+        2.0 if reward == "social_welfare" else
+        5.0 if reward == "rawlsian_maximin" else
+        0.5 if constraint in ("social", "eo") else  # fairness_lagrangian
+        10.0  # fairness_lagrangian / dm
     )
-    la = 5.0 if reward == "rawlsian_maximin" else 2.0
+    la = (
+        0.0 if reward == "utilitarian_profit" else
+        2.0 if reward == "social_welfare" else
+        5.0 if reward == "rawlsian_maximin" else
+        10.0
+    )
     return lw, la
 
 
@@ -168,6 +232,12 @@ def _plot_social_welfare(aggregated, results_dir, timestamp, n_seeds, constraint
         for mean, std in [(mdf["R_M"], sdf["R_M"]), (mdf["R_F"], sdf["R_F"]), (R_bar_mean, R_bar_std)]:
             y_min = min(y_min, (mean - std).min())
             y_max = max(y_max, (mean + std).max())
+    if not plot_data:
+        # constraint_filter matched no combo (e.g. a stale filter value) --
+        # nothing to plot, and y_min/y_max are still their +-inf sentinels,
+        # which set_ylim() below would reject.
+        plt.close(fig)
+        return
     margin = (y_max - y_min) * 0.05
     ylim = (y_min - margin, y_max + margin)
     for reward, _, mdf, sdf, R_bar_mean, R_bar_std in plot_data:
@@ -253,13 +323,13 @@ def _train_worker(cfg):
 
         loader = TestingAdultIncomeDataLoader(
             filepath=cfg["data_filepath"],
-            sample_size=20000,
+            sample_size=SAMPLE_SIZE,
             credit_threshold=cfg.get("credit_threshold", 0.5),
         )
         loader.load_data()
         loader.preprocess()
 
-        theta = TransitionParameterLearner(default_rate_min=0.14, default_rate_max=0.16)
+        theta = TransitionParameterLearner(default_rate_min=0.05, default_rate_max=0.25)
         theta.fit(loader.data)
 
         # Skip if weights already exist (allows partial restart)
@@ -278,10 +348,14 @@ def _train_worker(cfg):
                     "constraint": constraint, "weights_path": weights_path,
                     "train_df": train_df}
 
+        X_male, X_female = scale_wealth_gap(
+            loader.male_data["X"].values, loader.female_data["X"].values,
+            cfg["N_male"], cfg["N_female"], cfg.get("wealth_gap_scale", 1.0))
         env = TestingIncomeEnvironment(
             theta_params=theta,
-            initial_wealth_male=loader.male_data["X"].values,
-            initial_wealth_female=loader.female_data["X"].values,
+            performative_scale=cfg.get("performative_scale", 1.0),
+            initial_wealth_male=X_male,
+            initial_wealth_female=X_female,
             ground_truth_male=loader.male_data["ground_truth_approval"].values,
             ground_truth_female=loader.female_data["ground_truth_approval"].values,
             N_male=cfg["N_male"],
@@ -292,6 +366,8 @@ def _train_worker(cfg):
         )
 
         lw, la = _default_lambdas(reward, constraint)
+        if cfg.get("lambda_wealth_override") is not None:
+            lw = cfg["lambda_wealth_override"]
         agent = PePGAgentV2(
             env,
             hidden_dim=cfg.get("hidden_dim", 128),
@@ -300,9 +376,11 @@ def _train_worker(cfg):
             constraint_type=constraint,
             lambda_wealth=lw,
             lambda_approval=la,
-            lambda_lr=cfg.get("lambda_lr", 1e-2),
+            lambda_lr=cfg.get("lambda_lr", 1e-3),
+            alpha_lr=cfg.get("alpha_lr", None),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=cfg.get("warmup_episodes", 0),
+            freeze_lambda=cfg.get("freeze_lambda", False),
             alpha_R=env.alpha_R,
             alpha_B=env.alpha_B,
             beta_R=env.beta_R,
@@ -311,9 +389,10 @@ def _train_worker(cfg):
             wealth_weight=cfg.get("wealth_weight", 1.0),
             transition_weight=cfg.get("transition_weight", 1.0),
             reward_weight=cfg.get("reward_weight", 1.0),
+            entropy_coef=cfg.get("entropy_coef", 1e-3),
         )
 
-        agent.train(num_episodes=cfg["train_episodes"], use_performative=True)
+        agent.train_reparam(num_episodes=cfg["train_episodes"])
 
         train_df = agent.get_episode_metrics_dataframe()
         train_metrics_path = cfg.get("train_metrics_path")
@@ -355,10 +434,14 @@ def _deploy_worker(cfg):
         random.seed(seed)
         torch.manual_seed(seed)
 
+        X_male, X_female = scale_wealth_gap(
+            cfg["male_X"], cfg["female_X"],
+            cfg["N_male"], cfg["N_female"], cfg.get("wealth_gap_scale", 1.0))
         env = TestingIncomeEnvironment(
             theta_params=cfg["theta"],
-            initial_wealth_male=cfg["male_X"],
-            initial_wealth_female=cfg["female_X"],
+            performative_scale=cfg.get("performative_scale", 1.0),
+            initial_wealth_male=X_male,
+            initial_wealth_female=X_female,
             ground_truth_male=cfg["gt_male"],
             ground_truth_female=cfg["gt_female"],
             N_male=cfg["N_male"],
@@ -369,6 +452,8 @@ def _deploy_worker(cfg):
         )
 
         lw, la = _default_lambdas(reward, constraint)
+        if cfg.get("lambda_wealth_override") is not None:
+            lw = cfg["lambda_wealth_override"]
         agent = PePGAgentV2(
             env,
             hidden_dim=cfg.get("hidden_dim", 128),
@@ -377,9 +462,11 @@ def _deploy_worker(cfg):
             constraint_type=constraint,
             lambda_wealth=lw,
             lambda_approval=la,
-            lambda_lr=cfg.get("lambda_lr", 1e-2),
+            lambda_lr=cfg.get("lambda_lr", 1e-3),
+            alpha_lr=cfg.get("alpha_lr", None),
             buffer_capacity=cfg.get("buffer_capacity", 50),
             warmup_episodes=0,
+            freeze_lambda=cfg.get("freeze_lambda", False),
             alpha_R=env.alpha_R,
             alpha_B=env.alpha_B,
             beta_R=env.beta_R,
@@ -388,13 +475,18 @@ def _deploy_worker(cfg):
             wealth_weight=cfg.get("wealth_weight", 1.0),
             transition_weight=cfg.get("transition_weight", 1.0),
             reward_weight=cfg.get("reward_weight", 1.0),
+            entropy_coef=cfg.get("entropy_coef", 1e-3),
         )
 
         # Load pre-trained weights
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         saved  = torch.load(weights_path, map_location=device, weights_only=False)
         agent.policy_net.load_state_dict(saved["policy_net_state_dict"])
-        if "learnable_lambdas_state_dict" in saved and agent.learnable_lambdas is not None:
+        # Table 1 cells (social / eo) restart lambda at its init for deploy --
+        # same rule as pg_adapt's deploy, see the comment there.
+        if (constraint not in ("social", "eo")
+                and "learnable_lambdas_state_dict" in saved
+                and agent.learnable_lambdas is not None):
             agent.learnable_lambdas.load_state_dict(saved["learnable_lambdas_state_dict"])
         if "replay_buffer_data" in saved:
             from collections import deque
@@ -402,10 +494,17 @@ def _deploy_worker(cfg):
                 saved["replay_buffer_data"], maxlen=agent.buffer_capacity
             )
 
-        # Continued performative training on the testing environment
+        # Continued performative training on the testing environment.
+        # train_episode_reparam(): the fixed, reparameterized gradient path
+        # (see differentiable_gradient.py) -- not train_episode(), which is
+        # the score-function path with structurally-dead performative terms
+        # for this environment's dynamics.
         deploy_eps = cfg["deploy_episodes"]
+        snapshot_eps = sorted(e for e in cfg.get(
+            "population_snapshot_episodes", []) if e <= deploy_eps)
+        population_snapshots = {}
         for ep in range(deploy_eps):
-            agent.train_episode(use_performative=True)
+            agent.train_episode_reparam()
             if (ep + 1) % max(1, deploy_eps // 5) == 0 or ep + 1 == deploy_eps:
                 app_M = env.episode_loans_M / max(env.episode_applications_M, 1)
                 app_F = env.episode_loans_F / max(env.episode_applications_F, 1)
@@ -416,10 +515,45 @@ def _deploy_worker(cfg):
                     f"μ_M={env.mu_M:.1f}  μ_F={env.mu_F:.1f}  "
                     f"appM={app_M:.3f} appF={app_F:.3f}"
                 )
+            if snapshot_eps and (ep + 1) == snapshot_eps[0]:
+                population_snapshots[snapshot_eps.pop(0)] = {
+                    "X_male": env.current_X_male.copy(),
+                    "X_female": env.current_X_female.copy(),
+                    "loan_counts_M": env.loan_counts_M.copy(),
+                    "loan_counts_F": env.loan_counts_F.copy(),
+                }
 
         env.finalize_episode_metrics()
         df  = env.get_episode_metrics_dataframe()
         key = _combo_key(reward, constraint)
+
+        # Persist the POST-DEPLOY artefacts. Previously only the train phase
+        # saved weights, so the policy that actually produced every reported
+        # result -- after `deploy_episodes` further updates -- was discarded.
+        deploy_dir = cfg.get("deploy_artifacts_dir")
+        if deploy_dir:
+            os.makedirs(deploy_dir, exist_ok=True)
+            stem = f"{AGENT_TAG}_{reward}__{constraint}__seed{seed}"
+            agent.save_model(os.path.join(deploy_dir, f"{stem}_deployed.pt"))
+            df.to_csv(os.path.join(deploy_dir, f"{stem}_episodes.csv"), index=False)
+            pd.DataFrame({
+                "episode": range(1, len(agent.episode_rewards) + 1),
+                "episode_reward": agent.episode_rewards,
+                "lambda_wealth": agent.lambda_history["wealth"],
+                "lambda_approval": agent.lambda_history["approval"],
+            }).to_csv(os.path.join(deploy_dir, f"{stem}_training_trace.csv"), index=False)
+            npz_payload = {
+                "X_male": env.current_X_male, "X_female": env.current_X_female,
+                "loan_counts_M": env.loan_counts_M, "loan_counts_F": env.loan_counts_F,
+            }
+            for snap_ep, snap in population_snapshots.items():
+                for arr_name, arr_val in snap.items():
+                    npz_payload[f"{arr_name}_ep{snap_ep}"] = arr_val
+            np.savez_compressed(
+                os.path.join(deploy_dir, f"{stem}_population.npz"),
+                **npz_payload,
+            )
+
         print(f"  [{run_id:3d}/{total}] DEPLOY OK  seed={seed}  {reward}/{constraint}")
         return seed, key, df
 
@@ -440,35 +574,72 @@ def main():
     )
 
     # Seeds / combos
-    parser.add_argument("--seeds",      type=int, default=3)
+    parser.add_argument("--seeds",      type=int, default=5)
     parser.add_argument("--seed-list",  type=int, nargs="+", default=None)
     parser.add_argument("--reward",     type=str, default="all",
                         choices=["all", "utilitarian_profit", "social_welfare",
                                  "rawlsian_maximin", "fairness_lagrangian"])
     parser.add_argument("--constraint", type=str, default="all",
-                        choices=["all", "predictive", "social", "dm", "two_sided"])
+                        choices=["all", "predictive", "social", "eo", "dm", "two_sided"])
 
     # Training (performative env — IncomeEnvironment with PePG gradients)
     parser.add_argument("--train-episodes",  type=int,   default=500)
     parser.add_argument("--warmup",           type=int,   default=0)
     parser.add_argument("--lr",               type=float, default=1e-3)
-    parser.add_argument("--lambda-lr",        type=float, default=1e-2)
+    parser.add_argument("--lambda-lr",        type=float, default=1e-3)
+    parser.add_argument("--alpha-lr",         type=float, default=None,
+                        help="LR for the two_sided alpha blend weight. "
+                             "Defaults to lambda_lr/4 -- alpha is bounded in (0,1) "
+                             "and takes a normalised signal, so the rate that suits "
+                             "the unbounded lambdas saturates it.")
+    parser.add_argument("--entropy-coef",     type=float, default=1e-3,
+                        help="Exploration pressure on the shadow-rollout gradient. "
+                             "Matches pg_adapt.py's default so PG/PePG aren't "
+                             "compared under a hidden asymmetry.")
     parser.add_argument("--buffer-capacity",  type=int,   default=50)
+    # Ablations (loan_simulator/ablation.py; 1.0 = main campaign for both).
+    # Applied to BOTH phases so the policy is trained and deployed under the
+    # same ablated environment. Same flags/semantics as pg_adapt.py.
+    parser.add_argument("--performative-scale", type=float, default=1.0,
+                        help="Scale the population's response to decisions: multiplies "
+                             "the per-loan wealth gain kappa and the Hawkes excitation "
+                             "alpha in both environments (0 = non-performative).")
+    parser.add_argument("--wealth-gap-scale", type=float, default=1.0,
+                        help="Scale the INITIAL mean wealth gap mu_M - mu_F to this "
+                             "multiple of its empirical value, holding the population "
+                             "mean wealth and each group's distribution shape fixed.")
     parser.add_argument("--hawkes-weight",    type=float, default=1.0)
     parser.add_argument("--wealth-weight",    type=float, default=1.0)
     parser.add_argument("--transition-weight",type=float, default=1.0)
     parser.add_argument("--reward-weight",    type=float, default=1.0)
+    parser.add_argument("--lambda-wealth-override", type=float, default=None,
+                        help="Fix lambda_wealth at this value for the whole run (Phase 1 "
+                             "and deploy) instead of the reward function's usual init + "
+                             "learned dual ascent -- requires --freeze-lambda too, otherwise "
+                             "this only changes the starting value and dual ascent still "
+                             "adapts it away from here.")
+    parser.add_argument("--freeze-lambda", action="store_true",
+                        help="Disable the dual-ascent lambda update entirely -- lambda_wealth "
+                             "stays exactly at its init (--lambda-wealth-override, or the "
+                             "reward function's usual default if that's not set) for the "
+                             "whole run. For the frozen-lambda* sweep experiment; no normal "
+                             "campaign combo uses this.")
 
     # Deployment (TestingIncomeEnvironment)
-    parser.add_argument("--deploy-episodes",  type=int,   default=500)
+    parser.add_argument("--deploy-episodes",  type=int,   default=1000)
     parser.add_argument("--credit-threshold", type=float, default=0.5)
+    parser.add_argument("--population-snapshot-episodes", type=str, default="",
+                        help="Comma-separated episode numbers at which to snapshot "
+                             "current_X_male/female and loan_counts_M/F into the "
+                             "deploy population.npz, in addition to the final episode "
+                             "(e.g. '100,500,1000,1500,2000,2500,3000' for Lorenz curves).")
 
     # Architecture
     parser.add_argument("--hidden-dim", type=int, default=128)
 
     # Environment
-    parser.add_argument("--N-male",   type=int,   default=3000)
-    parser.add_argument("--N-female", type=int,   default=3000)
+    parser.add_argument("--N-male",   type=int,   default=12000)
+    parser.add_argument("--N-female", type=int,   default=12000)
     parser.add_argument("--T",        type=int,   default=100)
     parser.add_argument("--dt",       type=float, default=0.5)
 
@@ -517,6 +688,8 @@ def main():
     print(f"  Workers         : {args.workers}")
     print(f"  Population      : {args.N_male}M + {args.N_female}F")
     print(f"  Buffer capacity : {args.buffer_capacity}")
+    print(f"  Performative scale : {args.performative_scale}  (1.0 = main campaign)")
+    print(f"  Wealth-gap scale   : {args.wealth_gap_scale}  (1.0 = main campaign)")
     print(f"  Weights dir     : {args.weights_dir}")
     print(f"  Results dir     : {args.results_dir}")
     print("=" * 70)
@@ -550,18 +723,31 @@ def main():
                     "hidden_dim":       args.hidden_dim,
                     "lr":               args.lr,
                     "lambda_lr":        args.lambda_lr,
+                    "alpha_lr":         args.alpha_lr,
+                    "entropy_coef":     args.entropy_coef,
                     "buffer_capacity":  args.buffer_capacity,
                     "hawkes_weight":    args.hawkes_weight,
                     "wealth_weight":    args.wealth_weight,
                     "transition_weight":args.transition_weight,
                     "reward_weight":    args.reward_weight,
+                    "lambda_wealth_override": args.lambda_wealth_override,
+                    "freeze_lambda":    args.freeze_lambda,
+                    "performative_scale": args.performative_scale,
+                    "wealth_gap_scale":   args.wealth_gap_scale,
                     "data_filepath":    args.data,
                     "run_id":           len(train_configs) + 1,
                     "total_runs":       len(seeds) * len(combos),
                 })
 
         with mp.Pool(processes=args.workers) as pool:
-            train_results = pool.map(_train_worker, train_configs)
+            train_results = list(
+                tqdm(
+                    pool.imap(_train_worker, train_configs),
+                    total=len(train_configs),
+                    desc="Phase 1: training",
+                    unit="run",
+                )
+            )
 
         n_ok = sum(1 for r in train_results if r["success"])
         print(f"\n  Training done: {n_ok}/{len(train_configs)} successful")
@@ -615,12 +801,12 @@ def main():
     print("  Loading test data (once)…")
     test_loader = TestingAdultIncomeDataLoader(
         filepath=args.data,
-        sample_size=20000,
+        sample_size=SAMPLE_SIZE,
         credit_threshold=args.credit_threshold,
     )
     test_loader.load_data()
     test_loader.preprocess()
-    test_theta = TransitionParameterLearner(default_rate_min=0.14, default_rate_max=0.16)
+    test_theta = TransitionParameterLearner(default_rate_min=0.05, default_rate_max=0.25)
     test_theta.fit(test_loader.data)
     _male_X   = test_loader.male_data["X"].values
     _female_X = test_loader.female_data["X"].values
@@ -663,6 +849,9 @@ def main():
             "constraint_type":  constraint,
             "weights_path":     tr["weights_path"],
             "deploy_episodes":  args.deploy_episodes,
+            "population_snapshot_episodes": [
+                int(e) for e in args.population_snapshot_episodes.split(",") if e.strip()
+            ],
             "N_male":           args.N_male,
             "N_female":         args.N_female,
             "T":                args.T,
@@ -670,11 +859,18 @@ def main():
             "hidden_dim":       args.hidden_dim,
             "lr":               args.lr,
             "lambda_lr":        args.lambda_lr,
+            "alpha_lr":         args.alpha_lr,
+            "entropy_coef":     args.entropy_coef,
             "buffer_capacity":  args.buffer_capacity,
             "hawkes_weight":    args.hawkes_weight,
             "wealth_weight":    args.wealth_weight,
             "transition_weight":args.transition_weight,
             "reward_weight":    args.reward_weight,
+            "lambda_wealth_override": args.lambda_wealth_override,
+            "freeze_lambda":    args.freeze_lambda,
+            "performative_scale": args.performative_scale,
+            "wealth_gap_scale":   args.wealth_gap_scale,
+            "deploy_artifacts_dir": os.path.join(args.results_dir, "deploy_artifacts"),
             "theta":            test_theta,
             "male_X":           _male_X,
             "female_X":         _female_X,
@@ -689,7 +885,13 @@ def main():
     else:
         print(f"\n  Running {len(deploy_configs)} deploy workers ({n_loaded} already done)…")
         with mp.Pool(processes=args.workers) as pool:
-            for raw in pool.imap_unordered(_deploy_worker, deploy_configs):
+            deploy_iter = tqdm(
+                pool.imap_unordered(_deploy_worker, deploy_configs),
+                total=len(deploy_configs),
+                desc="Phase 2: deploying",
+                unit="run",
+            )
+            for raw in deploy_iter:
                 if raw is None:
                     continue
                 seed, key, df = raw
@@ -733,7 +935,10 @@ def main():
 
     if not args.no_plots:
         print("  Generating plots…")
-        for ct in ["predictive", "social", "dm", "two_sided"]:
+        # "predictive" isn't a combo dimension any more (VALID_COMBOS/
+        # PEPG_COMBOS only cover social/dm/two_sided) -- see the "combined"
+        # loop below, which already excludes it.
+        for ct in ["social", "eo", "dm", "two_sided"]:
             _plot_comparison(aggregated,     args.results_dir, timestamp, n_complete, ct)
             _plot_wealth(aggregated,         args.results_dir, timestamp, n_complete, ct)
             _plot_social_welfare(aggregated, args.results_dir, timestamp, n_complete, ct)
@@ -753,7 +958,7 @@ def main():
             mdf.to_csv(os.path.join(args.results_dir, f"train_mean_{key}_{timestamp}.csv"), index=False)
             sdf.to_csv(os.path.join(args.results_dir, f"train_std_{key}_{timestamp}.csv"), index=False)
         if not args.no_plots:
-            for ct in ["predictive", "social", "dm", "two_sided"]:
+            for ct in ["social", "eo", "dm", "two_sided"]:
                 plot_comparison_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
                 plot_wealth_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
                 plot_social_welfare_agg(train_aggregated, args.results_dir, timestamp, n_train_complete, ct, prefix="train_")
@@ -777,7 +982,7 @@ def main():
             mdf.to_csv(os.path.join(args.results_dir, f"combined_mean_{key}_{timestamp}.csv"), index=False)
             sdf.to_csv(os.path.join(args.results_dir, f"combined_std_{key}_{timestamp}.csv"), index=False)
         if not args.no_plots:
-            for ct in ["social", "dm", "two_sided"]:
+            for ct in ["social", "eo", "dm", "two_sided"]:
                 plot_comparison_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
                 plot_wealth_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)
                 plot_social_welfare_agg(combined_aggregated, args.results_dir, timestamp, n_combined, ct, prefix="combined_", boundary_episode=args.deploy_episodes)

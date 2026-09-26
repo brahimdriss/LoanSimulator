@@ -426,7 +426,7 @@ def main():
 
     print("\n[2] Fitting transition parameters…")
     theta_learner = TransitionParameterLearner(
-        default_rate_min=0.14, default_rate_max=0.16
+        default_rate_min=0.05, default_rate_max=0.25
     )
     theta_learner.fit(loader.data)
 

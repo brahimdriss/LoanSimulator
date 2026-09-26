@@ -7,9 +7,11 @@ from sklearn.preprocessing import StandardScaler
 class AdultIncomeDataLoader:
     """Load and preprocess Adult Income dataset (Census Bureau)."""
 
-    def __init__(self, filepath: str = None, sample_size: int = 50000):
+    def __init__(self, filepath: str = None, sample_size: int = 50000,
+                 credit_threshold: float = 0.5):
         self.filepath = filepath
         self.sample_size = sample_size
+        self.credit_threshold = credit_threshold
         self.data = None
         self.male_data = None
         self.female_data = None
@@ -191,6 +193,16 @@ class AdultIncomeDataLoader:
         df["creditworthiness"] = self._derive_creditworthiness_optimal(df)
         df["X"] = 10 + df["creditworthiness"] * 190
 
+        # Ground truth: approve if creditworthiness >= threshold. Same
+        # definition as TestingAdultIncomeDataLoader (which reuses this same
+        # creditworthiness column) -- computed here too so the static
+        # IncomeEnvironment (PG's Phase 1 train) has it available, not just
+        # the deploy/testing environment. Needed for equality-of-opportunity
+        # rewards to be trainable on the same objective in both phases.
+        df["ground_truth_approval"] = (
+            df["creditworthiness"] >= self.credit_threshold
+        ).astype(int)
+
         self.male_data = df[df["S"] == 1].reset_index(drop=True)
         self.female_data = df[df["S"] == 0].reset_index(drop=True)
 
@@ -198,6 +210,8 @@ class AdultIncomeDataLoader:
         print(f"Female applicants: {len(self.female_data)}")
         print(f"Male high-income rate: {self.male_data['approved'].mean():.3f}")
         print(f"Female high-income rate: {self.female_data['approved'].mean():.3f}")
+        print(f"Male ground truth approval rate: {self.male_data['ground_truth_approval'].mean():.3f}")
+        print(f"Female ground truth approval rate: {self.female_data['ground_truth_approval'].mean():.3f}")
 
         self.data = df
         return df

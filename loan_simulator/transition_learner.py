@@ -13,7 +13,7 @@ class TransitionParameterLearner:
         loan_amount_mean: float = 30.0,
         loan_amount_std: float = 10.0,
         investment_return_rate: float = 0.35,
-        interest_rate: float = 0.15,
+        interest_rate: float = 0.18,
     ):
         self.theta_S = None
         self.theta_X = None
@@ -93,25 +93,53 @@ class TransitionParameterLearner:
         self.sigma = data["X"].std()
 
     def initialize_individual_parameters(
-        self, N_male: int, N_female: int, seed: int = None
+        self, N_male: int, N_female: int, seed: int = None,
+        X_male: np.ndarray = None, X_female: np.ndarray = None,
     ):
         """PRE-GENERATE all individual parameters at simulation start.
 
-        Default outcomes are drawn from a Bernoulli distribution with
-        p = (default_rate_min + default_rate_max) / 2, producing binary
-        values in {0: not default, 1: default} for each individual.
+        Default probability is derived from each individual's creditworthiness
+        RANK (via X, which is already a monotonic function of creditworthiness
+        -- X = 10 + 190*sc_i, see data_loader.py -- so ranking by X is
+        equivalent to ranking by creditworthiness directly): the
+        lowest-creditworthiness individual gets default_rate_max, the
+        highest gets default_rate_min, linear in rank in between. Rank
+        (not raw score) is used specifically so the population MEAN default
+        probability is exactly (default_rate_min + default_rate_max) / 2
+        regardless of the population's creditworthiness distribution shape
+        -- preserves the existing calibration (pretrain ~8.5%, deploy ~15%
+        mean) exactly, only redistributes who carries the risk.
+
+        Without this, default risk was drawn i.i.d. Bernoulli, independent
+        of wealth/creditworthiness -- meaning no observable feature could
+        ever predict an individual's true risk, so no policy could learn to
+        be selective no matter how it was trained. X_male/X_female make
+        that correlation real; omit them only for legacy/no-population
+        callers (falls back to the previous population-uniform behaviour).
+
+        default_prob is now a genuine per-individual PROBABILITY (not a
+        pre-realized 0/1 latent outcome) -- matches how reward.py's
+        expected-value formulas already treat it, and gives a continuous,
+        learnable signal instead of a binary flag that only weakly shifts
+        which fraction of similar-creditworthiness individuals are marked
+        as guaranteed defaulters.
         """
         if seed is not None:
             np.random.seed(seed)
 
-        # Bernoulli parameter: midpoint of the configured default rate range
-        p_default = (self.default_rate_min + self.default_rate_max) / 2.0
-
-        for group, N in [("male", N_male), ("female", N_female)]:
-            # Bernoulli draw: 1 = defaulter, 0 = non-defaulter
-            self.individual_default_probs[group] = np.random.binomial(
-                1, p_default, N
-            ).astype(float)
+        for group, N, X in [
+            ("male", N_male, X_male), ("female", N_female, X_female)
+        ]:
+            if X is not None and len(X) == N:
+                ranks = np.argsort(np.argsort(X))  # 0 = lowest X (worst credit)
+                percentile = ranks / max(N - 1, 1)  # 0 (worst) .. 1 (best)
+                self.individual_default_probs[group] = (
+                    self.default_rate_max
+                    - (self.default_rate_max - self.default_rate_min) * percentile
+                )
+            else:
+                p_default = (self.default_rate_min + self.default_rate_max) / 2.0
+                self.individual_default_probs[group] = np.full(N, p_default)
 
             self.individual_loan_amounts[group] = np.clip(
                 np.random.normal(self.loan_amount_mean, self.loan_amount_std, N),
